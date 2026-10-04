@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge %}
+{% block title %}Employee Review - {{ c.complaint_number }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div>
+        <a class="btn btn-outline-secondary btn-sm mb-2" href="/employee/dashboard">&larr; Back to Dashboard</a>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="h3 fw-bold mb-0 text-primary font-monospace">{{ c.complaint_number }}</h1>
+          {{ status_badge(c.status) }}
+          {% if a %}{{ priority_badge(a.priority) }}{% endif %}
+        </div>
+      </div>
+      <div class="text-muted small text-end">
+        <div><strong>Submitted:</strong> {{ c.created_at | dt }}</div>
+        <div><strong>Department:</strong> {{ a.assigned_department if a else '–' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Student & Complaint Information</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-2 mb-3 small bg-light p-3 rounded">
+          <div class="col-sm-6"><strong>Student Name:</strong> {{ c.student_name }}</div>
+          <div class="col-sm-6"><strong>Student ID:</strong> {{ c.student_id or '–' }}</div>
+          <div class="col-sm-6"><strong>Email:</strong> {{ c.email or '–' }}</div>
+          <div class="col-sm-6"><strong>Program:</strong> {{ c.class_or_program or '–' }}</div>
+        </div>
+
+        <h3 class="h6 fw-bold mb-1">{{ c.title }}</h3>
+        {% if c.subject %}<div class="badge bg-light text-dark border mb-3">Subject: {{ c.subject }}</div>{% endif %}
+
+        <div class="mb-3">
+          <label class="form-label text-muted small fw-semibold text-uppercase">Complaint Statement</label>
+          <div class="p-3 bg-light rounded-3 border original-text">{{ c.complaint_text }}</div>
+        </div>
+
+        {% if a and a.suggested_action %}
+          <div class="p-3 bg-info-subtle text-info-emphasis rounded-3 border border-info-subtle small mb-3">
+            <strong><i class="bi bi-lightbulb me-1"></i>Recommended Action:</strong> {{ a.suggested_action }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <!-- Staff Action Card -->
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>Staff Update</h2>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/employee/complaints/{{ c.id }}/update">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="statusSelect">Update Status</label>
+            <select class="form-select" id="statusSelect" name="status">
+              <option value="IN_PROGRESS" {% if c.status == 'IN_PROGRESS' %}selected{% endif %}>IN PROGRESS</option>
+              <option value="WAITING_FOR_STUDENT" {% if c.status == 'WAITING_FOR_STUDENT' %}selected{% endif %}>WAITING FOR STUDENT</option>
+              <option value="RESOLVED" {% if c.status == 'RESOLVED' %}selected{% endif %}>RESOLVED</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="noteText">Internal Department Note</label>
+            <textarea class="form-control" id="noteText" name="note" rows="3" placeholder="Add actions taken by department...">{{ c.internal_notes or '' }}</textarea>
+            <div class="form-text small">Internal tracking notes.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="bi bi-check2-circle me-1"></i>Save Update
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

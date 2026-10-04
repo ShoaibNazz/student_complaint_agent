@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}User Management - Admin Portal{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+      <div>
+        <h1 class="h3 fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>User Management</h1>
+        <p class="text-muted small mb-0">Registered portal accounts across all student, staff, and faculty roles.</p>
+      </div>
+      <div>
+        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm border-0 rounded-3 bg-white">
+      <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h2 class="h6 fw-bold mb-0">Total Registered Users: {{ users|length }}</h2>
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary">Students</span>
+          <span class="badge bg-secondary">Employees</span>
+          <span class="badge bg-info">Professors</span>
+          <span class="badge bg-dark">Admins</span>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Official Role ID</th>
+              <th>Department / Program</th>
+              <th>Status</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+              <tr>
+                <td>{{ u.id }}</td>
+                <td class="fw-semibold">{{ u.full_name }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                  {% if u.role == 'ADMIN' %}
+                    <span class="badge bg-dark">ADMIN</span>
+                  {% elif u.role == 'PROFESSOR' %}
+                    <span class="badge bg-info text-dark">PROFESSOR</span>
+                  {% elif u.role == 'EMPLOYEE' %}
+                    <span class="badge bg-secondary">EMPLOYEE</span>
+                  {% else %}
+                    <span class="badge bg-primary">STUDENT</span>
+                  {% endif %}
+                </td>
+                <td class="font-monospace fw-semibold">{{ u.identifier }}</td>
+                <td>{{ u.program or u.department or '–' }}</td>
+                <td>
+                  {% if u.is_active %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ u.created_at | dt }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No users registered yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

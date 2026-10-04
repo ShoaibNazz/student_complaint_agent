@@ -1,0 +1,28 @@
+{
+  "default_department": "Administration Office",
+  "category_to_department": {
+    "Academic": "Academic Department",
+    "Examination": "Examination Department",
+    "Teacher / Faculty": "Academic Department",
+    "Administration": "Administration Office",
+    "Fees / Finance": "Accounts Department",
+    "Admission": "Admissions Department",
+    "Attendance": "Academic Administration",
+    "Transport": "Transport Department",
+    "Hostel": "Hostel Administration",
+    "IT / Portal / LMS": "IT Department",
+    "Library": "Library Department",
+    "Facilities / Maintenance": "Administration / Maintenance",
+    "Security": "Security / Student Affairs",
+    "Harassment / Bullying": "Student Affairs / Designated Safeguarding Officer",
+    "Discrimination": "Student Affairs / Administration",
+    "Health / Safety": "Administration / Health & Safety Officer",
+    "Discipline": "Student Affairs",
+    "Student Affairs": "Student Affairs",
+    "Results / Marks": "Examination Department",
+    "Other": "Administration Office"
+  },
+  "subcategory_overrides": {
+    "Academic::Assessment Marks": "Examination Department"
+  }
+}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge %}
+{% block title %}Admin dashboard{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Complaints dashboard</h1>
+<div class="row g-3 mb-4">
+  {% for label, value, cls in [
+    ('Total Complaints', stats.total, 'text-bg-light'),
+    ('New Complaints', stats.new, 'text-bg-primary'),
+    ('Critical', stats.critical, 'text-bg-danger'),
+    ('High Priority', stats.high, 'text-bg-warning'),
+    ('Requires Human Review', stats.requires_human_review, 'text-bg-dark'),
+    ('Resolved', stats.resolved, 'text-bg-success'),
+    ('Pending', stats.pending, 'text-bg-info')] %}
+  <div class="col-6 col-md-4 col-xl"><div class="card {{ cls }} h-100 shadow-sm"><div class="card-body py-3">
+    <div class="small text-uppercase opacity-75">{{ label }}</div><div class="display-6">{{ value }}</div></div></div></div>
+  {% endfor %}
+</div>
+{% if stats.analysis_failed %}<div class="alert alert-warning">{{ stats.analysis_failed }} complaint(s) have failed AI analysis and were triaged by rules only. Open them and use <strong>Retry analysis</strong>.</div>{% endif %}
+{% for e in errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+
+<form class="card card-body mb-3 shadow-sm" method="get" action="/admin">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label small">Search</label><input class="form-control" name="q" value="{{ f.q }}" placeholder="Title, text, name, CMP-..."></div>
+    <div class="col-md-2"><label class="form-label small">Priority</label><select class="form-select" name="priority"><option value="">Any</option>{% for p in priorities %}<option {% if f.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label small">Category</label><select class="form-select" name="category"><option value="">Any</option>{% for n in categories.names %}<option {% if f.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label small">Status</label><select class="form-select" name="status"><option value="">Any</option><option value="OPEN" {% if f.status == 'OPEN' %}selected{% endif %}>OPEN (unfinished)</option>{% for s in statuses %}<option {% if f.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="review" value="1" id="rv" {% if f.review == '1' %}checked{% endif %}><label class="form-check-label small" for="rv">Needs human review</label></div></div>
+    <div class="col-md-1"><button class="btn btn-primary w-100">Filter</button></div>
+  </div>
+</form>
+
+<div class="card shadow-sm"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+  <thead class="table-light"><tr><th>Complaint #</th><th>Student</th><th>Title</th><th>Category</th><th>Priority</th><th>Department</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
+  <tbody>
+  {% for c in complaints %}
+    <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}table-danger{% endif %}">
+      <td class="text-nowrap">{{ c.complaint_number }}{% if c.possible_duplicate %} <span class="badge bg-secondary" title="Possible duplicate">dup?</span>{% endif %}</td>
+      <td>{{ c.student_name }}</td>
+      <td>{{ c.title }}</td>
+      <td>{% if c.analysis %}{{ c.analysis.category }}{% else %}&ndash;{% endif %}</td>
+      <td>{% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% if c.analysis.requires_human_review %} <span class="badge text-bg-dark" title="Requires human review">&#128065; review</span>{% endif %}{% endif %}</td>
+      <td>{% if c.analysis %}{{ c.analysis.assigned_department }}{% endif %}</td>
+      <td>{{ status_badge(c.status) }}{% if c.analysis_status == 'FAILED' %} <span class="badge bg-warning text-dark">AI failed</span>{% endif %}</td>
+      <td class="text-nowrap">{{ c.created_at | dt }}</td>
+      <td><a class="btn btn-sm btn-outline-primary" href="/admin/complaints/{{ c.id }}">Open</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="text-center text-muted py-4">No complaints found.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+<p class="text-muted small mt-2">Showing {{ complaints|length }} of {{ total }} &middot; sorted by priority, then newest.</p>
+{% endblock %}

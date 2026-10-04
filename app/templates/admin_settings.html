@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}System Settings - Admin Portal{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+      <div>
+        <h1 class="h3 fw-bold mb-1"><i class="bi bi-gear-fill text-primary me-2"></i>System Configuration & AI Settings</h1>
+        <p class="text-muted small mb-0">Active triage policies, AI backend configuration, and university thresholds.</p>
+      </div>
+      <div>
+        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-cpu me-2 text-primary"></i>AI Engine Configuration</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">AI Provider</label>
+            <div class="form-control-plaintext font-monospace fw-bold text-primary">{{ settings.ai_provider }}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">Model Identifier</label>
+            <div class="form-control-plaintext font-monospace">{{ settings.model_name }}</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">Low Confidence Threshold</label>
+            <div class="form-control-plaintext font-monospace">{{ settings.low_confidence_threshold * 100 }}% (Triggers Human Review)</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">Duplicate Detection Threshold</label>
+            <div class="form-control-plaintext font-monospace">{{ settings.duplicate_threshold * 100 }}% Similarity</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">Duplicate Window</label>
+            <div class="form-control-plaintext">{{ settings.duplicate_window_days }} days</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small text-muted">Admin Account Creation Secret</label>
+            <div class="form-control-plaintext font-monospace text-muted">Protected via environment token</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3 bg-white">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-shield-check me-2 text-success"></i>Security & Access Controls</h2>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-unstyled mb-0 small text-muted">
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Role-Based Access Control (RBAC):</strong> Active for Student, Employee, Professor, and Admin.</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>IDOR Protection:</strong> Backend guarantees students only access their own submissions.</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Password Hashing:</strong> PBKDF2-HMAC-SHA256 with 100,000 rounds and random salts.</li>
+          <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Signed Session Tokens:</strong> HMAC-SHA256 authenticated cookies with HTTP-only and SameSite flags.</li>
+          <li><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Anti-Impersonation:</strong> Registration verified against official university roster.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 rounded-3 bg-white">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>System Info</h2>
+      </div>
+      <div class="card-body p-4 small">
+        <div class="mb-2"><strong>Application:</strong> {{ settings.app_name }}</div>
+        <div class="mb-2"><strong>Environment:</strong> Production / Local</div>
+        <div class="mb-2"><strong>Database:</strong> SQLite / SQLAlchemy</div>
+        <div><strong>Config Directory:</strong> <code class="small">{{ settings.config_dir }}</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% macro priority_badge(p) -%}
+{%- if p == 'CRITICAL' %}<span class="badge bg-danger badge-critical">&#9888; CRITICAL</span>
+{%- elif p == 'HIGH' %}<span class="badge bg-warning text-dark">HIGH</span>
+{%- elif p == 'MEDIUM' %}<span class="badge bg-info text-dark">MEDIUM</span>
+{%- elif p == 'LOW' %}<span class="badge bg-secondary">LOW</span>
+{%- else %}<span class="badge bg-light text-dark border">&ndash;</span>{% endif -%}
+{%- endmacro %}
+
+{% macro status_badge(s) -%}
+{%- if s == 'NEW' %}<span class="badge bg-primary">NEW</span>
+{%- elif s == 'UNDER_REVIEW' %}<span class="badge bg-warning text-dark">UNDER REVIEW</span>
+{%- elif s == 'ASSIGNED' %}<span class="badge bg-info text-dark">ASSIGNED</span>
+{%- elif s == 'IN_PROGRESS' %}<span class="badge bg-primary-subtle text-primary-emphasis border border-primary">IN PROGRESS</span>
+{%- elif s == 'WAITING_FOR_STUDENT' %}<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">WAITING FOR STUDENT</span>
+{%- elif s == 'RESOLVED' %}<span class="badge bg-success">&#10003; RESOLVED</span>
+{%- elif s == 'CLOSED' %}<span class="badge bg-dark">CLOSED</span>
+{%- elif s == 'REJECTED' %}<span class="badge bg-danger">REJECTED</span>
+{%- else %}<span class="badge bg-secondary">{{ s | replace('_', ' ') }}</span>{% endif -%}
+{%- endmacro %}
+
+{% macro role_badge(r) -%}
+{%- if r == 'STUDENT' %}<span class="badge uni-badge-student">Student</span>
+{%- elif r == 'EMPLOYEE' %}<span class="badge uni-badge-employee">Employee</span>
+{%- elif r == 'PROFESSOR' %}<span class="badge uni-badge-professor">Professor</span>
+{%- elif r == 'ADMIN' %}<span class="badge uni-badge-admin">Admin</span>
+{%- else %}<span class="badge bg-secondary">{{ r }}</span>{% endif -%}
+{%- endmacro %}

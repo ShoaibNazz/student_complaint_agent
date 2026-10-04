@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge %}
+{% block title %}{{ c.complaint_number }}{% endblock %}
+{% block content %}
+<a href="/admin" class="small">&larr; Back to dashboard</a>
+<div class="d-flex flex-wrap align-items-center gap-2 my-2">
+  <h1 class="h3 mb-0">{{ c.complaint_number }}</h1>
+  {% if a %}{{ priority_badge(a.priority) }}{% endif %}{{ status_badge(c.status) }}
+</div>
+{% if saved %}<div class="alert alert-success">Changes saved.</div>{% endif %}
+{% for e in errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
+{% if c.analysis_status == 'FAILED' %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <span><strong>AI analysis failed.</strong> Rule-based triage was applied and the complaint needs manual review. {{ a.analysis_error if a else '' }}</span>
+    <form method="post" action="/admin/complaints/{{ c.id }}/analyze"><button class="btn btn-sm btn-warning">Retry analysis</button></form>
+  </div>
+{% endif %}
+{% if a and a.priority == 'CRITICAL' %}<div class="alert alert-danger"><strong>&#9888; Urgent human review required.</strong> This system does not make emergency, legal or disciplinary decisions. Follow your institution's emergency procedure.</div>{% endif %}
+{% if a and a.requires_human_review %}<div class="alert alert-dark"><strong>Human review required:</strong> {{ a.human_review_reason }}</div>{% endif %}
+{% if a and a.category_confidence < threshold %}<div class="alert alert-info">Low-confidence AI classification. Manual review recommended.</div>{% endif %}
+{% if c.possible_duplicate and duplicate %}<div class="alert alert-secondary">Possible duplicate of <a href="/admin/complaints/{{ duplicate.id }}">{{ duplicate.complaint_number }}</a> (not merged or deleted).</div>{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3"><div class="card-header">Student information</div>
+      <dl class="row mb-0 p-3 small">
+        <dt class="col-4">Name</dt><dd class="col-8">{{ c.student_name }}</dd>
+        <dt class="col-4">Student ID</dt><dd class="col-8">{{ c.student_id or '–' }}</dd>
+        <dt class="col-4">Email</dt><dd class="col-8">{{ c.email or '–' }}</dd>
+        <dt class="col-4">Phone</dt><dd class="col-8">{{ c.phone or '–' }}</dd>
+        <dt class="col-4">Class / Program</dt><dd class="col-8">{{ c.class_or_program or '–' }}</dd>
+        <dt class="col-4">Subject</dt><dd class="col-8">{{ c.subject or '–' }}</dd>
+        <dt class="col-4">Submitted</dt><dd class="col-8">{{ c.created_at | dt }} UTC</dd>
+      </dl></div>
+    <div class="card shadow-sm mb-3"><div class="card-header">Original complaint (never modified)</div>
+      <div class="card-body"><h2 class="h6">{{ c.title }}</h2><div class="original-text">{{ c.complaint_text }}</div></div></div>
+    {% if a %}
+    <div class="card shadow-sm mb-3"><div class="card-header">AI analysis <span class="text-muted small">({{ a.ai_model_used }} &middot; {{ a.analyzed_at | dt }} UTC)</span></div>
+      <dl class="row mb-0 p-3 small">
+        <dt class="col-4">Summary</dt><dd class="col-8">{{ a.summary }}</dd>
+        <dt class="col-4">Category</dt><dd class="col-8">{{ a.category }} / {{ a.subcategory }}</dd>
+        <dt class="col-4">Confidence</dt><dd class="col-8">{{ '%.0f' % (a.category_confidence * 100) }}%</dd>
+        <dt class="col-4">Priority</dt><dd class="col-8">{{ priority_badge(a.priority) }} ({{ a.priority_score }}) &ndash; {{ a.priority_reason }}</dd>
+        <dt class="col-4">Department</dt><dd class="col-8">{{ a.assigned_department }}<br><span class="text-muted">{{ a.routing_reason }}</span></dd>
+        <dt class="col-4">Human review</dt><dd class="col-8">{{ 'Yes' if a.requires_human_review else 'No' }}</dd>
+        <dt class="col-4">Recommended action</dt><dd class="col-8">{{ a.suggested_action }}</dd>
+        <dt class="col-4">Tags</dt><dd class="col-8">{% for t in a.tags %}<span class="badge bg-light text-dark border">{{ t }}</span> {% endfor %}</dd>
+      </dl>
+      <div class="card-footer"><form method="post" action="/admin/complaints/{{ c.id }}/analyze" data-confirm="Re-run the AI analysis? AI fields and the draft will be replaced (history is kept)."><button class="btn btn-sm btn-outline-secondary">Re-run analysis</button></form></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-6">
+    {% if a %}
+    <form method="post" action="/admin/complaints/{{ c.id }}" class="card shadow-sm mb-3">
+      <div class="card-header">Administrator review</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-6"><label class="form-label small">Category</label>
+            <select class="form-select" name="category">{% for n in categories.names %}<option {% if a.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
+          <div class="col-md-6"><label class="form-label small">Subcategory</label>
+            <input class="form-control" name="subcategory" list="subs" maxlength="120" value="{{ a.subcategory or '' }}">
+            <datalist id="subs">{% for s in categories.subcategory_names(a.category) %}<option value="{{ s }}">{% endfor %}</datalist></div>
+          <div class="col-md-6"><label class="form-label small">Department</label>
+            <select class="form-select" name="department">{% if a.assigned_department not in departments %}<option selected>{{ a.assigned_department }}</option>{% endif %}{% for d in departments %}<option {% if a.assigned_department == d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
+          <div class="col-md-3"><label class="form-label small">Priority</label>
+            <select class="form-select" name="priority">{% for p in priorities %}<option {% if a.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+          <div class="col-md-3"><label class="form-label small">Status</label>
+            <select class="form-select" name="status">{% for s in statuses %}<option {% if c.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
+        </div>
+        <label class="form-label small mt-3">Draft response (edit before sending &ndash; never sent automatically)</label>
+        <textarea class="form-control" name="draft_response" rows="12" maxlength="5000">{{ a.draft_response }}</textarea>
+        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="approved" value="1" id="appr" {% if a.response_approved %}checked{% endif %}>
+          <label class="form-check-label small" for="appr">I have reviewed and approve this response</label></div>
+        <label class="form-label small mt-3">Internal notes (not visible to the student)</label>
+        <textarea class="form-control" name="internal_notes" rows="4" maxlength="5000">{{ c.internal_notes or '' }}</textarea>
+      </div>
+      <div class="card-footer"><button class="btn btn-primary">Save changes</button></div>
+    </form>
+    {% endif %}
+    <div class="card shadow-sm"><div class="card-header">Complaint history</div>
+      <div class="table-responsive"><table class="table table-sm small mb-0">
+        <thead><tr><th>When (UTC)</th><th>Action</th><th>From</th><th>To</th><th>By</th></tr></thead>
+        <tbody>{% for h in c.history | reverse %}<tr><td class="text-nowrap">{{ h.timestamp | dt }}</td><td>{{ h.action }}</td><td class="hist">{{ h.previous_value or '' }}</td><td class="hist">{{ h.new_value or '' }}</td><td>{{ h.performed_by }}</td></tr>{% endfor %}</tbody>
+      </table></div></div>
+  </div>
+</div>
+{% endblock %}

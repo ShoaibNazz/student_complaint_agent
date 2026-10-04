@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge %}
+{% block title %}Faculty Review - {{ c.complaint_number }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div>
+        <a class="btn btn-outline-secondary btn-sm mb-2" href="/professor/dashboard">&larr; Back to Dashboard</a>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="h3 fw-bold mb-0 text-primary font-monospace">{{ c.complaint_number }}</h1>
+          {{ status_badge(c.status) }}
+          {% if a %}{{ priority_badge(a.priority) }}{% endif %}
+        </div>
+      </div>
+      <div class="text-muted small text-end">
+        <div><strong>Submitted:</strong> {{ c.created_at | dt }}</div>
+        <div><strong>Program:</strong> {{ c.class_or_program or '–' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-mortarboard me-2 text-primary"></i>Student & Course Information</h2>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-2 mb-3 small bg-light p-3 rounded">
+          <div class="col-sm-6"><strong>Student Name:</strong> {{ c.student_name }}</div>
+          <div class="col-sm-6"><strong>Student ID:</strong> {{ c.student_id or '–' }}</div>
+          <div class="col-sm-6"><strong>Program / Class:</strong> {{ c.class_or_program or '–' }}</div>
+          <div class="col-sm-6"><strong>Subject / Course:</strong> {{ c.subject or '–' }}</div>
+        </div>
+
+        <h3 class="h6 fw-bold mb-1">{{ c.title }}</h3>
+
+        <div class="mb-3">
+          <label class="form-label text-muted small fw-semibold text-uppercase">Student's Statement</label>
+          <div class="p-3 bg-light rounded-3 border original-text">{{ c.complaint_text }}</div>
+        </div>
+
+        {% if a and a.summary %}
+          <div class="mb-3">
+            <label class="form-label text-muted small fw-semibold text-uppercase">AI Summary</label>
+            <div class="p-3 bg-primary-subtle text-primary-emphasis rounded-3 border border-primary-subtle small">{{ a.summary }}</div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-pencil-square me-2 text-primary"></i>Faculty Status Update</h2>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/professor/complaints/{{ c.id }}/update">
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="statusSelect">Update Academic Status</label>
+            <select class="form-select" id="statusSelect" name="status">
+              <option value="UNDER_REVIEW" {% if c.status == 'UNDER_REVIEW' %}selected{% endif %}>UNDER REVIEW</option>
+              <option value="IN_PROGRESS" {% if c.status == 'IN_PROGRESS' %}selected{% endif %}>IN PROGRESS</option>
+              <option value="WAITING_FOR_STUDENT" {% if c.status == 'WAITING_FOR_STUDENT' %}selected{% endif %}>WAITING FOR STUDENT</option>
+              <option value="RESOLVED" {% if c.status == 'RESOLVED' %}selected{% endif %}>RESOLVED</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="noteText">Academic Review Note</label>
+            <textarea class="form-control" id="noteText" name="note" rows="3" placeholder="Add academic evaluation or note...">{{ c.internal_notes or '' }}</textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="bi bi-check2-circle me-1"></i>Save Faculty Feedback
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

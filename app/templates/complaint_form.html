@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Submit a complaint{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8">
+{% if submitted %}
+  <div class="alert alert-success">
+    <h4 class="alert-heading">Your complaint has been received.</h4>
+    <p class="mb-1">Your reference number is:</p>
+    <p class="display-6 fw-bold mb-2">{{ submitted }}</p>
+    <p class="mb-0">Please keep this number. Our team will review your complaint and contact you through official channels.</p>
+  </div>
+  <a class="btn btn-outline-primary" href="/submit">Submit another complaint</a>
+{% else %}
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <h2 class="h4 mb-1">Submit a complaint</h2>
+    <p class="text-muted">Describe the issue clearly. If you or someone else is in immediate danger, contact campus security or emergency services right away &ndash; this form is not monitored in real time.</p>
+    {% if errors %}<div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+    <form method="post" action="/submit">
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label" for="student_name">Name *</label>
+          <input class="form-control" id="student_name" name="student_name" maxlength="120" required value="{{ values.student_name or '' }}"></div>
+        <div class="col-md-6"><label class="form-label" for="student_id">Student ID{% if settings.require_student_id %} *{% endif %}</label>
+          <input class="form-control" id="student_id" name="student_id" maxlength="60" {% if settings.require_student_id %}required{% endif %} value="{{ values.student_id or '' }}"></div>
+        <div class="col-md-6"><label class="form-label" for="email">Email{% if settings.require_email %} *{% endif %}</label>
+          <input class="form-control" type="email" id="email" name="email" maxlength="254" {% if settings.require_email %}required{% endif %} value="{{ values.email or '' }}"></div>
+        <div class="col-md-6"><label class="form-label" for="class_or_program">Class / Program</label>
+          <input class="form-control" id="class_or_program" name="class_or_program" maxlength="120" value="{{ values.class_or_program or '' }}"></div>
+        <div class="col-12"><label class="form-label" for="subject">Subject</label>
+          <input class="form-control" id="subject" name="subject" maxlength="120" value="{{ values.subject or '' }}"></div>
+        <div class="col-12"><label class="form-label" for="complaint_title">Complaint title *</label>
+          <input class="form-control" id="complaint_title" name="complaint_title" minlength="3" maxlength="200" required value="{{ values.complaint_title or '' }}"></div>
+        <div class="col-12"><label class="form-label" for="complaint_text">Complaint description *</label>
+          <textarea class="form-control" id="complaint_text" name="complaint_text" rows="7" maxlength="5000" required data-counter="char-count">{{ values.complaint_text or '' }}</textarea>
+          <div class="form-text"><span id="char-count">0</span> / 5000 characters</div></div>
+      </div>
+      <button class="btn btn-primary mt-4" type="submit">Submit Complaint</button>
+    </form>
+  </div></div>
+{% endif %}
+</div></div>
+{% endblock %}

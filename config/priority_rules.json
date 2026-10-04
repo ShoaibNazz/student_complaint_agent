@@ -1,0 +1,59 @@
+{
+  "default_priority": "MEDIUM",
+  "category_base": {
+    "Academic": "MEDIUM",
+    "Examination": "MEDIUM",
+    "Teacher / Faculty": "MEDIUM",
+    "Administration": "LOW",
+    "Fees / Finance": "MEDIUM",
+    "Admission": "MEDIUM",
+    "Attendance": "MEDIUM",
+    "Transport": "MEDIUM",
+    "Hostel": "MEDIUM",
+    "IT / Portal / LMS": "MEDIUM",
+    "Library": "LOW",
+    "Facilities / Maintenance": "LOW",
+    "Security": "HIGH",
+    "Harassment / Bullying": "HIGH",
+    "Discrimination": "HIGH",
+    "Health / Safety": "HIGH",
+    "Discipline": "MEDIUM",
+    "Student Affairs": "LOW",
+    "Results / Marks": "MEDIUM",
+    "Other": "LOW"
+  },
+  "high_patterns": [
+    {
+      "id": "score_discrepancy",
+      "regex": "\\b(shows?|showing|got|received|given|gave|says?)\\b[^.]{0,40}\\b\\d{1,3}\\b[^.]{0,60}\\b(but|however|while)\\b[^.]{0,80}\\b\\d{1,3}\\b",
+      "reason": "The complaint describes a discrepancy in recorded marks, which may affect the student's academic record."
+    },
+    {
+      "id": "repeated_issue",
+      "regex": "\\b(repeatedly|several times|multiple times|again and again|third time|second time|no response|never (replied|responded)|nobody (has )?(responded|replied)|still (not|no) (resolved|fixed|responded))\\b",
+      "reason": "The complaint indicates a repeated or unresolved issue."
+    },
+    {
+      "id": "exam_deadline",
+      "regex": "\\b(exam|examination|paper|test)s?\\b[^.]{0,30}\\b(tomorrow|today|next week|this week|in (two|three|\\d+) days)\\b",
+      "reason": "An examination deadline is approaching and the issue may affect the student."
+    },
+    {
+      "id": "exam_blocked",
+      "regex": "\\b(not allowed|barred|blocked|denied)\\b[^.]{0,30}\\b(exam|examination|paper|sit)\\b",
+      "reason": "The student reports being prevented from sitting an examination."
+    },
+    {
+      "id": "major_financial",
+      "regex": "\\b(double|wrongly|incorrectly)\\s+(charged|deducted)\\b|\\bscholarship\\b[^.]{0,20}\\b(cancel\\w*|withheld|stopp\\w*)\\b",
+      "reason": "The complaint describes a significant financial problem."
+    }
+  ],
+  "low_patterns": [
+    {
+      "id": "suggestion",
+      "regex": "\\b(suggest\\w*|recommend\\w*|would like to know|just wondering|general (query|question|information))\\b",
+      "reason": "The message appears to be a suggestion or non-urgent information request."
+    }
+  ]
+}

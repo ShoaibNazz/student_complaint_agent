@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}User Profile - University Complaint Portal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      {% if current_user.role == 'STUDENT' %}
+        <a class="btn btn-outline-secondary btn-sm" href="/student/dashboard">&larr; Back to Dashboard</a>
+      {% elif current_user.role == 'EMPLOYEE' %}
+        <a class="btn btn-outline-secondary btn-sm" href="/employee/dashboard">&larr; Back to Dashboard</a>
+      {% elif current_user.role == 'PROFESSOR' %}
+        <a class="btn btn-outline-secondary btn-sm" href="/professor/dashboard">&larr; Back to Dashboard</a>
+      {% else %}
+        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+      {% endif %}
+      <span class="badge bg-primary px-3 py-2 text-uppercase">{{ current_user.role }}</span>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center gap-3">
+        <div class="p-3 bg-primary-subtle rounded-circle text-primary">
+          <i class="bi bi-person-circle fs-3"></i>
+        </div>
+        <div>
+          <h1 class="h4 fw-bold mb-0 text-dark">{{ current_user.full_name }}</h1>
+          <div class="text-muted small">
+            Official University Identity: <span class="fw-semibold text-primary font-monospace">{{ current_user.identifier }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-person-vcard me-2"></i>Account Details</h2>
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Full Name</div>
+              <div class="fw-semibold">{{ current_user.full_name }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Email Address</div>
+              <div class="fw-semibold">{{ current_user.email }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Account Type / Role</div>
+              <div class="fw-semibold"><span class="badge bg-secondary">{{ current_user.role }}</span></div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Role ID</div>
+              <div class="fw-semibold font-monospace text-primary">{{ current_user.identifier }}</div>
+            </div>
+          </div>
+
+          {% if current_user.program %}
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Degree / Program</div>
+              <div class="fw-semibold">{{ current_user.program }}</div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if current_user.department %}
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Assigned Department</div>
+              <div class="fw-semibold">{{ current_user.department }}</div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Account Status</div>
+              <div class="fw-semibold text-success"><i class="bi bi-check-circle-fill me-1"></i>Active & Verified</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">Member Since</div>
+              <div class="fw-semibold">{{ current_user.created_at | dt if current_user.created_at else 'Active' }}</div>
+            </div>
+          </div>
+        </div>
+
+        {% if stats %}
+        <hr class="my-4">
+        <h2 class="h6 fw-bold text-uppercase text-muted mb-3"><i class="bi bi-bar-chart me-2"></i>Activity Overview</h2>
+        <div class="row g-3">
+          <div class="col-sm-3 col-6">
+            <div class="p-3 bg-primary-subtle text-center rounded border border-primary-subtle">
+              <div class="small fw-semibold text-primary">Total</div>
+              <div class="fs-4 fw-bold text-primary">{{ stats.total }}</div>
+            </div>
+          </div>
+          <div class="col-sm-3 col-6">
+            <div class="p-3 bg-warning-subtle text-center rounded border border-warning-subtle">
+              <div class="small fw-semibold text-warning-emphasis">Pending / Review</div>
+              <div class="fs-4 fw-bold text-warning-emphasis">{{ stats.under_review if stats.under_review is defined else stats.pending }}</div>
+            </div>
+          </div>
+          <div class="col-sm-3 col-6">
+            <div class="p-3 bg-info-subtle text-center rounded border border-info-subtle">
+              <div class="small fw-semibold text-info-emphasis">In Progress</div>
+              <div class="fs-4 fw-bold text-info-emphasis">{{ stats.in_progress }}</div>
+            </div>
+          </div>
+          <div class="col-sm-3 col-6">
+            <div class="p-3 bg-success-subtle text-center rounded border border-success-subtle">
+              <div class="small fw-semibold text-success">Resolved</div>
+              <div class="fs-4 fw-bold text-success">{{ stats.resolved }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

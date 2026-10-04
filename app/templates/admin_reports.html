@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}System Reports - Admin Portal{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+      <div>
+        <h1 class="h3 fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph-fill text-primary me-2"></i>Complaints & System Reports</h1>
+        <p class="text-muted small mb-0">High-level triage summaries, SLA health, and department workload reports.</p>
+      </div>
+      <div>
+        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 rounded-3 bg-white h-100">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Status Distribution</h2>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Total Logged Complaints</span>
+            <span class="badge bg-primary fs-6">{{ stats.total }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>New (Unprocessed)</span>
+            <span class="badge bg-info text-dark fs-6">{{ stats.new }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Pending Resolution</span>
+            <span class="badge bg-warning text-dark fs-6">{{ stats.pending }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Successfully Resolved</span>
+            <span class="badge bg-success fs-6">{{ stats.resolved }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Human Review Required</span>
+            <span class="badge bg-dark fs-6">{{ stats.requires_human_review }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm border-0 rounded-3 bg-white h-100">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h6 fw-bold mb-0"><i class="bi bi-exclamation-octagon-fill me-2 text-danger"></i>Priority Breakdown</h2>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Critical Severity (Threats / Safety)</span>
+            <span class="badge bg-danger fs-6">{{ stats.critical }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>High Priority (Academic / Marks)</span>
+            <span class="badge bg-warning text-dark fs-6">{{ stats.high }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Rule-Based / AI Triage Failures</span>
+            <span class="badge bg-secondary fs-6">{{ stats.analysis_failed }}</span>
+          </li>
+        </ul>
+        <div class="mt-4 p-3 bg-light rounded text-muted small">
+          <i class="bi bi-shield-check text-success me-1"></i>System SLA target: &lt;48h response for High/Critical tickets.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

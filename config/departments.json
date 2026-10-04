@@ -1,0 +1,68 @@
+{
+  "departments": [
+    {
+      "name": "Academic Department",
+      "description": "Handles complaints routed to the Academic Department."
+    },
+    {
+      "name": "Examination Department",
+      "description": "Handles complaints routed to the Examination Department."
+    },
+    {
+      "name": "Academic Administration",
+      "description": "Handles complaints routed to the Academic Administration."
+    },
+    {
+      "name": "Administration Office",
+      "description": "Handles complaints routed to the Administration Office."
+    },
+    {
+      "name": "Accounts Department",
+      "description": "Handles complaints routed to the Accounts Department."
+    },
+    {
+      "name": "Admissions Department",
+      "description": "Handles complaints routed to the Admissions Department."
+    },
+    {
+      "name": "Transport Department",
+      "description": "Handles complaints routed to the Transport Department."
+    },
+    {
+      "name": "Hostel Administration",
+      "description": "Handles complaints routed to the Hostel Administration."
+    },
+    {
+      "name": "IT Department",
+      "description": "Handles complaints routed to the IT Department."
+    },
+    {
+      "name": "Library Department",
+      "description": "Handles complaints routed to the Library Department."
+    },
+    {
+      "name": "Administration / Maintenance",
+      "description": "Handles complaints routed to the Administration / Maintenance."
+    },
+    {
+      "name": "Security / Student Affairs",
+      "description": "Handles complaints routed to the Security / Student Affairs."
+    },
+    {
+      "name": "Student Affairs / Designated Safeguarding Officer",
+      "description": "Handles complaints routed to the Student Affairs / Designated Safeguarding Officer."
+    },
+    {
+      "name": "Student Affairs / Administration",
+      "description": "Handles complaints routed to the Student Affairs / Administration."
+    },
+    {
+      "name": "Administration / Health & Safety Officer",
+      "description": "Handles complaints routed to the Administration / Health & Safety Officer."
+    },
+    {
+      "name": "Student Affairs",
+      "description": "Handles complaints routed to the Student Affairs."
+    }
+  ]
+}

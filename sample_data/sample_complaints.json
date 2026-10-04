@@ -1,0 +1,23 @@
+[
+  {"student_name": "Ali Ahmed", "student_id": "STU-1024", "email": "ali@example.edu", "class_or_program": "BS Computer Science",
+   "complaint_title": "Portal password not working",
+   "complaint_text": "My student portal password is not working and I cannot download my fee voucher."},
+  {"student_name": "Sara Khan", "student_id": "STU-2001", "email": "sara@example.edu", "class_or_program": "BBA",
+   "complaint_title": "Fee paid but portal shows unpaid",
+   "complaint_text": "I paid my semester fee but the portal still shows unpaid."},
+  {"student_name": "Bilal Raza", "student_id": "STU-3010", "email": "bilal@example.edu", "class_or_program": "BS Physics",
+   "complaint_title": "AC not working in Room 203",
+   "complaint_text": "The AC in Room 203 has not been working for four days."},
+  {"student_name": "Hina Malik", "student_id": "STU-4120", "email": "hina@example.edu", "class_or_program": "BS Mathematics",
+   "complaint_title": "Wrong marks in final exam result",
+   "complaint_text": "My final exam result shows 42 marks, but my teacher told me I received 68."},
+  {"student_name": "Usman Tariq", "student_id": "STU-5555", "email": "usman@example.edu", "class_or_program": "BS Software Engineering",
+   "complaint_title": "Threat after class",
+   "complaint_text": "A student threatened to attack me after class."},
+  {"student_name": "Ayesha Noor", "student_id": "STU-6789", "email": "ayesha@example.edu", "class_or_program": "MBA",
+   "complaint_title": "Inappropriate comments by a teacher",
+   "complaint_text": "A teacher is repeatedly making inappropriate comments toward me."},
+  {"student_name": "Ali Ahmed", "student_id": "STU-1024", "email": "ali@example.edu", "class_or_program": "BS Mathematics",
+   "complaint_title": "Assignment marks not uploaded",
+   "complaint_text": "My mathematics teacher has not uploaded our assignment marks for the last three weeks and I need them before the final examination."}
+]

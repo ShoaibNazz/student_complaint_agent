@@ -1,0 +1,737 @@
+{
+  "categories": [
+    {
+      "name": "Academic",
+      "description": "Teaching, coursework, assignments, syllabus, timetable and academic delivery",
+      "keywords": [
+        "assignment*",
+        "assignment marks",
+        "assessment*",
+        "coursework",
+        "syllabus",
+        "lecture*",
+        "timetable",
+        "course",
+        "quiz",
+        "curriculum",
+        "class schedule",
+        "academic"
+      ],
+      "subcategories": {
+        "Assessment Marks": [
+          "mark*",
+          "grade*",
+          "assignment*",
+          "assessment*"
+        ],
+        "Course Content": [
+          "syllabus",
+          "curriculum",
+          "content",
+          "course"
+        ],
+        "Timetable / Scheduling": [
+          "timetable",
+          "schedule",
+          "clash"
+        ],
+        "General": []
+      },
+      "suggested_action": "Verify the student's submission and assessment record with the relevant instructor and academic office."
+    },
+    {
+      "name": "Examination",
+      "description": "Exam scheduling, admit cards, exam conduct and eligibility",
+      "keywords": [
+        "exam",
+        "exams",
+        "examination*",
+        "datesheet",
+        "date sheet",
+        "invigilator*",
+        "admit card",
+        "roll number slip",
+        "paper leak*",
+        "exam hall",
+        "question paper",
+        "retake",
+        "supplementary"
+      ],
+      "subcategories": {
+        "Exam Schedule": [
+          "datesheet",
+          "date sheet",
+          "schedule",
+          "clash"
+        ],
+        "Admit Card / Eligibility": [
+          "admit card",
+          "roll number",
+          "eligib*"
+        ],
+        "Exam Conduct": [
+          "invigilator*",
+          "cheat*",
+          "hall",
+          "leak*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Check the examination schedule and records with the examination office and respond to the student."
+    },
+    {
+      "name": "Teacher / Faculty",
+      "description": "Concerns about teaching staff availability, responsiveness or teaching quality",
+      "keywords": [
+        "teacher*",
+        "professor*",
+        "lecturer*",
+        "instructor*",
+        "faculty",
+        "sir",
+        "madam",
+        "teaching",
+        "tutor*"
+      ],
+      "subcategories": {
+        "Teaching Quality": [
+          "teaching",
+          "explain*",
+          "lecture*"
+        ],
+        "Availability / Response Delay": [
+          "respond*",
+          "reply",
+          "available",
+          "absent",
+          "late"
+        ],
+        "Conduct": [
+          "rude",
+          "behaviour",
+          "behavior",
+          "shout*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Share the concern with the head of department for a fair, confidential review."
+    },
+    {
+      "name": "Administration",
+      "description": "General administrative requests, documents and certificates",
+      "keywords": [
+        "administration",
+        "office",
+        "clerk",
+        "certificate*",
+        "noc",
+        "verification letter",
+        "document*",
+        "bonafide",
+        "registrar"
+      ],
+      "subcategories": {
+        "Documents / Certificates": [
+          "certificate*",
+          "document*",
+          "letter",
+          "bonafide"
+        ],
+        "Staff Conduct": [
+          "rude",
+          "staff"
+        ],
+        "General": []
+      },
+      "suggested_action": "Route to the administration office to confirm the request status and respond."
+    },
+    {
+      "name": "Fees / Finance",
+      "description": "Fee payments, vouchers, refunds, scholarships and financial dues",
+      "keywords": [
+        "fee",
+        "fees",
+        "paid",
+        "unpaid",
+        "payment*",
+        "tuition",
+        "voucher*",
+        "challan*",
+        "refund*",
+        "scholarship*",
+        "dues",
+        "installment*",
+        "charged",
+        "deducted"
+      ],
+      "subcategories": {
+        "Payment Not Reflected": [
+          "paid",
+          "unpaid",
+          "reflect*",
+          "portal"
+        ],
+        "Refund": [
+          "refund*"
+        ],
+        "Scholarship / Aid": [
+          "scholarship*",
+          "aid",
+          "stipend"
+        ],
+        "Fee Voucher / Challan": [
+          "voucher*",
+          "challan*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Verify the payment record and reconcile it with the student's fee account."
+    },
+    {
+      "name": "Admission",
+      "description": "Applications, enrolment, merit lists and registration",
+      "keywords": [
+        "admission*",
+        "apply",
+        "applied",
+        "application",
+        "enrol*",
+        "enroll*",
+        "merit list",
+        "entry test",
+        "offer letter",
+        "registration",
+        "seat"
+      ],
+      "subcategories": {
+        "Application Status": [
+          "application",
+          "apply",
+          "applied",
+          "status"
+        ],
+        "Merit / Selection": [
+          "merit",
+          "selection",
+          "test"
+        ],
+        "Enrollment": [
+          "enrol*",
+          "enroll*",
+          "registration"
+        ],
+        "General": []
+      },
+      "suggested_action": "Check the application or enrolment record with the admissions office."
+    },
+    {
+      "name": "Attendance",
+      "description": "Attendance records, shortage and eligibility",
+      "keywords": [
+        "attendance",
+        "absent",
+        "absence",
+        "marked absent",
+        "short attendance"
+      ],
+      "subcategories": {
+        "Incorrect Record": [
+          "incorrect",
+          "wrong",
+          "marked"
+        ],
+        "Shortage / Eligibility": [
+          "short*",
+          "percent*",
+          "eligib*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Verify the attendance register with the course instructor and update records if appropriate."
+    },
+    {
+      "name": "Transport",
+      "description": "University transport, routes and drivers",
+      "keywords": [
+        "transport",
+        "bus",
+        "buses",
+        "van",
+        "driver*",
+        "route",
+        "pick up",
+        "drop off",
+        "shuttle",
+        "bus stop"
+      ],
+      "subcategories": {
+        "Schedule / Delay": [
+          "late",
+          "delay*",
+          "time",
+          "schedule"
+        ],
+        "Route / Stops": [
+          "route",
+          "stop"
+        ],
+        "Driver / Vehicle": [
+          "driver*",
+          "vehicle",
+          "rash"
+        ],
+        "General": []
+      },
+      "suggested_action": "Contact the transport coordinator to review the route, schedule or vehicle concern."
+    },
+    {
+      "name": "Hostel",
+      "description": "Hostel accommodation, mess and warden-related matters",
+      "keywords": [
+        "hostel*",
+        "dormitory",
+        "dorm",
+        "warden",
+        "mess",
+        "roommate*",
+        "boarding"
+      ],
+      "subcategories": {
+        "Accommodation": [
+          "room",
+          "bed",
+          "allot*"
+        ],
+        "Mess / Food": [
+          "mess",
+          "food",
+          "meal*"
+        ],
+        "Warden / Rules": [
+          "warden",
+          "rule*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Ask the hostel administration to review the matter and report back."
+    },
+    {
+      "name": "IT / Portal / LMS",
+      "description": "Student portal, LMS, passwords, Wi-Fi and online services",
+      "keywords": [
+        "portal",
+        "password",
+        "login",
+        "log in",
+        "lms",
+        "moodle",
+        "wifi",
+        "wi-fi",
+        "internet",
+        "cannot download",
+        "download",
+        "account locked",
+        "website",
+        "server",
+        "email account",
+        "otp"
+      ],
+      "subcategories": {
+        "Login / Password": [
+          "password",
+          "login",
+          "log in",
+          "locked",
+          "otp"
+        ],
+        "Portal Error": [
+          "error",
+          "portal",
+          "crash*",
+          "download",
+          "upload*"
+        ],
+        "Wi-Fi / Network": [
+          "wifi",
+          "wi-fi",
+          "internet",
+          "network"
+        ],
+        "General": []
+      },
+      "suggested_action": "Have the IT help desk reset access or investigate the portal/LMS problem."
+    },
+    {
+      "name": "Library",
+      "description": "Library resources, borrowing and facilities",
+      "keywords": [
+        "library",
+        "librarian",
+        "book*",
+        "journal*",
+        "borrow*",
+        "reading room",
+        "e-library"
+      ],
+      "subcategories": {
+        "Books / Resources": [
+          "book*",
+          "journal*",
+          "resource*"
+        ],
+        "Borrowing / Fines": [
+          "borrow*",
+          "fine*",
+          "due"
+        ],
+        "Facilities": [
+          "seat*",
+          "noise",
+          "reading room"
+        ],
+        "General": []
+      },
+      "suggested_action": "Refer to the librarian to review the resource or account issue."
+    },
+    {
+      "name": "Facilities / Maintenance",
+      "description": "Classrooms, utilities, cleanliness and equipment",
+      "keywords": [
+        "ac",
+        "air conditioner",
+        "air conditioning",
+        "heater",
+        "fan",
+        "room",
+        "classroom",
+        "washroom",
+        "toilet",
+        "bathroom",
+        "not working",
+        "broken",
+        "leak*",
+        "clean*",
+        "maintenance",
+        "furniture",
+        "projector",
+        "electricity",
+        "power outage",
+        "water"
+      ],
+      "subcategories": {
+        "Air Conditioning / Heating": [
+          "ac",
+          "air condition*",
+          "heater",
+          "fan"
+        ],
+        "Cleanliness": [
+          "clean*",
+          "dirty",
+          "garbage"
+        ],
+        "Plumbing / Water": [
+          "water",
+          "leak*",
+          "toilet",
+          "washroom",
+          "tap"
+        ],
+        "Electrical": [
+          "electric*",
+          "light*",
+          "power"
+        ],
+        "Furniture / Equipment": [
+          "furniture",
+          "chair*",
+          "desk*",
+          "projector",
+          "bench*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Create a maintenance work order and inform the facilities team."
+    },
+    {
+      "name": "Security",
+      "description": "Campus security, threats, theft and unsafe situations",
+      "keywords": [
+        "security",
+        "guard*",
+        "theft",
+        "stolen",
+        "steal",
+        "intruder*",
+        "threat*",
+        "attack*",
+        "weapon*",
+        "gun",
+        "knife",
+        "fight*",
+        "violen*",
+        "unsafe",
+        "trespass*",
+        "cctv"
+      ],
+      "subcategories": {
+        "Threat / Violence": [
+          "threat*",
+          "attack*",
+          "weapon*",
+          "violen*",
+          "fight*",
+          "gun",
+          "knife"
+        ],
+        "Theft / Property": [
+          "theft",
+          "stolen",
+          "steal",
+          "lost"
+        ],
+        "Campus Access": [
+          "guard*",
+          "gate",
+          "intruder*",
+          "trespass*",
+          "cctv"
+        ],
+        "General": []
+      },
+      "suggested_action": "Escalate immediately to the security officer and student affairs for urgent human review; do not attempt to determine fault."
+    },
+    {
+      "name": "Harassment / Bullying",
+      "description": "Allegations of harassment, bullying, intimidation or inappropriate conduct",
+      "keywords": [
+        "harass*",
+        "bull*",
+        "inappropriate",
+        "inappropriate comment*",
+        "stalk*",
+        "abus*",
+        "sexual*",
+        "humiliat*",
+        "intimidat*",
+        "blackmail*"
+      ],
+      "subcategories": {
+        "Sexual Harassment": [
+          "sexual*"
+        ],
+        "Bullying / Intimidation": [
+          "bull*",
+          "intimidat*",
+          "humiliat*"
+        ],
+        "Verbal / Inappropriate Conduct": [
+          "inappropriate",
+          "comment*",
+          "remark*"
+        ],
+        "Stalking": [
+          "stalk*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Refer confidentially to the Designated Safeguarding Officer for human review; do not contact the person complained about before receiving guidance."
+    },
+    {
+      "name": "Discrimination",
+      "description": "Allegations of unfair treatment based on protected characteristics",
+      "keywords": [
+        "discriminat*",
+        "racis*",
+        "racial",
+        "sexis*",
+        "caste",
+        "religio*",
+        "gender",
+        "disabilit*",
+        "unfair treatment",
+        "biased",
+        "bias"
+      ],
+      "subcategories": {
+        "Gender": [
+          "gender",
+          "sexis*"
+        ],
+        "Religion / Ethnicity": [
+          "religio*",
+          "racis*",
+          "racial",
+          "caste"
+        ],
+        "Disability": [
+          "disabilit*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Refer to Student Affairs for confidential human review under the institution's equality policy."
+    },
+    {
+      "name": "Health / Safety",
+      "description": "Medical, mental-health and physical safety concerns",
+      "keywords": [
+        "health",
+        "medical",
+        "illness",
+        "sick",
+        "injur*",
+        "accident*",
+        "ambulance",
+        "emergency",
+        "fire",
+        "smoke",
+        "first aid",
+        "allergy",
+        "suicid*",
+        "self harm",
+        "self-harm",
+        "mental health",
+        "counsell*"
+      ],
+      "subcategories": {
+        "Medical / Injury": [
+          "injur*",
+          "medical",
+          "ambulance",
+          "accident*",
+          "first aid"
+        ],
+        "Mental Health": [
+          "suicid*",
+          "self harm",
+          "self-harm",
+          "mental",
+          "counsell*",
+          "anxiety",
+          "depress*"
+        ],
+        "Fire / Infrastructure Hazard": [
+          "fire",
+          "smoke",
+          "wire*",
+          "collapse",
+          "gas"
+        ],
+        "General": []
+      },
+      "suggested_action": "Escalate to the Health & Safety Officer for immediate human review; if anyone is in danger follow the institution's emergency procedure."
+    },
+    {
+      "name": "Discipline",
+      "description": "Disciplinary procedures and misconduct reports",
+      "keywords": [
+        "discipline",
+        "disciplinary",
+        "suspension",
+        "suspended",
+        "expelled",
+        "expulsion",
+        "misconduct",
+        "warning letter",
+        "show cause",
+        "ragging"
+      ],
+      "subcategories": {
+        "Disciplinary Action": [
+          "disciplinary",
+          "suspen*",
+          "expel*",
+          "show cause"
+        ],
+        "Misconduct Report": [
+          "misconduct",
+          "ragging",
+          "cheat*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Forward to Student Affairs for review under the disciplinary procedure; no decision is made by the automated system."
+    },
+    {
+      "name": "Student Affairs",
+      "description": "Societies, events, sports and student life",
+      "keywords": [
+        "society",
+        "societies",
+        "club",
+        "clubs",
+        "event*",
+        "student council",
+        "extracurricular",
+        "sports",
+        "student life"
+      ],
+      "subcategories": {
+        "Societies / Clubs": [
+          "society",
+          "societies",
+          "club*"
+        ],
+        "Events": [
+          "event*"
+        ],
+        "Sports": [
+          "sport*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Forward to Student Affairs to review and respond."
+    },
+    {
+      "name": "Results / Marks",
+      "description": "Published results, marks, grades and re-evaluation",
+      "keywords": [
+        "result",
+        "results",
+        "marks",
+        "grade*",
+        "gpa",
+        "cgpa",
+        "transcript",
+        "marksheet",
+        "recheck",
+        "recount",
+        "rechecking",
+        "regrade"
+      ],
+      "subcategories": {
+        "Incorrect Marks": [
+          "wrong",
+          "incorrect",
+          "error",
+          "mismatch",
+          "shows"
+        ],
+        "Missing Results": [
+          "missing",
+          "not uploaded",
+          "not published",
+          "not declared",
+          "delay*"
+        ],
+        "Re-evaluation": [
+          "recheck*",
+          "recount*",
+          "regrade",
+          "re-evaluat*"
+        ],
+        "General": []
+      },
+      "suggested_action": "Verify the student's result record against the examination department's marks register and contact the instructor if needed."
+    },
+    {
+      "name": "Other",
+      "description": "Anything that does not fit another category",
+      "keywords": [],
+      "subcategories": {
+        "General": []
+      },
+      "suggested_action": "Review manually and route to the most appropriate office."
+    }
+  ]
+}
