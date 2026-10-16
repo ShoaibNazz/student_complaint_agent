@@ -212,3 +212,135 @@ def test_same_origin_csrf_handling(client):
                               headers={"Origin": "http://evil.com", "Host": "127.0.0.1:8000"})
     assert r_admin_bad.status_code == 403
 
+
+def test_redesigned_complaint_form_and_image_upload(client):
+    # 1. Verify form page renders all new dropdowns, campus options, and upload dropzone
+    page = client.get("/submit")
+    assert page.status_code == 200
+    assert "Originating Campus" in page.text
+    assert "Target Campus" in page.text
+    assert "Academic Program / Role" in page.text
+    assert "Attach Image" in page.text
+    assert "Township Campus, Lahore (Main Campus)" in page.text
+    assert "Multan Campus" in page.text
+    assert '<option value="STUDENT"' in page.text
+    assert '<option value="EMPLOYEE"' in page.text
+    assert '<option value="ADMIN"' in page.text
+    assert '<option value="PROFESSOR"' not in page.text
+
+    # 2. Submit valid complaint without image (ui_mode=v2)
+    valid_data = {
+        "ui_mode": "v2",
+        "account_type": "STUDENT",
+        "originating_campus": "Township Campus, Lahore (Main Campus)",
+        "target_campus": "Multan Campus",
+        "student_name": "Ayesha Khan",
+        "student_id": "STU-2026-101",
+        "class_or_program": "BS Computer Science",
+        "email": "ayesha.khan@university.edu",
+        "complaint_title": "Projector malfunction in Lecture Hall B",
+        "complaint_text": "The overhead projector in Lecture Hall B flickers and shuts down every 10 minutes during lectures.",
+    }
+    r1 = client.post("/submit", data=valid_data)
+    assert r1.status_code == 200
+    assert "Your complaint has been received." in r1.text
+    assert "CMP-" in r1.text
+
+    # Verify stored fields via API
+    items = client.get("/api/complaints").json()["items"]
+    latest = items[0]
+    assert latest["account_type"] == "STUDENT"
+    assert latest["originating_campus"] == "Township Campus, Lahore (Main Campus)"
+    assert latest["target_campus"] == "Multan Campus"
+    assert latest["class_or_program"] == "BS Computer Science"
+    assert latest["attachment_path"] is None
+
+    # 3. Submit valid complaint with a valid PNG image attachment
+    png_bytes = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+        b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01"
+        b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
+    emp_data = {
+        "ui_mode": "v2",
+        "account_type": "EMPLOYEE",
+        "originating_campus": "Faisalabad Campus",
+        "target_campus": "Township Campus, Lahore (Main Campus)",
+        "student_name": "Dr. Tariq Mehmood",
+        "student_id": "EMP-402",
+        "class_or_program": "Professor",
+        "email": "tariq.mehmood@university.edu",
+        "complaint_title": "Faculty lab network outage",
+        "complaint_text": "Ethernet ports in Faculty Research Lab 3 have been disconnected since Monday morning.",
+    }
+    r2 = client.post(
+        "/submit",
+        data=emp_data,
+        files={"attachment": ("lab_photo.png", png_bytes, "image/png")},
+    )
+    assert r2.status_code == 200
+    assert "Your complaint has been received." in r2.text
+
+    items2 = client.get("/api/complaints").json()["items"]
+    with_img = items2[0]
+    assert with_img["account_type"] == "EMPLOYEE"
+    assert with_img["originating_campus"] == "Faisalabad Campus"
+    assert with_img["target_campus"] == "Township Campus, Lahore (Main Campus)"
+    assert with_img["attachment_name"] == "lab_photo.png"
+    assert with_img["attachment_path"] and with_img["attachment_path"].startswith("/static/uploads/complaints/")
+
+    # Verify attachment appears in admin complaint detail view
+    admin_detail = client.get(f"/admin/complaints/{with_img['id']}")
+    assert admin_detail.status_code == 200
+    assert with_img["attachment_path"] in admin_detail.text
+    assert "Faisalabad Campus" in admin_detail.text
+
+    # 4. Reject missing required fields when ui_mode=v2
+    missing_data = {
+        "ui_mode": "v2",
+        "account_type": "",
+        "originating_campus": "",
+        "target_campus": "",
+        "student_name": "",
+        "student_id": "",
+        "class_or_program": "",
+        "email": "invalid-email",
+        "complaint_title": "Hi",
+        "complaint_text": "Too short",
+    }
+    r_missing = client.post("/submit", data=missing_data)
+    assert r_missing.status_code == 422
+    assert "Please select your account type." in r_missing.text
+    assert "Please select an originating campus." in r_missing.text
+    assert "Please select a target campus." in r_missing.text
+
+    # 5. Reject invalid file type (.txt disguised or unsupported extension)
+    r_bad_type = client.post(
+        "/submit",
+        data=valid_data,
+        files={"attachment": ("notes.txt", b"not an image", "text/plain")},
+    )
+    assert r_bad_type.status_code == 422
+    assert "Unsupported image format" in r_bad_type.text
+
+    # 6. Reject oversized file (> 5MB)
+    oversized_bytes = b"\x89PNG\r\n\x1a\n" + (b"\x00" * (5 * 1024 * 1024 + 100))
+    r_big = client.post(
+        "/submit",
+        data=valid_data,
+        files={"attachment": ("huge.png", oversized_bytes, "image/png")},
+    )
+    assert r_big.status_code == 422
+    assert "5 MB" in r_big.text
+
+    # Clean up test uploaded file from disk
+    from pathlib import Path
+    from app.core.config import BASE_DIR
+    uploaded_filename = with_img["attachment_path"].split("/")[-1]
+    uploaded_file = Path(BASE_DIR) / "app" / "static" / "uploads" / "complaints" / uploaded_filename
+    if uploaded_file.exists():
+        uploaded_file.unlink()
+
+
+
+

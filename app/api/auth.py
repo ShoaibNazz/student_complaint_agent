@@ -46,6 +46,22 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
             detail="Incorrect ID or password.",
         )
 
+    # Validate campus if supplied
+    if payload.campus:
+        req_campus = payload.campus.strip()
+        user_campus = (user.campus or "").strip()
+        if user_campus and req_campus.lower() != user_campus.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The selected campus does not match your registered campus.",
+            )
+        elif not user_campus:
+            from app.services.complaint_service import get_campus_names
+            if req_campus in get_campus_names():
+                user.campus = req_campus
+                db.commit()
+                db.refresh(user)
+
     token = create_access_token({"sub": str(user.id), "role": user.role})
     response.set_cookie(
         key="complaint_session",

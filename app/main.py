@@ -16,8 +16,8 @@ from app.database.database import init_db
 
 logger = logging.getLogger("complaint_agent")
 
-CSP = ("default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; "
-       "img-src 'self' data:; font-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; form-action 'self'")
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+       "img-src 'self' data: blob:; font-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; form-action 'self'")
 
 
 @asynccontextmanager

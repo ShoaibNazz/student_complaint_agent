@@ -29,11 +29,24 @@
         <dt class="col-4">Email</dt><dd class="col-8">{{ c.email or '–' }}</dd>
         <dt class="col-4">Phone</dt><dd class="col-8">{{ c.phone or '–' }}</dd>
         <dt class="col-4">Class / Program</dt><dd class="col-8">{{ c.class_or_program or '–' }}</dd>
+        {% if c.originating_campus %}<dt class="col-4">Originating Campus</dt><dd class="col-8">{{ c.originating_campus }}</dd>{% endif %}
+        {% if c.target_campus %}<dt class="col-4">Target Campus</dt><dd class="col-8">{{ c.target_campus }}</dd>{% endif %}
         <dt class="col-4">Subject</dt><dd class="col-8">{{ c.subject or '–' }}</dd>
         <dt class="col-4">Submitted</dt><dd class="col-8">{{ c.created_at | dt }} UTC</dd>
       </dl></div>
     <div class="card shadow-sm mb-3"><div class="card-header">Original complaint (never modified)</div>
-      <div class="card-body"><h2 class="h6">{{ c.title }}</h2><div class="original-text">{{ c.complaint_text }}</div></div></div>
+      <div class="card-body">
+        <h2 class="h6">{{ c.title }}</h2>
+        <div class="original-text">{{ c.complaint_text }}</div>
+        {% if c.attachment_path %}
+          <div class="mt-3 pt-3 border-top">
+            <div class="small fw-semibold text-muted mb-2"><i class="bi bi-paperclip me-1"></i>Attached Image ({{ c.attachment_name or 'Attachment' }})</div>
+            <a href="{{ c.attachment_path }}" target="_blank" rel="noopener">
+              <img src="{{ c.attachment_path }}" alt="{{ c.attachment_name or 'Complaint Attachment' }}" class="img-fluid rounded border" style="max-height: 240px;">
+            </a>
+          </div>
+        {% endif %}
+      </div></div>
     {% if a %}
     <div class="card shadow-sm mb-3"><div class="card-header">AI analysis <span class="text-muted small">({{ a.ai_model_used }} &middot; {{ a.analyzed_at | dt }} UTC)</span></div>
       <dl class="row mb-0 p-3 small">

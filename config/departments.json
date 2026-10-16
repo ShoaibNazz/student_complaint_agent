@@ -1,68 +1,152 @@
 {
   "departments": [
     {
-      "name": "Academic Department",
-      "description": "Handles complaints routed to the Academic Department."
+      "name": "Department of Information Sciences",
+      "description": "Division of Science & Technology - Computer Science, Information Technology & Software Engineering"
     },
     {
-      "name": "Examination Department",
-      "description": "Handles complaints routed to the Examination Department."
+      "name": "Department of Mathematics",
+      "description": "Division of Science & Technology - Pure, Applied & Computational Mathematics"
     },
     {
-      "name": "Academic Administration",
-      "description": "Handles complaints routed to the Academic Administration."
+      "name": "Department of Physics",
+      "description": "Division of Science & Technology - Physics & Electronics"
     },
     {
-      "name": "Administration Office",
-      "description": "Handles complaints routed to the Administration Office."
+      "name": "Department of Chemistry",
+      "description": "Division of Science & Technology - Physical, Organic, Inorganic & Analytical Chemistry"
     },
     {
-      "name": "Accounts Department",
-      "description": "Handles complaints routed to the Accounts Department."
+      "name": "Department of Botany",
+      "description": "Division of Science & Technology - Plant Sciences & Biotechnology"
     },
     {
-      "name": "Admissions Department",
-      "description": "Handles complaints routed to the Admissions Department."
+      "name": "Department of Zoology",
+      "description": "Division of Science & Technology - Animal Sciences & Wildlife"
     },
     {
-      "name": "Transport Department",
-      "description": "Handles complaints routed to the Transport Department."
+      "name": "Department of Education",
+      "description": "Division of Education - Teacher Education & Pedagogical Studies"
     },
     {
-      "name": "Hostel Administration",
-      "description": "Handles complaints routed to the Hostel Administration."
+      "name": "Department of Special Education",
+      "description": "Division of Education - Special Education & Inclusive Learning"
+    },
+    {
+      "name": "Department of Educational Leadership and Policy Studies",
+      "description": "Division of Education - Educational Administration, Leadership & Policy"
+    },
+    {
+      "name": "Department of STEM Education",
+      "description": "Division of Education - Science, Technology, Engineering & Mathematics Education"
+    },
+    {
+      "name": "UE Business School",
+      "description": "Division of Management & Administrative Science - BBA, MBA, Management Sciences & Business Analytics"
+    },
+    {
+      "name": "Department of Economics",
+      "description": "Division of Management & Administrative Science - Economics, Finance & Development Studies"
+    },
+    {
+      "name": "Department of English",
+      "description": "Division of Arts & Social Sciences - English Literature & Applied Linguistics"
+    },
+    {
+      "name": "Department of Urdu",
+      "description": "Division of Islamic & Oriental Learning - Urdu Literature, Language & Linguistics"
+    },
+    {
+      "name": "Department of Islamic Studies",
+      "description": "Division of Islamic & Oriental Learning - Islamic Sciences & Comparative Religion"
+    },
+    {
+      "name": "Department of History, Arts and Cultural Heritage",
+      "description": "Division of Arts & Social Sciences - History, Fine Arts & Cultural Heritage"
+    },
+    {
+      "name": "Department of Physical Education and Sports Sciences",
+      "description": "Division of Arts & Social Sciences - Sports Sciences, Athletics & Physical Education"
+    },
+    {
+      "name": "Directorate of Student Affairs",
+      "description": "Directorate overseeing student societies, student welfare, discipline & co-curricular activities"
     },
     {
       "name": "IT Department",
-      "description": "Handles complaints routed to the IT Department."
+      "description": "Directorate of Information Technology - LMS, Campus Portals, CMS, Wi-Fi & Infrastructure"
+    },
+    {
+      "name": "Examination Department",
+      "description": "Office of the Controller of Examinations - Semester Exams, Results, Transcripts & Degrees"
+    },
+    {
+      "name": "Accounts Department",
+      "description": "Treasurer Office - Fee Vouchers, Financial Aid, Scholarships & Student Accounts"
+    },
+    {
+      "name": "Admissions Department",
+      "description": "Directorate of Admissions - Entry Tests, Merit Lists & Program Enrollment"
+    },
+    {
+      "name": "Transport Department",
+      "description": "University Transport Section - Campus Buses, Shuttle Routes & Passes"
+    },
+    {
+      "name": "Hostel Administration",
+      "description": "Hall Warden Office - On-campus Student Residence, Mess & Accommodations"
     },
     {
       "name": "Library Department",
-      "description": "Handles complaints routed to the Library Department."
+      "description": "Central & Campus Libraries - Book Circulation, Digital Library & Reference Services"
+    },
+    {
+      "name": "Administration Office",
+      "description": "Office of the Registrar - General University Administration & Student Records"
+    },
+    {
+      "name": "Academic Department",
+      "description": "Dean & Division Academic Coordination"
+    },
+    {
+      "name": "Academic Administration",
+      "description": "Attendance, Timetables, Course Registrations & Academic Scheduling"
     },
     {
       "name": "Administration / Maintenance",
-      "description": "Handles complaints routed to the Administration / Maintenance."
+      "description": "Engineering & Maintenance Wing - Classrooms, Labs, Air Conditioning & Utilities"
     },
     {
       "name": "Security / Student Affairs",
-      "description": "Handles complaints routed to the Security / Student Affairs."
+      "description": "Chief Security Officer Wing - Campus Gates, ID Badges & Surveillance"
     },
     {
       "name": "Student Affairs / Designated Safeguarding Officer",
-      "description": "Handles complaints routed to the Student Affairs / Designated Safeguarding Officer."
+      "description": "Designated Safeguarding & Harassment Monitoring Committee"
     },
     {
       "name": "Student Affairs / Administration",
-      "description": "Handles complaints routed to the Student Affairs / Administration."
+      "description": "Equity, Equal Opportunity & Anti-Discrimination Cell"
     },
     {
       "name": "Administration / Health & Safety Officer",
-      "description": "Handles complaints routed to the Administration / Health & Safety Officer."
+      "description": "Campus Health, Emergency First Aid & Environmental Safety"
     },
     {
       "name": "Student Affairs",
-      "description": "Handles complaints routed to the Student Affairs."
+      "description": "General Student Support & Grievance Coordination"
+    },
+    {
+      "name": "Quality Enhancement Cell (QEC)",
+      "description": "Academic Quality Assurance, HEC Compliance & Program Evaluation"
+    },
+    {
+      "name": "Office of Research, Innovation & Commercialization (ORIC)",
+      "description": "Research Grants, Innovation, Patents & Industry Linkages"
+    },
+    {
+      "name": "Health & Medical Center",
+      "description": "Campus Medical Center - Physician Consultation & Basic Health Facilities"
     }
   ]
 }

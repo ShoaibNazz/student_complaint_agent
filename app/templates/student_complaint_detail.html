@@ -29,13 +29,29 @@
       </div>
       <div class="card-body p-4">
         <h3 class="h6 fw-bold text-dark mb-1">{{ c.title }}</h3>
-        {% if c.subject %}
-          <div class="badge bg-light text-dark border mb-3">Subject / Area: {{ c.subject }}</div>
-        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          {% if c.originating_campus %}
+            <span class="badge bg-light text-dark border"><i class="bi bi-bank2 me-1"></i>From: {{ c.originating_campus }}</span>
+          {% endif %}
+          {% if c.target_campus %}
+            <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt me-1"></i>Target: {{ c.target_campus }}</span>
+          {% endif %}
+          {% if c.subject %}
+            <span class="badge bg-light text-dark border">Subject / Area: {{ c.subject }}</span>
+          {% endif %}
+        </div>
 
         <div class="mb-4">
           <label class="form-label text-muted small fw-semibold text-uppercase">Your Original Submission</label>
           <div class="p-3 bg-light rounded-3 border original-text">{{ c.complaint_text }}</div>
+          {% if c.attachment_path %}
+            <div class="mt-3">
+              <div class="small fw-semibold text-muted mb-1"><i class="bi bi-image me-1"></i>Attached Image ({{ c.attachment_name or 'Image' }})</div>
+              <a href="{{ c.attachment_path }}" target="_blank" rel="noopener">
+                <img src="{{ c.attachment_path }}" alt="{{ c.attachment_name or 'Complaint Attachment' }}" class="img-fluid rounded border" style="max-height: 220px;">
+              </a>
+            </div>
+          {% endif %}
         </div>
 
         {% if a and a.summary %}

@@ -51,11 +51,19 @@ class ComplaintAnalyzer:
 
     # ---- public ----
     def analyze(self, *, title: str, text: str, subject: str | None = None, program: str | None = None,
+                originating_campus: str | None = None, target_campus: str | None = None,
                 student_name: str | None = None, safety: SafetyAssessment | None = None,
                 repeated: bool = False, quality_warnings: list[str] | None = None) -> AnalysisOutcome:
         safety = safety or assess_safety(f"{title}\n{text}")
-        context = {"title": title, "subject": subject, "program": program,
-                   "safety_signals": safety.labels, "repeated": repeated}
+        context = {
+            "title": title,
+            "subject": subject,
+            "program": program,
+            "originating_campus": originating_campus,
+            "target_campus": target_campus,
+            "safety_signals": safety.labels,
+            "repeated": repeated,
+        }
         ai = self._call_provider(text, context)
         result = self._finalize(ai, title=title, text=text, student_name=student_name, safety=safety,
                                 repeated=repeated, warnings=quality_warnings or [])
@@ -170,7 +178,13 @@ def run_analysis(db: Session, complaint: Complaint, *, performed_by: str = "AI",
                   safety=safety, repeated=repeated, quality_warnings=quality.warnings)
     try:
         analyzer = analyzer or ComplaintAnalyzer(get_provider(settings), settings=settings)
-        outcome = analyzer.analyze(subject=complaint.subject, program=complaint.class_or_program, **kwargs)
+        outcome = analyzer.analyze(
+            subject=complaint.subject,
+            program=complaint.class_or_program,
+            originating_campus=complaint.originating_campus,
+            target_campus=complaint.target_campus,
+            **kwargs,
+        )
         complaint.analysis_status = AnalysisStatus.COMPLETED.value
     except Exception as exc:  # AIProviderError, AIParseError, or unexpected - never lose the complaint
         logger.error("Analysis error complaint=%s type=%s", complaint.complaint_number, type(exc).__name__)

@@ -30,6 +30,92 @@ from app.utils.time import utcnow
 logger = logging.getLogger("complaint_agent.complaints")
 
 
+DEFAULT_CAMPUSES: list[str] = [
+    "Township Campus, Lahore (Main Campus)",
+    "Lower Mall Campus, Lahore",
+    "Bank Road Campus, Lahore",
+    "Attock Campus",
+    "Dera Ghazi Khan Campus",
+    "Faisalabad Campus",
+    "Jauharabad Campus",
+    "Multan Campus",
+    "Vehari Campus",
+]
+
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def get_campus_names() -> list[str]:
+    """Load available campuses from config/campuses.json with safe fallback."""
+    from app.core.config import load_json_config
+    try:
+        data = load_json_config("campuses")
+        names = [c["name"] for c in data.get("campuses", []) if c.get("name")]
+        return names if names else list(DEFAULT_CAMPUSES)
+    except Exception:
+        return list(DEFAULT_CAMPUSES)
+
+
+def _is_valid_image_header(content: bytes, ext: str) -> bool:
+    if len(content) < 12:
+        return False
+    if ext in (".jpg", ".jpeg"):
+        return content.startswith(b"\xff\xd8\xff")
+    if ext == ".png":
+        return content.startswith(b"\x89PNG\r\n\x1a\n")
+    if ext == ".webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return False
+
+
+def save_complaint_attachment(upload_file) -> tuple[Optional[str], Optional[str]]:
+    """Validate and persist an optional image attachment under /static/uploads/complaints."""
+    from pathlib import Path
+    from app.core.config import BASE_DIR
+
+    if upload_file is None:
+        return None, None
+
+    raw_filename = (getattr(upload_file, "filename", None) or "").strip()
+    if not raw_filename:
+        return None, None
+
+    # Read file bytes
+    file_obj = getattr(upload_file, "file", None)
+    if file_obj is not None:
+        file_obj.seek(0)
+        content = file_obj.read()
+    else:
+        content = b""
+
+    if not content:
+        return None, None
+
+    ext = Path(raw_filename).suffix.lower()
+    content_type = (getattr(upload_file, "content_type", None) or "").lower().strip()
+
+    if ext not in ALLOWED_IMAGE_EXTENSIONS or (content_type and content_type not in ALLOWED_IMAGE_MIME_TYPES and content_type != "application/octet-stream"):
+        raise ComplaintValidationError(["Unsupported image format. Allowed formats: PNG, JPG, JPEG, WEBP."])
+
+    if len(content) > MAX_ATTACHMENT_BYTES:
+        raise ComplaintValidationError(["Attached image exceeds the maximum allowed size of 5 MB."])
+
+    if not _is_valid_image_header(content, ext):
+        raise ComplaintValidationError(["Invalid or corrupted image file. Please upload a valid PNG, JPG, JPEG, or WEBP image."])
+
+    upload_dir = Path(BASE_DIR) / "app" / "static" / "uploads" / "complaints"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_filename = f"cmp_{uuid.uuid4().hex[:16]}{ext}"
+    dest_path = upload_dir / safe_filename
+    dest_path.write_bytes(content)
+
+    clean_original = Path(raw_filename).name[:200]
+    return f"/static/uploads/complaints/{safe_filename}", clean_original
+
+
 # ---------------- creation ----------------
 def _validate_payload(payload: ComplaintCreate, settings: Settings) -> None:
     errors: list[str] = []
@@ -52,14 +138,33 @@ def create_complaint(
 ) -> Complaint:
     settings = settings or get_settings()
     _validate_payload(payload, settings)
+    orig_campus = payload.originating_campus
+    if not orig_campus and user_id:
+        u = db.get(User, user_id)
+        if u and u.campus:
+            orig_campus = u.campus
+    if not orig_campus:
+        orig_campus = "Township Campus, Lahore (Main Campus)"
+    targ_campus = payload.target_campus or orig_campus
+
     complaint = Complaint(
         user_id=user_id,
         complaint_number=f"TMP-{uuid.uuid4().hex}",
-        student_name=payload.student_name, student_id=payload.student_id,
-        email=str(payload.email) if payload.email else None, phone=payload.phone,
-        class_or_program=payload.class_or_program, subject=payload.subject,
-        title=payload.complaint_title, complaint_text=payload.complaint_text,
-        status=ComplaintStatus.NEW.value, analysis_status=AnalysisStatus.PENDING.value,
+        student_name=payload.student_name,
+        student_id=payload.student_id,
+        email=str(payload.email) if payload.email else None,
+        phone=payload.phone,
+        class_or_program=payload.class_or_program,
+        subject=payload.subject,
+        account_type=payload.account_type,
+        originating_campus=orig_campus,
+        target_campus=targ_campus,
+        attachment_path=payload.attachment_path,
+        attachment_name=payload.attachment_name,
+        title=payload.complaint_title,
+        complaint_text=payload.complaint_text,
+        status=ComplaintStatus.NEW.value,
+        analysis_status=AnalysisStatus.PENDING.value,
     )
     try:
         db.add(complaint)
@@ -108,6 +213,7 @@ class ComplaintFilters:
     priority: Optional[Priority] = None
     category: Optional[str] = None
     department: Optional[str] = None
+    campus: Optional[str] = None
     status: Optional[str] = None
     requires_human_review: Optional[bool] = None
     analysis_status: Optional[str] = None
@@ -133,6 +239,11 @@ def _conditions(f: ComplaintFilters) -> list:
         conds.append(ComplaintAnalysis.category.ilike(f"%{_esc(f.category)}%", escape="\\"))
     if f.department:
         conds.append(ComplaintAnalysis.assigned_department.ilike(f"%{_esc(f.department)}%", escape="\\"))
+    if f.campus:
+        conds.append(or_(
+            Complaint.target_campus == f.campus,
+            Complaint.originating_campus == f.campus,
+        ))
     if f.status:
         s = f.status.strip().upper()
         if s == "OPEN":
@@ -380,10 +491,16 @@ def build_student_timeline(c: Complaint) -> list[StudentTimelineItem]:
 
 
 def get_employee_complaints(db: Session, user: User) -> list[Complaint]:
-    """Complaints assigned to the employee's department."""
+    """Complaints assigned to the employee's department and campus."""
     conds = [Complaint.is_deleted.is_(False)]
     if user.department:
         conds.append(ComplaintAnalysis.assigned_department.ilike(f"%{user.department}%"))
+    if user.campus:
+        conds.append(or_(
+            Complaint.target_campus == user.campus,
+            Complaint.originating_campus == user.campus,
+            Complaint.target_campus.is_(None),
+        ))
     stmt = (
         select(Complaint)
         .outerjoin(ComplaintAnalysis, Complaint.id == ComplaintAnalysis.complaint_id)
@@ -392,6 +509,25 @@ def get_employee_complaints(db: Session, user: User) -> list[Complaint]:
         .order_by(Complaint.created_at.desc())
     )
     return list(db.scalars(stmt).unique())
+
+
+def get_employee_complaint(db: Session, complaint_id: int, user: User) -> Complaint:
+    """Fetch complaint with department and campus scope enforcement (prevents IDOR)."""
+    c = get_complaint(db, complaint_id)
+    if user.department and c.analysis and c.analysis.assigned_department:
+        if user.department.lower() not in c.analysis.assigned_department.lower():
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Forbidden: This complaint is assigned to another department.",
+            )
+    if user.campus:
+        campuses = [c.target_campus, c.originating_campus]
+        if any(campuses) and user.campus not in campuses:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Forbidden: This complaint belongs to a different university campus.",
+            )
+    return c
 
 
 def get_employee_stats(db: Session, user: User) -> dict[str, int]:
@@ -405,13 +541,19 @@ def get_employee_stats(db: Session, user: User) -> dict[str, int]:
 
 
 def get_professor_complaints(db: Session, user: User) -> list[Complaint]:
-    """Complaints relevant to the professor's department or academic category."""
+    """Complaints relevant to the professor's department, campus, or academic category."""
     conds = [Complaint.is_deleted.is_(False)]
     if user.department:
         conds.append(or_(
             ComplaintAnalysis.assigned_department.ilike(f"%{user.department}%"),
             ComplaintAnalysis.category.ilike("Academic%"),
             Complaint.class_or_program.ilike(f"%{user.department}%"),
+        ))
+    if user.campus:
+        conds.append(or_(
+            Complaint.target_campus == user.campus,
+            Complaint.originating_campus == user.campus,
+            Complaint.target_campus.is_(None),
         ))
     stmt = (
         select(Complaint)
@@ -421,6 +563,19 @@ def get_professor_complaints(db: Session, user: User) -> list[Complaint]:
         .order_by(Complaint.created_at.desc())
     )
     return list(db.scalars(stmt).unique())
+
+
+def get_professor_complaint(db: Session, complaint_id: int, user: User) -> Complaint:
+    """Fetch complaint with campus scope enforcement (prevents IDOR)."""
+    c = get_complaint(db, complaint_id)
+    if user.campus:
+        campuses = [c.target_campus, c.originating_campus]
+        if any(campuses) and user.campus not in campuses:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Forbidden: This complaint belongs to a different university campus.",
+            )
+    return c
 
 
 def get_professor_stats(db: Session, user: User) -> dict[str, int]:

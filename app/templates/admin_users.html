@@ -2,74 +2,192 @@
 {% block title %}User Management - Admin Portal{% endblock %}
 {% block content %}
 <div class="row g-4">
+  <!-- Top Header Row -->
   <div class="col-12">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
-      <div>
-        <h1 class="h3 fw-bold mb-1"><i class="bi bi-people-fill text-primary me-2"></i>User Management</h1>
-        <p class="text-muted small mb-0">Registered portal accounts across all student, staff, and faculty roles.</p>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; border-radius: 10px; background: rgba(11, 61, 145, 0.08);">
+          <i class="bi bi-people-fill fs-3" style="color: #0B3D91;"></i>
+        </div>
+        <div>
+          <h1 class="h3 fw-bold mb-0" style="color: #0A2540; font-size: 1.55rem; letter-spacing: -0.01em;">User Management</h1>
+          <p class="text-muted small mb-0" style="font-size: 0.86rem;">Manage and view all registered users across your campus.</p>
+        </div>
       </div>
-      <div>
-        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+
+      <!-- Campus Badge Card (Read-only text) -->
+      <div class="d-flex align-items-center gap-2" style="background: #F0F7FF; border: 1px solid #D0E5FC; border-radius: 10px; padding: 0.5rem 1.25rem;">
+        <i class="bi bi-bank2 fs-4" style="color: #0B3D91;"></i>
+        <div>
+          <div class="text-uppercase fw-semibold" style="font-size: 0.68rem; color: #64748B; letter-spacing: 0.5px; line-height: 1;">Campus</div>
+          <div class="fw-bold" style="font-size: 0.95rem; color: #0B3D91; line-height: 1.2;">{{ admin_campus }}</div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- Filter Card -->
   <div class="col-12">
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
-      <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h2 class="h6 fw-bold mb-0">Total Registered Users: {{ users|length }}</h2>
-        <div class="d-flex gap-2">
-          <span class="badge bg-primary">Students</span>
-          <span class="badge bg-secondary">Employees</span>
-          <span class="badge bg-info">Professors</span>
-          <span class="badge bg-dark">Admins</span>
+    <div class="card shadow-sm border-0" style="background: #ffffff; border-radius: 10px; border: 1px solid #E2E8F0 !important;">
+      <div class="card-body p-3 p-md-4">
+        <form method="get" action="/admin/users" id="userFilterForm">
+          <input type="hidden" name="tab" id="filterTabInput" value="{{ tab }}">
+          <div class="row g-3 align-items-end">
+            <!-- Search User -->
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label fw-semibold small mb-1" style="color: #0B3D91;">Search User</label>
+              <div class="input-group">
+                <input type="text" class="form-control" name="q" value="{{ q or '' }}" placeholder="Name, Email, ID..." style="border: 1px solid #CBD5E1; border-radius: 8px 0 0 8px; font-size: 0.88rem; min-height: 42px;">
+                <button class="btn btn-primary" type="submit" style="background: #0B3D91; border-color: #0B3D91; padding: 0.5rem 1.35rem; font-weight: 600; font-size: 0.88rem; border-radius: 0 8px 8px 0;">Search</button>
+              </div>
+            </div>
+
+            <!-- Role Filter -->
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fw-semibold small mb-1" style="color: #0B3D91;">Role</label>
+              <select class="form-select" name="role" onchange="this.form.submit()" style="border: 1px solid #CBD5E1; border-radius: 8px; font-size: 0.88rem; min-height: 42px;">
+                <option value="" {% if not role %}selected{% endif %}>All Roles</option>
+                <option value="STUDENT" {% if role == 'STUDENT' %}selected{% endif %}>Student</option>
+                <option value="EMPLOYEE" {% if role == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
+                <option value="ADMIN" {% if role == 'ADMIN' %}selected{% endif %}>Admin</option>
+              </select>
+            </div>
+
+            <!-- Campus (Read-only text) -->
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fw-semibold small mb-1" style="color: #0B3D91;">Campus</label>
+              <input type="text" class="form-control bg-light" value="{{ admin_campus }}" readonly style="border: 1px solid #E2E8F0; border-radius: 8px; font-size: 0.88rem; color: #475569; min-height: 42px;">
+            </div>
+
+            <!-- Clear Filters Button -->
+            <div class="col-lg-2 col-md-6">
+              <a href="/admin/users?tab={{ tab }}" class="btn btn-outline-secondary w-100 fw-semibold" style="border: 1px solid #CBD5E1; border-radius: 8px; font-size: 0.88rem; min-height: 42px; display: inline-flex; align-items: center; justify-content: center; color: #0B3D91;">Clear Filters</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Category Tabs -->
+  <div class="col-12">
+    <div class="user-category-tabs-wrap" style="background: #F1F5F9; border-radius: 10px; padding: 4px; display: flex; gap: 6px;">
+      <a href="/admin/users?tab=students{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}"
+         class="user-tab-btn flex-fill text-center py-2 px-3 text-decoration-none {% if tab == 'students' %}active{% endif %}"
+         style="border-radius: 8px; font-size: 0.92rem; transition: all 0.2s ease;">
+        <i class="bi bi-person me-2"></i>Students
+      </a>
+      <a href="/admin/users?tab=employees{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}"
+         class="user-tab-btn flex-fill text-center py-2 px-3 text-decoration-none {% if tab == 'employees' %}active{% endif %}"
+         style="border-radius: 8px; font-size: 0.92rem; transition: all 0.2s ease;">
+        <i class="bi bi-people me-2"></i>Employees
+      </a>
+      <a href="/admin/users?tab=admins{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}"
+         class="user-tab-btn flex-fill text-center py-2 px-3 text-decoration-none {% if tab == 'admins' %}active{% endif %}"
+         style="border-radius: 8px; font-size: 0.92rem; transition: all 0.2s ease;">
+        <i class="bi bi-shield-check me-2"></i>Admins
+      </a>
+    </div>
+  </div>
+
+  <!-- Table Card with Summary Bar -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0" style="background: #ffffff; border-radius: 12px; border: 1px solid #E2E8F0 !important; overflow: hidden;">
+      <!-- Summary Bar -->
+      <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="fw-bold" style="font-size: 0.96rem; color: #1E293B;">
+          Total Registered Users: <span style="color: #0B3D91;">{{ total_users_count }}</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #EFF6FF; color: #1D4ED8; font-weight: 600; font-size: 0.82rem; border: 1px solid #DBEAFE;">
+            Students <span class="badge rounded-circle bg-primary text-white" style="font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ student_count }}</span>
+          </span>
+          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #F0FDF4; color: #15803D; font-weight: 600; font-size: 0.82rem; border: 1px solid #DCFCE7;">
+            Employees <span class="badge rounded-circle text-white" style="background: #10B981; font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ employee_count }}</span>
+          </span>
+          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #FFFBEB; color: #B45309; font-weight: 600; font-size: 0.82rem; border: 1px solid #FEF3C7;">
+            Admins <span class="badge rounded-circle text-white" style="background: #F59E0B; font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ admin_count }}</span>
+          </span>
         </div>
       </div>
+
+      <!-- Users Table -->
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+          <thead style="background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;">
             <tr>
-              <th>ID</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Official Role ID</th>
-              <th>Department / Program</th>
-              <th>Status</th>
-              <th>Registered</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">#</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Full Name</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Email</th>
+              {% if tab == 'students' %}
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Student ID</th>
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Program</th>
+              {% elif tab == 'employees' %}
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Employee ID</th>
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Designation/Role</th>
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Department</th>
+              {% elif tab == 'admins' %}
+                <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Admin ID</th>
+              {% endif %}
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Campus</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Status</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600;">Registered On</th>
+              <th style="padding: 0.9rem 1rem; color: #475569; font-weight: 600; text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for u in users %}
               <tr>
-                <td>{{ u.id }}</td>
-                <td class="fw-semibold">{{ u.full_name }}</td>
-                <td>{{ u.email }}</td>
-                <td>
-                  {% if u.role == 'ADMIN' %}
-                    <span class="badge bg-dark">ADMIN</span>
-                  {% elif u.role == 'PROFESSOR' %}
-                    <span class="badge bg-info text-dark">PROFESSOR</span>
-                  {% elif u.role == 'EMPLOYEE' %}
-                    <span class="badge bg-secondary">EMPLOYEE</span>
+                <td class="fw-semibold text-muted" style="padding: 0.85rem 1rem;">{{ loop.index }}</td>
+                <td class="fw-semibold text-dark" style="padding: 0.85rem 1rem;">{{ u.full_name }}</td>
+                <td class="text-secondary" style="padding: 0.85rem 1rem;">{{ u.email }}</td>
+                {% if tab == 'students' %}
+                  <td class="font-monospace fw-semibold" style="padding: 0.85rem 1rem; color: #0B3D91;">{{ u.student_id or '–' }}</td>
+                  <td style="padding: 0.85rem 1rem;">{{ u.program or '–' }}</td>
+                {% elif tab == 'employees' %}
+                  <td class="font-monospace fw-semibold" style="padding: 0.85rem 1rem; color: #0B3D91;">{{ u.employee_id or u.professor_id or '–' }}</td>
+                  <td style="padding: 0.85rem 1rem;">{{ u.role_designation or ('Professor' if u.role == 'PROFESSOR' else 'Employee') }}</td>
+                  <td style="padding: 0.85rem 1rem;">{{ u.department or '–' }}</td>
+                {% elif tab == 'admins' %}
+                  <td class="font-monospace fw-semibold" style="padding: 0.85rem 1rem; color: #0B3D91;">{{ u.admin_id or u.employee_id or 'ADMIN-001' }}</td>
+                {% endif %}
+                <td style="padding: 0.85rem 1rem; color: #475569;">{{ u.campus or admin_campus }}</td>
+                <td style="padding: 0.85rem 1rem;">
+                  {% if not u.is_active %}
+                    <span class="badge rounded-pill" style="background-color: #FEE2E2; color: #B91C1C; font-weight: 600; padding: 0.32rem 0.85rem;">Inactive</span>
+                  {% elif u.password_hash and u.password_hash.startswith('pending') %}
+                    <span class="badge rounded-pill" style="background-color: #FEF3C7; color: #B45309; font-weight: 600; padding: 0.32rem 0.85rem;">Pending</span>
                   {% else %}
-                    <span class="badge bg-primary">STUDENT</span>
+                    <span class="badge rounded-pill" style="background-color: #DCFCE7; color: #15803D; font-weight: 600; padding: 0.32rem 0.85rem;">Active</span>
                   {% endif %}
                 </td>
-                <td class="font-monospace fw-semibold">{{ u.identifier }}</td>
-                <td>{{ u.program or u.department or '–' }}</td>
-                <td>
-                  {% if u.is_active %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
-                  {% else %}
-                    <span class="badge bg-secondary">Inactive</span>
-                  {% endif %}
+                <td class="text-muted small" style="padding: 0.85rem 1rem;">
+                  {{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '–' }}
                 </td>
-                <td class="small text-muted">{{ u.created_at | dt }}</td>
+                <td style="padding: 0.85rem 1rem; text-align: center;">
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 btn-view-user"
+                          data-bs-toggle="modal" data-bs-target="#viewUserModal"
+                          data-name="{{ u.full_name }}"
+                          data-email="{{ u.email }}"
+                          data-id="{% if tab == 'students' %}{{ u.student_id or '–' }}{% elif tab == 'employees' %}{{ u.employee_id or u.professor_id or '–' }}{% else %}{{ u.admin_id or 'ADMIN-001' }}{% endif %}"
+                          data-role="{{ u.role }}"
+                          data-designation="{{ u.role_designation or u.role }}"
+                          data-campus="{{ u.campus or admin_campus }}"
+                          data-program="{{ u.program or '–' }}"
+                          data-department="{{ u.department or '–' }}"
+                          data-status="{% if not u.is_active %}Inactive{% elif u.password_hash and u.password_hash.startswith('pending') %}Pending{% else %}Active{% endif %}"
+                          data-registered="{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '–' }}"
+                          style="border-color: #0B3D91; color: #0B3D91; font-weight: 500; font-size: 0.82rem;">
+                    View
+                  </button>
+                </td>
               </tr>
             {% else %}
               <tr>
-                <td colspan="8" class="text-center py-4 text-muted">No users registered yet.</td>
+                <td colspan="9" class="text-center py-5 text-muted">
+                  <i class="bi bi-inbox fs-2 d-block mb-2 text-muted"></i>
+                  No users found for this category and filter criteria.
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -78,4 +196,78 @@
     </div>
   </div>
 </div>
+
+<!-- View User Details Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header text-white" style="background: #0B3D91;">
+        <h5 class="modal-title fw-bold" id="viewUserModalLabel">
+          <i class="bi bi-person-badge me-2"></i>User Profile Details
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="text-center mb-3">
+          <div class="avatar-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 58px; height: 58px; border-radius: 50%; background: rgba(11, 61, 145, 0.1); color: #0B3D91; font-size: 1.6rem;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-1" id="modalUserName" style="color: #0B3D91;">–</h5>
+          <div class="text-muted small" id="modalUserEmail">–</div>
+        </div>
+
+        <div class="list-group list-group-flush border rounded-3 overflow-hidden" style="font-size: 0.88rem;">
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Official ID</span>
+            <span class="fw-bold font-monospace text-primary" id="modalUserId">–</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Role / Designation</span>
+            <span class="fw-semibold" id="modalUserRole">–</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Registered Campus</span>
+            <span class="fw-semibold" id="modalUserCampus">–</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Program / Department</span>
+            <span class="fw-semibold" id="modalUserDeptProg">–</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Account Status</span>
+            <span class="fw-semibold" id="modalUserStatus">–</span>
+          </div>
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="text-muted">Registered On</span>
+            <span class="text-muted" id="modalUserRegistered">–</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light py-2">
+        <button type="button" class="btn btn-secondary btn-sm px-4 rounded-pill" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var modalEl = document.getElementById("viewUserModal");
+  if (!modalEl) return;
+  modalEl.addEventListener("show.bs.modal", function (event) {
+    var button = event.relatedTarget;
+    if (!button) return;
+    document.getElementById("modalUserName").textContent = button.getAttribute("data-name") || "–";
+    document.getElementById("modalUserEmail").textContent = button.getAttribute("data-email") || "–";
+    document.getElementById("modalUserId").textContent = button.getAttribute("data-id") || "–";
+    document.getElementById("modalUserRole").textContent = button.getAttribute("data-designation") || button.getAttribute("data-role") || "–";
+    document.getElementById("modalUserCampus").textContent = button.getAttribute("data-campus") || "–";
+    var prog = button.getAttribute("data-program");
+    var dept = button.getAttribute("data-department");
+    document.getElementById("modalUserDeptProg").textContent = (prog && prog !== "–") ? prog : (dept && dept !== "–" ? dept : "–");
+    document.getElementById("modalUserStatus").textContent = button.getAttribute("data-status") || "–";
+    document.getElementById("modalUserRegistered").textContent = button.getAttribute("data-registered") || "–";
+  });
+});
+</script>
 {% endblock %}

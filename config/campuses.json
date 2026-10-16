@@ -1,0 +1,40 @@
+{
+  "campuses": [
+    {
+      "name": "Township Campus, Lahore (Main Campus)",
+      "description": "Central Campus & Administrative Hub, College Road, Township, Lahore"
+    },
+    {
+      "name": "Lower Mall Campus, Lahore",
+      "description": "Historic Lower Mall Campus, Lahore"
+    },
+    {
+      "name": "Bank Road Campus, Lahore",
+      "description": "Bank Road Campus for Women, Lahore"
+    },
+    {
+      "name": "Attock Campus",
+      "description": "Attock Constituent Campus, Punjab"
+    },
+    {
+      "name": "Dera Ghazi Khan Campus",
+      "description": "DG Khan Constituent Campus, Punjab"
+    },
+    {
+      "name": "Faisalabad Campus",
+      "description": "Faisalabad Constituent Campus, Samanabad, Faisalabad"
+    },
+    {
+      "name": "Jauharabad Campus",
+      "description": "Jauharabad Constituent Campus, Khushab, Punjab"
+    },
+    {
+      "name": "Multan Campus",
+      "description": "Multan Constituent Campus, Bosan Road, Multan"
+    },
+    {
+      "name": "Vehari Campus",
+      "description": "Vehari Constituent Campus, Punjab"
+    }
+  ]
+}

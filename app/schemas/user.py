@@ -21,6 +21,9 @@ class UserOut(BaseModel):
     admin_id: Optional[str] = None
     department: Optional[str] = None
     program: Optional[str] = None
+    campus: Optional[str] = None
+    campus_id: Optional[int] = None
+    role_designation: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -36,17 +39,23 @@ class UserCreate(BaseModel):
     admin_id: Optional[str] = Field(default=None, max_length=60)
     department: Optional[str] = Field(default=None, max_length=120)
     program: Optional[str] = Field(default=None, max_length=120)
+    campus: Optional[str] = Field(default=None, max_length=120)
+    campus_id: Optional[int] = Field(default=None)
+    role_designation: Optional[str] = Field(default=None, max_length=120)
 
 
 class UserRegisterRequest(BaseModel):
-    account_type: str = Field(description="STUDENT, EMPLOYEE, PROFESSOR, or ADMIN")
+    account_type: str = Field(description="STUDENT, EMPLOYEE, or ADMIN")
     identifier: str = Field(min_length=2, max_length=60, description="Role ID e.g. STU-1001, EMP-1001, etc.")
     full_name: str = Field(min_length=1, max_length=120)
     email: EmailStr
     password: str = Field(min_length=6, max_length=100)
     confirm_password: str = Field(min_length=6, max_length=100)
+    campus: Optional[str] = Field(default=None, max_length=120, description="University Campus")
+    campus_id: Optional[int] = Field(default=None, description="Campus ID")
     department: Optional[str] = Field(default=None, max_length=120)
     program: Optional[str] = Field(default=None, max_length=120)
+    role_designation: Optional[str] = Field(default=None, max_length=120)
     admin_code: Optional[str] = Field(default=None, description="Required for ADMIN account registration")
 
 
@@ -59,6 +68,7 @@ class LoginRequest(BaseModel):
     account_type: str = Field(description="STUDENT, EMPLOYEE, PROFESSOR, or ADMIN")
     identifier: str = Field(description="Student ID, Employee ID, Professor ID, or Admin ID/Username")
     password: str = Field(min_length=1)
+    campus: Optional[str] = Field(default=None, description="Registered Campus")
 
 
 class TokenResponse(BaseModel):

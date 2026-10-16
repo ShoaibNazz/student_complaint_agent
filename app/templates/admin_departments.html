@@ -15,12 +15,32 @@
   </div>
 
   <div class="col-12">
+    <form class="card card-body mb-3 shadow-sm border-0 rounded-3 bg-white" method="get" action="/admin/departments">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-9">
+          <label class="form-label small">Filter by Campus</label>
+          <select class="form-select" name="campus">
+            <option value="">All Campuses (Combined University View)</option>
+            {% for camp in campuses %}
+              <option value="{{ camp }}" {% if selected_campus == camp %}selected{% endif %}>{{ camp }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary w-100">Filter Department Distribution</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-12">
     <div class="card shadow-sm border-0 rounded-3 bg-white">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
               <th>Department Name</th>
+              <th>Campuses Served</th>
               <th>Assigned Complaints</th>
               <th>Pending Review</th>
               <th>Resolved</th>
@@ -31,11 +51,12 @@
             {% for d in dept_stats %}
               <tr>
                 <td class="fw-semibold text-primary"><i class="bi bi-building me-2 text-secondary"></i>{{ d.name }}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border">{{ d.campuses or 'All Campuses' }}</span></td>
                 <td><span class="badge bg-light text-dark border fs-6">{{ d.total }}</span></td>
                 <td><span class="badge bg-warning-subtle text-warning-emphasis border">{{ d.pending }}</span></td>
                 <td><span class="badge bg-success-subtle text-success border">{{ d.resolved }}</span></td>
                 <td>
-                  <a class="btn btn-sm btn-outline-primary" href="/admin?department={{ d.name }}">
+                  <a class="btn btn-sm btn-outline-primary" href="/admin?department={{ d.name }}{% if selected_campus %}&campus={{ selected_campus }}{% endif %}">
                     <i class="bi bi-list-ul me-1"></i>View Complaints
                   </a>
                 </td>

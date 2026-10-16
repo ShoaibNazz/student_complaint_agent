@@ -2,7 +2,30 @@
 {% from "_macros.html" import priority_badge, status_badge %}
 {% block title %}Admin dashboard{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Complaints dashboard</h1>
+<div class="card shadow-sm border-0 bg-white rounded-3 mb-3">
+  <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <div>
+        <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ (current_user and current_user.full_name) or (admin and admin.full_name) or 'System Administrator' }}</h1>
+        <div class="text-muted small d-flex flex-wrap align-items-center gap-2">
+          <span><strong>Admin ID:</strong> {{ (current_user and current_user.admin_id) or (admin and admin.admin_id) or (current_user and current_user.identifier) or 'ADMIN-001' }}</span>
+          <span>&bull;</span>
+          <span><strong>Role:</strong> Administrator</span>
+          <span>&bull;</span>
+          <span><strong>Campus:</strong> {{ (current_user and current_user.campus) or (admin and admin.campus) or 'Township Campus, Lahore (Main Campus)' }}</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <a class="btn" style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);" href="/submit">
+        Submit Complaint
+      </a>
+    </div>
+  </div>
+</div>
 <div class="row g-3 mb-4">
   {% for label, value, cls in [
     ('Total Complaints', stats.total, 'text-bg-light'),
@@ -21,23 +44,25 @@
 
 <form class="card card-body mb-3 shadow-sm" method="get" action="/admin">
   <div class="row g-2 align-items-end">
-    <div class="col-md-3"><label class="form-label small">Search</label><input class="form-control" name="q" value="{{ f.q }}" placeholder="Title, text, name, CMP-..."></div>
+    <div class="col-md-2"><label class="form-label small">Search</label><input class="form-control" name="q" value="{{ f.q }}" placeholder="Search..."></div>
+    <div class="col-md-2"><label class="form-label small">Campus</label><select class="form-select" name="campus"><option value="">All Campuses</option>{% for camp in campuses %}<option value="{{ camp }}" {% if f.campus == camp %}selected{% endif %}>{{ camp.split(',')[0] }}</option>{% endfor %}</select></div>
     <div class="col-md-2"><label class="form-label small">Priority</label><select class="form-select" name="priority"><option value="">Any</option>{% for p in priorities %}<option {% if f.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
     <div class="col-md-2"><label class="form-label small">Category</label><select class="form-select" name="category"><option value="">Any</option>{% for n in categories.names %}<option {% if f.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
     <div class="col-md-2"><label class="form-label small">Status</label><select class="form-select" name="status"><option value="">Any</option><option value="OPEN" {% if f.status == 'OPEN' %}selected{% endif %}>OPEN (unfinished)</option>{% for s in statuses %}<option {% if f.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
-    <div class="col-md-2"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="review" value="1" id="rv" {% if f.review == '1' %}checked{% endif %}><label class="form-check-label small" for="rv">Needs human review</label></div></div>
+    <div class="col-md-1"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="review" value="1" id="rv" {% if f.review == '1' %}checked{% endif %}><label class="form-check-label small" for="rv">Review</label></div></div>
     <div class="col-md-1"><button class="btn btn-primary w-100">Filter</button></div>
   </div>
 </form>
 
 <div class="card shadow-sm"><div class="table-responsive">
 <table class="table table-hover align-middle mb-0">
-  <thead class="table-light"><tr><th>Complaint #</th><th>Student</th><th>Title</th><th>Category</th><th>Priority</th><th>Department</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
+  <thead class="table-light"><tr><th>Complaint #</th><th>Student</th><th>Campus</th><th>Title</th><th>Category</th><th>Priority</th><th>Department</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
   <tbody>
   {% for c in complaints %}
     <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}table-danger{% endif %}">
       <td class="text-nowrap">{{ c.complaint_number }}{% if c.possible_duplicate %} <span class="badge bg-secondary" title="Possible duplicate">dup?</span>{% endif %}</td>
       <td>{{ c.student_name }}</td>
+      <td><span class="badge bg-light text-dark border">{{ (c.target_campus or c.originating_campus or '–').split(',')[0] }}</span></td>
       <td>{{ c.title }}</td>
       <td>{% if c.analysis %}{{ c.analysis.category }}{% else %}&ndash;{% endif %}</td>
       <td>{% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% if c.analysis.requires_human_review %} <span class="badge text-bg-dark" title="Requires human review">&#128065; review</span>{% endif %}{% endif %}</td>
@@ -47,7 +72,7 @@
       <td><a class="btn btn-sm btn-outline-primary" href="/admin/complaints/{{ c.id }}">Open</a></td>
     </tr>
   {% else %}
-    <tr><td colspan="9" class="text-center text-muted py-4">No complaints found.</td></tr>
+    <tr><td colspan="10" class="text-center text-muted py-4">No complaints found.</td></tr>
   {% endfor %}
   </tbody>
 </table></div></div>

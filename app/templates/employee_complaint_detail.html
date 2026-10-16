@@ -31,6 +31,8 @@
           <div class="col-sm-6"><strong>Student ID:</strong> {{ c.student_id or '–' }}</div>
           <div class="col-sm-6"><strong>Email:</strong> {{ c.email or '–' }}</div>
           <div class="col-sm-6"><strong>Program:</strong> {{ c.class_or_program or '–' }}</div>
+          {% if c.originating_campus %}<div class="col-sm-6"><strong>Originating Campus:</strong> {{ c.originating_campus }}</div>{% endif %}
+          {% if c.target_campus %}<div class="col-sm-6"><strong>Target Campus:</strong> {{ c.target_campus }}</div>{% endif %}
         </div>
 
         <h3 class="h6 fw-bold mb-1">{{ c.title }}</h3>
@@ -39,6 +41,14 @@
         <div class="mb-3">
           <label class="form-label text-muted small fw-semibold text-uppercase">Complaint Statement</label>
           <div class="p-3 bg-light rounded-3 border original-text">{{ c.complaint_text }}</div>
+          {% if c.attachment_path %}
+            <div class="mt-3">
+              <div class="small fw-semibold text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Attached Image ({{ c.attachment_name or 'Image' }})</div>
+              <a href="{{ c.attachment_path }}" target="_blank" rel="noopener">
+                <img src="{{ c.attachment_path }}" alt="{{ c.attachment_name or 'Complaint Attachment' }}" class="img-fluid rounded border" style="max-height: 220px;">
+              </a>
+            </div>
+          {% endif %}
         </div>
 
         {% if a and a.suggested_action %}

@@ -1,381 +1,434 @@
 {% extends "base.html" %}
-{% block title %}University Portal Authentication{% endblock %}
-{% block content %}
-<div class="row justify-content-center pt-2">
-  <div class="col-md-8 col-lg-6">
-    <div class="card shadow border-0 rounded-4 overflow-hidden">
-      <!-- Portal Header -->
-      <div class="card-header bg-white border-0 text-center pt-4 pb-2">
-        <div class="d-inline-flex p-3 rounded-circle bg-primary-subtle text-primary mb-2 shadow-sm">
-          <i class="bi bi-shield-lock-fill fs-2"></i>
-        </div>
-        <h3 class="h4 fw-bold mb-1">University Complaint Portal</h3>
-        <p class="text-muted small">Sign in or register for your official university grievance account</p>
+{% block title %}University Complaint Portal{% endblock %}
+{% block body_class %}auth-page-body{% endblock %}
+{% block nav_class %}mb-0{% endblock %}
 
-        <!-- Toggle Tabs: [ Login ] [ Register ] -->
-        <div class="d-flex justify-content-center mt-3 mb-2">
-          <div class="btn-group p-1 bg-light rounded-pill border" role="group" aria-label="Auth tabs">
-            <button type="button" class="btn rounded-pill px-4 py-2 fw-semibold {% if active_tab != 'register' %}btn-primary text-white shadow-sm{% else %}btn-light text-muted{% endif %}" id="tabBtnLogin">
-              <i class="bi bi-box-arrow-in-right me-1"></i>Login
-            </button>
-            <button type="button" class="btn rounded-pill px-4 py-2 fw-semibold {% if active_tab == 'register' %}btn-primary text-white shadow-sm{% else %}btn-light text-muted{% endif %}" id="tabBtnRegister">
-              <i class="bi bi-person-plus me-1"></i>Register
-            </button>
-          </div>
-        </div>
+{% block main_wrapper %}
+<main class="auth-hero-section">
+  <div class="container d-flex justify-content-center align-items-center py-4">
+    <!-- Centered Authentication Card (Matches Reference Image 1) -->
+    <div class="auth-card {% if active_tab == 'register' %}is-register{% endif %}" id="authCard">
+      <!-- Card Header: Logo, Title, Subtitle -->
+      <div class="text-center mb-3">
+        <img src="/static/images/logo.png?v=20261011_6" alt="University Complaint Portal" class="auth-card-logo mb-2" width="46" height="50">
+        <h2 class="auth-card-title">University Complaint Portal</h2>
+        <p class="auth-card-subtitle" id="authCardSubtitle">Your Voice &nbsp;|&nbsp; Our Priority</p>
       </div>
 
-      <div class="card-body p-4 pt-2">
-        <!-- Error and Success Banners -->
-        <div id="clientErrorAlert" class="alert alert-danger d-none align-items-center small" role="alert">
-          <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-          <span id="clientErrorMessage"></span>
-        </div>
+      <!-- Segmented Tabs: [ Login ] [ Register ] -->
+      <div class="auth-tabs-container mb-3" role="group" aria-label="Authentication tabs">
+        <a href="/login" class="auth-tab-btn {% if active_tab != 'register' %}active{% endif %}" id="tabBtnLogin">
+          Login
+        </a>
+        <a href="/register" class="auth-tab-btn {% if active_tab == 'register' %}active{% endif %}" id="tabBtnRegister">
+          Register
+        </a>
+      </div>
 
-        {% if error %}
-          <div class="alert alert-danger d-flex align-items-center small" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
-            <div>{{ error }}</div>
+      <!-- Alerts -->
+      <div id="clientErrorAlert" class="alert alert-danger d-none align-items-center py-1 px-2 small mb-2 auth-alert-compact" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span id="clientErrorMessage"></span>
+      </div>
+
+      {% if error %}
+        <div id="serverErrorAlert" class="alert alert-danger d-flex align-items-center py-1 px-2 small mb-2 auth-alert-compact" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <div>{{ error }}</div>
+        </div>
+      {% endif %}
+
+      {% if success_msg %}
+        <div id="serverSuccessAlert" class="alert alert-success d-flex align-items-center py-1 px-2 small mb-2 auth-alert-compact" role="alert">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          <div>{{ success_msg }}</div>
+        </div>
+      {% endif %}
+
+      {% if flash_message %}
+        <div class="alert alert-info d-flex align-items-center py-1 px-2 small mb-2 auth-alert-compact" role="alert">
+          <i class="bi bi-info-circle-fill me-2"></i>
+          <div>{{ flash_message }}</div>
+        </div>
+      {% endif %}
+
+      <!-- ======================= LOGIN SECTION ======================= -->
+      <div id="loginSection" class="{% if active_tab in ('register', 'forgot', 'reset') %}d-none{% endif %}">
+        <form method="post" action="/login" id="loginForm" novalidate>
+          <div class="mb-3">
+            <label class="form-label auth-label" for="loginAccountType">Account Type <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="loginAccountType" name="account_type" required>
+              <option value="" {% if not selected_type %}selected{% endif %} disabled>Select Account Type</option>
+              <option value="STUDENT" {% if selected_type == 'STUDENT' %}selected{% endif %}>Student</option>
+              <option value="EMPLOYEE" {% if selected_type in ('EMPLOYEE', 'PROFESSOR') %}selected{% endif %}>Employee</option>
+              <option value="ADMIN" {% if selected_type == 'ADMIN' %}selected{% endif %}>Admin</option>
+            </select>
           </div>
-        {% endif %}
 
-        {% if success_msg %}
-          <div class="alert alert-success d-flex align-items-center small" role="alert">
-            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
-            <div>{{ success_msg }}</div>
+          <div class="mb-3">
+            <label class="form-label auth-label" for="loginCampus">Select Your Registered Campus <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="loginCampus" name="campus" required>
+              <option value="" {% if not selected_campus %}selected{% endif %} disabled>Select Your Registered Campus</option>
+              {% for c in campuses %}
+                <option value="{{ c }}" {% if selected_campus == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
           </div>
-        {% endif %}
 
-        <!-- ======================= LOGIN SECTION ======================= -->
-        <div id="loginSection" class="{% if active_tab == 'register' %}d-none{% endif %}">
-          <form method="post" action="/login" id="loginForm" novalidate>
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="loginAccountType">Select Account Type *</label>
-              <select class="form-select" id="loginAccountType" name="account_type" required>
-                <option value="" {% if not selected_type %}selected{% endif %} disabled>Select Account Type</option>
-                <option value="STUDENT" {% if selected_type == 'STUDENT' %}selected{% endif %}>Student</option>
-                <option value="EMPLOYEE" {% if selected_type == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
-                <option value="PROFESSOR" {% if selected_type == 'PROFESSOR' %}selected{% endif %}>Professor</option>
-                <option value="ADMIN" {% if selected_type == 'ADMIN' %}selected{% endif %}>Admin</option>
-              </select>
-            </div>
+          <div class="mb-3">
+            <label class="form-label auth-label" for="loginIdentifier">Email Address or ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control auth-input" id="loginIdentifier" name="identifier" required
+                   placeholder="Enter your email address or ID"
+                   value="{{ identifier or '' }}">
+          </div>
 
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="loginIdentifier" id="loginIdentifierLabel">
-                {% if selected_type == 'STUDENT' %}Student ID *
-                {% elif selected_type == 'EMPLOYEE' %}Employee ID *
-                {% elif selected_type == 'PROFESSOR' %}Professor ID *
-                {% elif selected_type == 'ADMIN' %}Admin ID *
-                {% else %}ID *{% endif %}
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
-                <input type="text" class="form-control" id="loginIdentifier" name="identifier" required
-                       placeholder="{% if selected_type == 'STUDENT' %}e.g. STU-1001 or STU-1024{% elif selected_type == 'EMPLOYEE' %}e.g. EMP-1001 or EMP-1024{% elif selected_type == 'PROFESSOR' %}e.g. PROF-1001 or PROF-1024{% elif selected_type == 'ADMIN' %}e.g. ADMIN-1001 or ADMIN-001{% else %}Select Account Type first{% endif %}"
-                       value="{{ identifier or '' }}">
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label fw-semibold" for="loginPassword">Password *</label>
-              <div class="input-group">
-                <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-                <input type="password" class="form-control" id="loginPassword" name="password" required placeholder="••••••••">
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-              <i class="bi bi-box-arrow-in-right me-1"></i>Login
-            </button>
-          </form>
-        </div>
-
-        <!-- ======================= REGISTER SECTION ======================= -->
-        <div id="registerSection" class="{% if active_tab != 'register' %}d-none{% endif %}">
-          <form method="post" action="/register" id="registerForm" novalidate>
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="registerAccountType">Select Account Type *</label>
-              <select class="form-select" id="registerAccountType" name="account_type" required>
-                <option value="" {% if not selected_type %}selected{% endif %} disabled>Select Account Type</option>
-                <option value="STUDENT" {% if selected_type == 'STUDENT' %}selected{% endif %}>Student</option>
-                <option value="EMPLOYEE" {% if selected_type == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
-                <option value="PROFESSOR" {% if selected_type == 'PROFESSOR' %}selected{% endif %}>Professor</option>
-                <option value="ADMIN" {% if selected_type == 'ADMIN' %}selected{% endif %}>Admin</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="registerIdentifier" id="registerIdentifierLabel">
-                {% if selected_type == 'STUDENT' %}Student ID *
-                {% elif selected_type == 'EMPLOYEE' %}Employee ID *
-                {% elif selected_type == 'PROFESSOR' %}Professor ID *
-                {% elif selected_type == 'ADMIN' %}Admin ID *
-                {% else %}ID *{% endif %}
-              </label>
-              <div class="input-group">
-                <span class="input-group-text bg-light"><i class="bi bi-card-text"></i></span>
-                <input type="text" class="form-control" id="registerIdentifier" name="identifier" required
-                       placeholder="{% if selected_type == 'STUDENT' %}e.g. STU-1001{% elif selected_type == 'EMPLOYEE' %}e.g. EMP-1001{% elif selected_type == 'PROFESSOR' %}e.g. PROF-1001{% elif selected_type == 'ADMIN' %}e.g. ADMIN-1001{% else %}Select Account Type first{% endif %}"
-                       value="{{ (values and values.identifier) or identifier or '' }}">
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="registerFullName">Full Name *</label>
-              <div class="input-group">
-                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
-                <input type="text" class="form-control" id="registerFullName" name="full_name" required placeholder="e.g. Muhammad Ali"
-                       value="{{ (values and values.full_name) or '' }}">
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold" for="registerEmail">Official Email *</label>
-              <div class="input-group">
-                <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
-                <input type="email" class="form-control" id="registerEmail" name="email" required placeholder="e.g. student@example.edu"
-                       value="{{ (values and values.email) or '' }}">
-              </div>
-            </div>
-
-            <!-- Program field (for Student) -->
-            <div class="mb-3" id="programGroup">
-              <label class="form-label fw-semibold" for="registerProgram">Degree Program</label>
-              <input type="text" class="form-control" id="registerProgram" name="program" placeholder="e.g. BS Computer Science"
-                     value="{{ (values and values.program) or '' }}">
-            </div>
-
-            <!-- Department field (for Employee / Professor) -->
-            <div class="mb-3 d-none" id="departmentGroup">
-              <label class="form-label fw-semibold" for="registerDepartment">Department</label>
-              <input type="text" class="form-control" id="registerDepartment" name="department" placeholder="e.g. Administration, Computer Science"
-                     value="{{ (values and values.department) or '' }}">
-            </div>
-
-            <!-- Admin Verification Code (for Admin only) -->
-            <div class="mb-3 d-none" id="adminCodeGroup">
-              <label class="form-label fw-semibold text-danger" for="registerAdminCode">
-                <i class="bi bi-shield-lock me-1"></i>Admin Verification Code *
-              </label>
-              <input type="password" class="form-control border-danger" id="registerAdminCode" name="admin_code" placeholder="Enter administrative authorization token"
-                     value="{{ (values and values.admin_code) or '' }}">
-              <div class="form-text text-muted small">Admin accounts require university authorization key (Default: <code>ADMIN-SECRET-2026</code>).</div>
-            </div>
-
-            <div class="row g-2 mb-3">
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold" for="registerPassword">Password *</label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
-                  <input type="password" class="form-control" id="registerPassword" name="password" required placeholder="Min 6 chars">
-                </div>
-              </div>
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold" for="registerConfirmPassword">Confirm Password *</label>
-                <div class="input-group">
-                  <span class="input-group-text bg-light"><i class="bi bi-key-fill"></i></span>
-                  <input type="password" class="form-control" id="registerConfirmPassword" name="confirm_password" required placeholder="Repeat password">
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
-              <i class="bi bi-person-check-fill me-1"></i>Register Account
-            </button>
-          </form>
-        </div>
-
-        <hr class="my-4">
-
-        <!-- Demo Test Credentials Box -->
-        <div class="bg-light p-3 rounded-3 small border">
-          <div class="fw-bold mb-1 text-secondary"><i class="bi bi-info-circle me-1"></i>Official Test Credentials:</div>
-          <div class="row g-2 text-muted">
-            <div class="col-sm-6">
-              <div><strong>Student:</strong> <code>STU-1001</code> / <code>password123</code></div>
-              <div><strong>Student 2:</strong> <code>STU-1024</code> / <code>password123</code></div>
-              <div><strong>Employee:</strong> <code>EMP-1001</code> / <code>password123</code></div>
-            </div>
-            <div class="col-sm-6">
-              <div><strong>Professor:</strong> <code>PROF-1001</code> / <code>password123</code></div>
-              <div><strong>Admin:</strong> <code>ADMIN-1001</code> / <code>adminpassword</code></div>
-              <div><strong>Admin Token:</strong> <code>ADMIN-SECRET-2026</code></div>
+          <div class="mb-3">
+            <label class="form-label auth-label" for="loginPassword">Password <span class="text-danger">*</span></label>
+            <div class="input-group auth-input-group">
+              <input type="password" class="form-control auth-input border-end-0" id="loginPassword" name="password" required
+                     placeholder="Enter your password">
+              <button type="button" class="input-group-text auth-eye-toggle" data-target="loginPassword" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+              </button>
             </div>
           </div>
-        </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="loginRememberMe" name="remember_me">
+              <label class="form-check-label auth-check-label" for="loginRememberMe">
+                Remember me
+              </label>
+            </div>
+            <a href="/forgot-password" class="auth-forgot-link" id="forgotPasswordLink">Forgot Password?</a>
+          </div>
+
+          <button type="submit" class="btn auth-submit-btn w-100">
+            Login
+          </button>
+
+          <div class="text-center mt-3 small text-muted">
+            Don't have an account? <a href="/register" class="auth-switch-link fw-semibold" id="linkToRegister">Register here</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- ======================= REGISTER SECTION ======================= -->
+      {% set reg_type = (values.account_type if values and values.account_type else selected_type) or '' %}
+      {% set program_list = degree_programs or [
+        'BS Computer Science',
+        'BS Information Technology',
+        'BS Software Engineering',
+        'BS Mathematics',
+        'BS Physics',
+        'BS Chemistry',
+        'BS Botany',
+        'BS Zoology',
+        'BS English',
+        'BS Urdu',
+        'BS Islamic Studies',
+        'BS Economics',
+        'BS Economics and Finance',
+        'BS Business Analytics',
+        'BBA (Bachelor of Business Administration)',
+        'B.Ed. (Hons)',
+        'B.Ed. (Hons) Special Education',
+        'B.Ed. (Hons) Educational Leadership & Management',
+        'B.Ed. Secondary (1.5 Years)',
+        'BS Physical Education and Sports Sciences',
+        'BFA Painting & Graphic Design',
+        'BS History',
+        'MS Computer Science',
+        'MS Information Technology',
+        'MS Mathematics',
+        'MS Physics',
+        'MS Chemistry',
+        'MS Botany',
+        'MS Zoology',
+        'MPhil Education',
+        'MPhil Educational Leadership and Policy Studies',
+        'MPhil Special Education',
+        'MPhil English (Linguistics)',
+        'MPhil Urdu',
+        'MPhil Economics',
+        'MPhil Islamic Studies',
+        'MBA (Master of Business Administration)',
+        'MS Management Sciences',
+        'PhD Computer Science',
+        'PhD Education',
+        'PhD Mathematics',
+        'PhD Physics',
+        'PhD Chemistry',
+        'PhD Botany',
+        'PhD Zoology',
+        'PhD English (Linguistics)',
+        'PhD Urdu',
+        'PhD Economics',
+        'PhD Management Sciences',
+        'PhD Islamic Studies'
+      ] %}
+      {% set emp_role_list = employee_roles or [
+        'Lecturer',
+        'Assistant Professor',
+        'Associate Professor',
+        'Professor',
+        'Head of Department (HOD)',
+        'Principal / Campus Director',
+        'Director of Division',
+        'Dean',
+        'Registrar / Administrative Officer',
+        'Controller of Examinations',
+        'Treasurer / Accounts Officer',
+        'Directorate of Student Affairs Officer',
+        'Directorate of IT Officer',
+        'Librarian',
+        'Transport Officer',
+        'Hostel Warden',
+        'Security Officer'
+      ] %}
+      {% set dept_list = departments or [
+        'Department of Information Sciences',
+        'Department of Mathematics',
+        'Department of Physics',
+        'Department of Chemistry',
+        'Department of Botany',
+        'Department of Zoology',
+        'Department of Education',
+        'Department of Special Education',
+        'Department of Educational Leadership and Policy Studies',
+        'Department of STEM Education',
+        'UE Business School',
+        'Department of Economics',
+        'Department of English',
+        'Department of Urdu',
+        'Department of Islamic Studies',
+        'Department of History, Arts and Cultural Heritage',
+        'Department of Physical Education and Sports Sciences',
+        'Directorate of Student Affairs',
+        'IT Department',
+        'Examination Department',
+        'Accounts Department',
+        'Admissions Department',
+        'Transport Department',
+        'Hostel Administration',
+        'Library Department',
+        'Administration Office',
+        'Academic Department',
+        'Academic Administration',
+        'Administration / Maintenance',
+        'Security / Student Affairs',
+        'Student Affairs / Designated Safeguarding Officer',
+        'Student Affairs / Administration',
+        'Administration / Health & Safety Officer',
+        'Student Affairs',
+        'Quality Enhancement Cell (QEC)',
+        'Office of Research, Innovation & Commercialization (ORIC)',
+        'Health & Medical Center'
+      ] %}
+      {% set campus_list = campuses or [
+        'Township Campus, Lahore (Main Campus)',
+        'Lower Mall Campus, Lahore',
+        'Bank Road Campus, Lahore',
+        'Attock Campus',
+        'Dera Ghazi Khan Campus',
+        'Faisalabad Campus',
+        'Jauharabad Campus',
+        'Multan Campus',
+        'Vehari Campus'
+      ] %}
+      <div id="registerSection" class="{% if active_tab != 'register' %}d-none{% endif %}">
+        <form method="post" action="/register" id="registerForm" novalidate>
+          <!-- 1. Select Account Type -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerAccountType">Account Type <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerAccountType" name="account_type" required>
+              <option value="" {% if not reg_type %}selected{% endif %} disabled>Select Account Type</option>
+              <option value="STUDENT" {% if reg_type == 'STUDENT' %}selected{% endif %}>Student</option>
+              <option value="EMPLOYEE" {% if reg_type == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
+              <option value="ADMIN" {% if reg_type == 'ADMIN' %}selected{% endif %}>Admin</option>
+            </select>
+          </div>
+
+          <!-- 2. Full Name -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerFullName">Full Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control auth-input" id="registerFullName" name="full_name" required
+                   placeholder="Enter your full name"
+                   value="{{ (values and values.full_name) or '' }}">
+          </div>
+
+          <!-- 3. ID -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerIdentifier" id="registerIdentifierLabel">ID <span class="text-danger">*</span></label>
+            <input type="text" class="form-control auth-input" id="registerIdentifier" name="identifier" required
+                   placeholder="Enter your ID"
+                   value="{{ (values and values.identifier) or (identifier if active_tab == 'register' else '') or '' }}">
+          </div>
+
+          <!-- 4. Email -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerEmail">Email Address <span class="text-danger">*</span></label>
+            <input type="email" class="form-control auth-input" id="registerEmail" name="email" required
+                   placeholder="Enter your email address"
+                   value="{{ (values and values.email) or '' }}">
+          </div>
+
+          <!-- 5. Select Campus -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerCampus">Select Campus <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerCampus" name="campus" required>
+              <option value="" {% if not (values and values.campus) %}selected{% endif %} disabled>Select Campus</option>
+              {% for cmp in campus_list %}
+                <option value="{{ cmp }}" {% if values and values.campus == cmp %}selected{% endif %}>{{ cmp }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Dynamic Field (Student Only): Degree / Program -->
+          <div class="mb-2 {% if reg_type != 'STUDENT' %}d-none{% endif %}" id="studentProgramGroup">
+            <label class="form-label auth-label" for="registerProgram">Degree / Program <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerProgram" name="program" {% if reg_type != 'STUDENT' %}disabled{% else %}required{% endif %}>
+              <option value="" {% if not (values and values.program) %}selected{% endif %} disabled>Select Degree / Program</option>
+              {% for prog in program_list %}
+                <option value="{{ prog }}" {% if values and values.program == prog %}selected{% endif %}>{{ prog }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Dynamic Field (Employee Only): Role -->
+          <div class="mb-2 {% if reg_type != 'EMPLOYEE' %}d-none{% endif %}" id="employeeRoleGroup">
+            <label class="form-label auth-label" for="registerEmployeeRole">Role <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerEmployeeRole" name="role_designation" {% if reg_type != 'EMPLOYEE' %}disabled{% else %}required{% endif %}>
+              <option value="" {% if not (values and values.role_designation in emp_role_list) %}selected{% endif %} disabled>Select Employee Role</option>
+              {% for r in emp_role_list %}
+                <option value="{{ r }}" {% if values and values.role_designation == r %}selected{% endif %}>{{ r }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Dynamic Field (Employee Only): Department -->
+          <div class="mb-2 {% if reg_type != 'EMPLOYEE' %}d-none{% endif %}" id="employeeDepartmentGroup">
+            <label class="form-label auth-label" for="registerDepartment">Department <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerDepartment" name="department" {% if reg_type != 'EMPLOYEE' %}disabled{% else %}required{% endif %}>
+              <option value="" {% if not (values and values.department) %}selected{% endif %} disabled>Select Department</option>
+              {% for dept in dept_list %}
+                <option value="{{ dept }}" {% if values and values.department == dept %}selected{% endif %}>{{ dept }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Dynamic Field (Admin Only): Locked Admin Role & Secret Code -->
+          <div class="mb-2 {% if reg_type != 'ADMIN' %}d-none{% endif %}" id="adminRoleGroup">
+            <label class="form-label auth-label" for="registerAdminRole">Role <span class="text-danger">*</span></label>
+            <input type="text" class="form-control auth-input mb-2" id="registerAdminRole" name="role_designation"
+                   value="Admin" readonly {% if reg_type != 'ADMIN' %}disabled{% endif %}>
+            <label class="form-label auth-label" for="registerAdminCode">Admin Authorization Secret *</label>
+            <input type="password" class="form-control auth-input" id="registerAdminCode" name="admin_code"
+                   placeholder="Enter system secret code"
+                   {% if reg_type != 'ADMIN' %}disabled{% endif %}>
+          </div>
+
+          <!-- Password -->
+          <div class="mb-2">
+            <label class="form-label auth-label" for="registerPassword">Password <span class="text-danger">*</span></label>
+            <div class="input-group auth-input-group">
+              <input type="password" class="form-control auth-input border-end-0" id="registerPassword" name="password" required
+                     placeholder="Enter your password">
+              <button type="button" class="input-group-text auth-eye-toggle" data-target="registerPassword" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="mb-3">
+            <label class="form-label auth-label" for="registerConfirmPassword">Confirm Password <span class="text-danger">*</span></label>
+            <div class="input-group auth-input-group">
+              <input type="password" class="form-control auth-input border-end-0" id="registerConfirmPassword" name="confirm_password" required
+                     placeholder="Confirm your password">
+              <button type="button" class="input-group-text auth-eye-toggle" data-target="registerConfirmPassword" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn auth-submit-btn w-100">
+            Register
+          </button>
+
+          <div class="text-center mt-3 small text-muted">
+            Already have an account? <a href="/login" class="auth-switch-link fw-semibold" id="linkToLogin">Login here</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- ======================= FORGOT PASSWORD SECTION ======================= -->
+      <div id="forgotSection" class="{% if active_tab != 'forgot' %}d-none{% endif %}">
+        <form method="post" action="/forgot-password" id="forgotForm" novalidate>
+          <p class="text-muted small mb-2 auth-alert-compact">
+            Enter the email address associated with your account to verify your identity and reset your password.
+          </p>
+          <div class="mb-3">
+            <label class="form-label auth-label" for="forgotEmail">Registered Email Address <span class="text-danger">*</span></label>
+            <input type="email" class="form-control auth-input" id="forgotEmail" name="email" required
+                   placeholder="Enter your registered email address"
+                   value="{{ forgot_email or '' }}">
+          </div>
+
+          <button type="submit" class="btn auth-submit-btn w-100">
+            Verify &amp; Reset Password
+          </button>
+
+          <div class="text-center mt-2">
+            <a href="/login" class="auth-forgot-link back-to-login-link">
+              <i class="bi bi-arrow-left me-1"></i>Back to Login
+            </a>
+          </div>
+        </form>
+      </div>
+
+      <!-- ======================= RESET PASSWORD SECTION ======================= -->
+      <div id="resetSection" class="{% if active_tab != 'reset' %}d-none{% endif %}">
+        <form method="post" action="/reset-password" id="resetForm" novalidate>
+          <input type="hidden" name="reset_token" value="{{ reset_token or '' }}">
+          <input type="hidden" name="reset_email" value="{{ reset_email or '' }}">
+
+          <div class="mb-2">
+            <label class="form-label auth-label" for="resetNewPassword">New Password <span class="text-danger">*</span></label>
+            <div class="input-group auth-input-group">
+              <input type="password" class="form-control auth-input border-end-0" id="resetNewPassword" name="new_password" required
+                     placeholder="Enter new password (min 6 chars)">
+              <button type="button" class="input-group-text auth-eye-toggle" data-target="resetNewPassword" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label auth-label" for="resetConfirmPassword">Confirm New Password <span class="text-danger">*</span></label>
+            <div class="input-group auth-input-group">
+              <input type="password" class="form-control auth-input border-end-0" id="resetConfirmPassword" name="confirm_password" required
+                     placeholder="Confirm your new password">
+              <button type="button" class="input-group-text auth-eye-toggle" data-target="resetConfirmPassword" aria-label="Toggle password visibility">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn auth-submit-btn w-100">
+            Update Password
+          </button>
+
+          <div class="text-center mt-2">
+            <a href="/login" class="auth-forgot-link back-to-login-link">
+              <i class="bi bi-arrow-left me-1"></i>Back to Login
+            </a>
+          </div>
+        </form>
       </div>
     </div>
   </div>
-</div>
+</main>
 {% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const tabBtnLogin = document.getElementById("tabBtnLogin");
-  const tabBtnRegister = document.getElementById("tabBtnRegister");
-  const loginSection = document.getElementById("loginSection");
-  const registerSection = document.getElementById("registerSection");
-
-  const loginAccountType = document.getElementById("loginAccountType");
-  const loginIdentifierLabel = document.getElementById("loginIdentifierLabel");
-  const loginIdentifier = document.getElementById("loginIdentifier");
-
-  const registerAccountType = document.getElementById("registerAccountType");
-  const registerIdentifierLabel = document.getElementById("registerIdentifierLabel");
-  const registerIdentifier = document.getElementById("registerIdentifier");
-  const programGroup = document.getElementById("programGroup");
-  const departmentGroup = document.getElementById("departmentGroup");
-  const adminCodeGroup = document.getElementById("adminCodeGroup");
-
-  const clientErrorAlert = document.getElementById("clientErrorAlert");
-  const clientErrorMessage = document.getElementById("clientErrorMessage");
-
-  function showError(msg) {
-    clientErrorMessage.textContent = msg;
-    clientErrorAlert.classList.remove("d-none");
-    clientErrorAlert.classList.add("d-flex");
-    clientErrorAlert.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-
-  function clearError() {
-    clientErrorAlert.classList.add("d-none");
-    clientErrorAlert.classList.remove("d-flex");
-  }
-
-  // Toggle Tab actions
-  tabBtnLogin.addEventListener("click", function() {
-    loginSection.classList.remove("d-none");
-    registerSection.classList.add("d-none");
-    tabBtnLogin.className = "btn rounded-pill px-4 py-2 fw-semibold btn-primary text-white shadow-sm";
-    tabBtnRegister.className = "btn rounded-pill px-4 py-2 fw-semibold btn-light text-muted";
-    clearError();
-  });
-
-  tabBtnRegister.addEventListener("click", function() {
-    registerSection.classList.remove("d-none");
-    loginSection.classList.add("d-none");
-    tabBtnRegister.className = "btn rounded-pill px-4 py-2 fw-semibold btn-primary text-white shadow-sm";
-    tabBtnLogin.className = "btn rounded-pill px-4 py-2 fw-semibold btn-light text-muted";
-    clearError();
-  });
-
-  // Role Metadata config
-  const roleConfig = {
-    STUDENT: { label: "Student ID *", placeholder: "e.g. STU-1001 or STU-1024" },
-    EMPLOYEE: { label: "Employee ID *", placeholder: "e.g. EMP-1001 or EMP-1024" },
-    PROFESSOR: { label: "Professor ID *", placeholder: "e.g. PROF-1001 or PROF-1024" },
-    ADMIN: { label: "Admin ID *", placeholder: "e.g. ADMIN-1001 or ADMIN-001" }
-  };
-
-  function updateLoginRole(role) {
-    if (role && roleConfig[role]) {
-      loginIdentifierLabel.textContent = roleConfig[role].label;
-      loginIdentifier.placeholder = roleConfig[role].placeholder;
-    } else {
-      loginIdentifierLabel.textContent = "ID *";
-      loginIdentifier.placeholder = "Select Account Type first";
-    }
-  }
-
-  function updateRegisterRole(role) {
-    if (role && roleConfig[role]) {
-      registerIdentifierLabel.textContent = roleConfig[role].label;
-      registerIdentifier.placeholder = roleConfig[role].placeholder;
-    } else {
-      registerIdentifierLabel.textContent = "ID *";
-      registerIdentifier.placeholder = "Select Account Type first";
-    }
-
-    if (role === "STUDENT") {
-      programGroup.classList.remove("d-none");
-      departmentGroup.classList.add("d-none");
-      adminCodeGroup.classList.add("d-none");
-    } else if (role === "EMPLOYEE" || role === "PROFESSOR") {
-      programGroup.classList.add("d-none");
-      departmentGroup.classList.remove("d-none");
-      adminCodeGroup.classList.add("d-none");
-    } else if (role === "ADMIN") {
-      programGroup.classList.add("d-none");
-      departmentGroup.classList.add("d-none");
-      adminCodeGroup.classList.remove("d-none");
-    } else {
-      programGroup.classList.remove("d-none");
-      departmentGroup.classList.add("d-none");
-      adminCodeGroup.classList.add("d-none");
-    }
-  }
-
-  loginAccountType.addEventListener("change", function() {
-    clearError();
-    updateLoginRole(this.value);
-  });
-
-  registerAccountType.addEventListener("change", function() {
-    clearError();
-    updateRegisterRole(this.value);
-  });
-
-  // Client validation on Login submit
-  document.getElementById("loginForm").addEventListener("submit", function(e) {
-    clearError();
-    if (!loginAccountType.value) {
-      e.preventDefault();
-      showError("Please select your account type.");
-      loginAccountType.focus();
-      return false;
-    }
-    if (!loginIdentifier.value.trim() || !document.getElementById("loginPassword").value) {
-      e.preventDefault();
-      showError("Please enter your ID and password.");
-      return false;
-    }
-  });
-
-  // Client validation on Register submit
-  document.getElementById("registerForm").addEventListener("submit", function(e) {
-    clearError();
-    if (!registerAccountType.value) {
-      e.preventDefault();
-      showError("Please select your account type.");
-      registerAccountType.focus();
-      return false;
-    }
-    if (!registerIdentifier.value.trim()) {
-      e.preventDefault();
-      showError("Please enter your " + registerAccountType.options[registerAccountType.selectedIndex].text + " ID.");
-      registerIdentifier.focus();
-      return false;
-    }
-    const p1 = document.getElementById("registerPassword").value;
-    const p2 = document.getElementById("registerConfirmPassword").value;
-    if (p1.length < 6) {
-      e.preventDefault();
-      showError("Password must be at least 6 characters.");
-      return false;
-    }
-    if (p1 !== p2) {
-      e.preventDefault();
-      showError("Passwords do not match.");
-      return false;
-    }
-    if (registerAccountType.value === "ADMIN") {
-      const code = document.getElementById("registerAdminCode").value.trim();
-      if (!code) {
-        e.preventDefault();
-        showError("Admin registration requires an authorized verification code.");
-        return false;
-      }
-    }
-  });
-
-  // Initialize UI based on any preselected role
-  if (loginAccountType.value) {
-    updateLoginRole(loginAccountType.value);
-  }
-  if (registerAccountType.value) {
-    updateRegisterRole(registerAccountType.value);
-  }
-});
-</script>
-{% endblock %}
+{% block footer %}{% endblock %}

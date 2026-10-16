@@ -98,13 +98,24 @@ def authenticate_user(db: Session, account_type: str, identifier: str, password:
     if not ident or not password:
         return None
 
-    stmt = select(User).where(User.role == role_key, User.is_active.is_(True))
     if role_key == UserRole.STUDENT.value:
-        stmt = stmt.where(or_(User.student_id.ilike(ident), User.email.ilike(ident)))
+        stmt = select(User).where(
+            User.role == UserRole.STUDENT.value,
+            User.is_active.is_(True),
+            or_(User.student_id.ilike(ident), User.email.ilike(ident)),
+        )
     elif role_key == UserRole.EMPLOYEE.value:
-        stmt = stmt.where(or_(User.employee_id.ilike(ident), User.email.ilike(ident)))
+        stmt = select(User).where(
+            User.role.in_([UserRole.EMPLOYEE.value, UserRole.PROFESSOR.value]),
+            User.is_active.is_(True),
+            or_(User.employee_id.ilike(ident), User.professor_id.ilike(ident), User.email.ilike(ident)),
+        )
     elif role_key == UserRole.PROFESSOR.value:
-        stmt = stmt.where(or_(User.professor_id.ilike(ident), User.email.ilike(ident)))
+        stmt = select(User).where(
+            User.role.in_([UserRole.PROFESSOR.value, UserRole.EMPLOYEE.value]),
+            User.is_active.is_(True),
+            or_(User.professor_id.ilike(ident), User.employee_id.ilike(ident), User.email.ilike(ident)),
+        )
     elif role_key == UserRole.ADMIN.value:
         admin_conds = [
             User.admin_id.ilike(ident),
@@ -114,7 +125,11 @@ def authenticate_user(db: Session, account_type: str, identifier: str, password:
         ]
         if ident.lower() in ("admin", "admin-001", "admin-1001"):
             admin_conds.append(User.role == UserRole.ADMIN.value)
-        stmt = stmt.where(or_(*admin_conds))
+        stmt = select(User).where(
+            User.role == UserRole.ADMIN.value,
+            User.is_active.is_(True),
+            or_(*admin_conds),
+        )
     else:
         return None
 

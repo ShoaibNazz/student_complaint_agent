@@ -47,7 +47,12 @@
           <div class="col-sm-6">
             <div class="p-3 bg-light rounded border">
               <div class="text-muted small">Account Type / Role</div>
-              <div class="fw-semibold"><span class="badge bg-secondary">{{ current_user.role }}</span></div>
+              <div class="fw-semibold">
+                <span class="badge bg-secondary">{{ current_user.role_designation or current_user.role }}</span>
+                {% if current_user.role_designation and current_user.role_designation.upper() != current_user.role %}
+                  <span class="text-muted small ms-1">({{ current_user.role }})</span>
+                {% endif %}
+              </div>
             </div>
           </div>
           <div class="col-sm-6">
@@ -71,6 +76,15 @@
             <div class="p-3 bg-light rounded border">
               <div class="text-muted small">Assigned Department</div>
               <div class="fw-semibold">{{ current_user.department }}</div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if current_user.campus %}
+          <div class="col-sm-6">
+            <div class="p-3 bg-light rounded border">
+              <div class="text-muted small">University Campus</div>
+              <div class="fw-semibold"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ current_user.campus }}</div>
             </div>
           </div>
           {% endif %}

@@ -9,7 +9,18 @@ from app.models.enums import ComplaintStatus, Priority
 from app.schemas.analysis import AnalysisOut
 from app.utils.text import clean_text
 
-_OPTIONAL_TEXT = ("student_id", "email", "phone", "class_or_program", "subject")
+_OPTIONAL_TEXT = (
+    "student_id",
+    "email",
+    "phone",
+    "class_or_program",
+    "subject",
+    "account_type",
+    "originating_campus",
+    "target_campus",
+    "attachment_path",
+    "attachment_name",
+)
 
 
 class ComplaintCreate(BaseModel):
@@ -19,6 +30,11 @@ class ComplaintCreate(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=40)
     class_or_program: Optional[str] = Field(default=None, max_length=120)
     subject: Optional[str] = Field(default=None, max_length=120)
+    account_type: Optional[str] = Field(default=None, max_length=30)
+    originating_campus: Optional[str] = Field(default=None, max_length=120)
+    target_campus: Optional[str] = Field(default=None, max_length=120)
+    attachment_path: Optional[str] = Field(default=None, max_length=500)
+    attachment_name: Optional[str] = Field(default=None, max_length=255)
     complaint_title: str = Field(min_length=3, max_length=200)
     complaint_text: str = Field(min_length=1, max_length=5000)
 
@@ -84,6 +100,11 @@ class ComplaintOut(BaseModel):
     phone: Optional[str]
     class_or_program: Optional[str]
     subject: Optional[str]
+    account_type: Optional[str] = None
+    originating_campus: Optional[str] = None
+    target_campus: Optional[str] = None
+    attachment_path: Optional[str] = None
+    attachment_name: Optional[str] = None
     title: str
     complaint_text: str
     status: str
@@ -134,6 +155,9 @@ class DashboardStats(BaseModel):
 class StudentComplaintSubmit(BaseModel):
     complaint_title: str = Field(min_length=3, max_length=200)
     subject: Optional[str] = Field(default=None, max_length=120)
+    originating_campus: Optional[str] = Field(default=None, max_length=120)
+    target_campus: Optional[str] = Field(default=None, max_length=120)
+    class_or_program: Optional[str] = Field(default=None, max_length=120)
     complaint_text: str = Field(min_length=1, max_length=5000)
 
 
@@ -169,6 +193,11 @@ class StudentComplaintDetailOut(BaseModel):
     email: Optional[str] = None
     class_or_program: Optional[str] = None
     subject: Optional[str] = None
+    account_type: Optional[str] = None
+    originating_campus: Optional[str] = None
+    target_campus: Optional[str] = None
+    attachment_path: Optional[str] = None
+    attachment_name: Optional[str] = None
     title: str
     complaint_text: str
     status: str

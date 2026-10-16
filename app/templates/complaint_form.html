@@ -1,41 +1,443 @@
 {% extends "base.html" %}
-{% block title %}Submit a complaint{% endblock %}
-{% block content %}
-<div class="row justify-content-center"><div class="col-lg-8">
-{% if submitted %}
-  <div class="alert alert-success">
-    <h4 class="alert-heading">Your complaint has been received.</h4>
-    <p class="mb-1">Your reference number is:</p>
-    <p class="display-6 fw-bold mb-2">{{ submitted }}</p>
-    <p class="mb-0">Please keep this number. Our team will review your complaint and contact you through official channels.</p>
-  </div>
-  <a class="btn btn-outline-primary" href="/submit">Submit another complaint</a>
-{% else %}
-  <div class="card shadow-sm"><div class="card-body p-4">
-    <h2 class="h4 mb-1">Submit a complaint</h2>
-    <p class="text-muted">Describe the issue clearly. If you or someone else is in immediate danger, contact campus security or emergency services right away &ndash; this form is not monitored in real time.</p>
-    {% if errors %}<div class="alert alert-danger"><ul class="mb-0">{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
-    <form method="post" action="/submit">
-      <div class="row g-3">
-        <div class="col-md-6"><label class="form-label" for="student_name">Name *</label>
-          <input class="form-control" id="student_name" name="student_name" maxlength="120" required value="{{ values.student_name or '' }}"></div>
-        <div class="col-md-6"><label class="form-label" for="student_id">Student ID{% if settings.require_student_id %} *{% endif %}</label>
-          <input class="form-control" id="student_id" name="student_id" maxlength="60" {% if settings.require_student_id %}required{% endif %} value="{{ values.student_id or '' }}"></div>
-        <div class="col-md-6"><label class="form-label" for="email">Email{% if settings.require_email %} *{% endif %}</label>
-          <input class="form-control" type="email" id="email" name="email" maxlength="254" {% if settings.require_email %}required{% endif %} value="{{ values.email or '' }}"></div>
-        <div class="col-md-6"><label class="form-label" for="class_or_program">Class / Program</label>
-          <input class="form-control" id="class_or_program" name="class_or_program" maxlength="120" value="{{ values.class_or_program or '' }}"></div>
-        <div class="col-12"><label class="form-label" for="subject">Subject</label>
-          <input class="form-control" id="subject" name="subject" maxlength="120" value="{{ values.subject or '' }}"></div>
-        <div class="col-12"><label class="form-label" for="complaint_title">Complaint title *</label>
-          <input class="form-control" id="complaint_title" name="complaint_title" minlength="3" maxlength="200" required value="{{ values.complaint_title or '' }}"></div>
-        <div class="col-12"><label class="form-label" for="complaint_text">Complaint description *</label>
-          <textarea class="form-control" id="complaint_text" name="complaint_text" rows="7" maxlength="5000" required data-counter="char-count">{{ values.complaint_text or '' }}</textarea>
-          <div class="form-text"><span id="char-count">0</span> / 5000 characters</div></div>
+{% block title %}Submit Complaint - University Complaint Portal{% endblock %}
+{% block body_class %}complaint-page-body{% endblock %}
+{% block nav_class %}mb-0{% endblock %}
+
+{% block main_wrapper %}
+{% set acc_val = (values.account_type if values and values.account_type else '') | upper %}
+{% set campus_list = campuses or [
+  'Township Campus, Lahore (Main Campus)',
+  'Lower Mall Campus, Lahore',
+  'Bank Road Campus, Lahore',
+  'Attock Campus',
+  'Dera Ghazi Khan Campus',
+  'Faisalabad Campus',
+  'Jauharabad Campus',
+  'Multan Campus',
+  'Vehari Campus'
+] %}
+{% set program_list = degree_programs or [
+  'BS Computer Science',
+  'BS Information Technology',
+  'BS Software Engineering',
+  'BS Mathematics',
+  'BS Physics',
+  'BS Chemistry',
+  'BS Botany',
+  'BS Zoology',
+  'BS English',
+  'BS Urdu',
+  'BS Islamic Studies',
+  'BS Economics',
+  'BS Economics and Finance',
+  'BS Business Analytics',
+  'BBA (Bachelor of Business Administration)',
+  'B.Ed. (Hons)',
+  'B.Ed. (Hons) Special Education',
+  'B.Ed. (Hons) Educational Leadership & Management',
+  'B.Ed. Secondary (1.5 Years)',
+  'BS Physical Education and Sports Sciences',
+  'BFA Painting & Graphic Design',
+  'BS History',
+  'MS Computer Science',
+  'MS Information Technology',
+  'MS Mathematics',
+  'MS Physics',
+  'MS Chemistry',
+  'MS Botany',
+  'MS Zoology',
+  'MPhil Education',
+  'MPhil Educational Leadership and Policy Studies',
+  'MPhil Special Education',
+  'MPhil English (Linguistics)',
+  'MPhil Urdu',
+  'MPhil Economics',
+  'MPhil Islamic Studies',
+  'MBA (Master of Business Administration)',
+  'MS Management Sciences',
+  'PhD Computer Science',
+  'PhD Education',
+  'PhD Mathematics',
+  'PhD Physics',
+  'PhD Chemistry',
+  'PhD Botany',
+  'PhD Zoology',
+  'PhD English (Linguistics)',
+  'PhD Urdu',
+  'PhD Economics',
+  'PhD Management Sciences',
+  'PhD Islamic Studies'
+] %}
+{% set emp_role_list = employee_roles or [
+  'Lecturer',
+  'Assistant Professor',
+  'Associate Professor',
+  'Professor',
+  'Head of Department (HOD)',
+  'Principal / Campus Director',
+  'Director of Division',
+  'Dean',
+  'Registrar / Administrative Officer',
+  'Controller of Examinations',
+  'Treasurer / Accounts Officer',
+  'Directorate of Student Affairs Officer',
+  'Directorate of IT Officer',
+  'Librarian',
+  'Transport Officer',
+  'Hostel Warden',
+  'Security Officer'
+] %}
+{% set dept_list = departments or [
+  'Department of Information Sciences',
+  'Department of Mathematics',
+  'Department of Physics',
+  'Department of Chemistry',
+  'Department of Botany',
+  'Department of Zoology',
+  'Department of Education',
+  'Department of Special Education',
+  'Department of Educational Leadership and Policy Studies',
+  'Department of STEM Education',
+  'UE Business School',
+  'Department of Economics',
+  'Department of English',
+  'Department of Urdu',
+  'Department of Islamic Studies',
+  'Department of History, Arts and Cultural Heritage',
+  'Department of Physical Education and Sports Sciences',
+  'Directorate of Student Affairs',
+  'IT Department',
+  'Examination Department',
+  'Accounts Department',
+  'Admissions Department',
+  'Transport Department',
+  'Hostel Administration',
+  'Library Department',
+  'Administration Office',
+  'Academic Department',
+  'Academic Administration',
+  'Administration / Maintenance',
+  'Security / Student Affairs',
+  'Student Affairs / Designated Safeguarding Officer',
+  'Student Affairs / Administration',
+  'Administration / Health & Safety Officer',
+  'Student Affairs',
+  'Quality Enhancement Cell (QEC)',
+  'Office of Research, Innovation & Commercialization (ORIC)',
+  'Health & Medical Center'
+] %}
+{% set f_err = field_errors or {} %}
+
+<main class="complaint-hero-section">
+  <div class="container py-3 py-lg-4 d-flex justify-content-center align-items-center">
+    <div class="complaint-card" id="complaintCard">
+
+      <!-- Receipt / Success State -->
+      <div id="complaintSuccessPanel" class="{% if not submitted %}d-none{% endif %} text-center py-4">
+        <div class="cmp-success-icon-wrap mx-auto mb-3">
+          <i class="bi bi-check-lg"></i>
+        </div>
+        <h2 class="h4 fw-bold text-navy mb-1">Your complaint has been received.</h2>
+        <p class="text-muted small mb-3">
+          Your complaint has been registered in the University Complaint Management System and routed for review.
+        </p>
+
+        <div class="cmp-receipt-box mx-auto mb-4">
+          <div class="small text-uppercase fw-semibold text-muted mb-1">Complaint Reference Number</div>
+          <div class="h3 fw-bold font-monospace text-navy mb-2" id="complaintReceiptNumber">{{ submitted or '' }}</div>
+          <div class="small text-muted">
+            Status: <span class="badge bg-primary">NEW</span>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+          {% if current_user and current_user.role == 'STUDENT' %}
+            <a class="btn btn-outline-primary px-4 fw-semibold" href="/student/complaints">
+              <i class="bi bi-journal-text me-1"></i>View My Complaints
+            </a>
+            <a class="btn cmp-submit-btn px-4" href="/student/complaints/new">
+              Submit Another Complaint
+            </a>
+          {% else %}
+            <a class="btn cmp-submit-btn px-4" href="{{ form_action or '/submit' }}">
+              Submit Another Complaint
+            </a>
+            {% if not current_user %}
+              <a class="btn btn-outline-secondary px-4" href="/login">
+                Portal Login
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
       </div>
-      <button class="btn btn-primary mt-4" type="submit">Submit Complaint</button>
-    </form>
-  </div></div>
-{% endif %}
-</div></div>
+
+      <!-- Complaint Form State (Matches Reference Image 2) -->
+      <div id="complaintFormPanel" class="{% if submitted %}d-none{% endif %}">
+        <!-- Header matching Reference Image 2: Gold square + Submit Complaint -->
+        <div class="complaint-card-header">
+          <div class="complaint-header-icon" aria-hidden="true"></div>
+          <div>
+            <h1 class="complaint-header-title">Submit Complaint</h1>
+            <p class="complaint-header-subtitle">Please fill in the details below to submit your complaint.</p>
+          </div>
+        </div>
+
+        <!-- Global Error Alert -->
+        <div id="cmpGlobalErrorAlert" class="alert alert-danger d-flex align-items-start py-2 px-3 small mb-3 {% if not errors %}d-none{% endif %}" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2 mt-1 flex-shrink-0"></i>
+          <div id="cmpGlobalErrorList">
+            {% if errors %}
+              <ul class="mb-0 ps-3">
+                {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        </div>
+
+        <form method="post" action="{{ form_action or '/submit' }}" id="complaintSubmitForm" enctype="multipart/form-data" novalidate>
+          <input type="hidden" name="ui_mode" value="v2">
+
+          <!-- 2-Column Grid: Rows 1 to 3 -->
+          <div class="row g-3 mb-3">
+            <!-- Row 1: Account Type (Left) | Originating Campus (Right) -->
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpAccountType">
+                Account Type <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('account_type') %}is-invalid-group{% endif %}">
+                <select class="form-select cmp-input" id="cmpAccountType" name="account_type" required>
+                  <option value="" {% if not acc_val %}selected{% endif %} disabled>Select Account Type</option>
+                  <option value="STUDENT" {% if acc_val == 'STUDENT' %}selected{% endif %}>Student</option>
+                  <option value="EMPLOYEE" {% if acc_val == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
+                  <option value="ADMIN" {% if acc_val == 'ADMIN' %}selected{% endif %}>Admin</option>
+                </select>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('account_type') %}d-none{% endif %}" id="err-account_type">
+                {{ f_err.get('account_type', '') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpOriginatingCampus">
+                Originating Campus <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('originating_campus') %}is-invalid-group{% endif %}">
+                <select class="form-select cmp-input" id="cmpOriginatingCampus" name="originating_campus" required>
+                  <option value="" {% if not (values and values.originating_campus) %}selected{% endif %} disabled>Select Campus</option>
+                  {% for c_name in campus_list %}
+                    <option value="{{ c_name }}" {% if values and values.originating_campus == c_name %}selected{% endif %}>{{ c_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('originating_campus') %}d-none{% endif %}" id="err-originating_campus">
+                {{ f_err.get('originating_campus', '') }}
+              </div>
+            </div>
+
+            <!-- Row 2: Full Name (Left) | Target Campus (Right) -->
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpFullName">
+                Full Name <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('student_name') %}is-invalid-group{% endif %}">
+                <input type="text" class="form-control cmp-input" id="cmpFullName" name="student_name"
+                       maxlength="120" required placeholder="Enter your full name"
+                       value="{{ (values and values.student_name) or '' }}"
+                       {% if current_user and current_user.role == 'STUDENT' %}readonly{% endif %}>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('student_name') %}d-none{% endif %}" id="err-student_name">
+                {{ f_err.get('student_name', '') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpTargetCampus">
+                Target Campus <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('target_campus') %}is-invalid-group{% endif %}">
+                <select class="form-select cmp-input" id="cmpTargetCampus" name="target_campus" required>
+                  <option value="" {% if not (values and values.target_campus) %}selected{% endif %} disabled>Select Campus</option>
+                  {% for c_name in campus_list %}
+                    <option value="{{ c_name }}" {% if values and values.target_campus == c_name %}selected{% endif %}>{{ c_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('target_campus') %}d-none{% endif %}" id="err-target_campus">
+                {{ f_err.get('target_campus', '') }}
+              </div>
+            </div>
+
+            <!-- Row 3: Student ID / Employee ID (Left) | Academic Program / Role (Right) -->
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpStudentId">
+                Student ID / Employee ID <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('student_id') %}is-invalid-group{% endif %}">
+                <input type="text" class="form-control cmp-input" id="cmpStudentId" name="student_id"
+                       maxlength="60" required placeholder="Enter your ID"
+                       value="{{ (values and values.student_id) or '' }}"
+                       {% if current_user and current_user.role == 'STUDENT' and current_user.student_id %}readonly{% endif %}>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('student_id') %}d-none{% endif %}" id="err-student_id">
+                {{ f_err.get('student_id', '') }}
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label cmp-label" for="cmpProgramOrRole" id="cmpProgramOrRoleLabel">
+                Academic Program / Role <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group {% if f_err.get('class_or_program') %}is-invalid-group{% endif %}">
+                <select class="form-select cmp-input" id="cmpProgramOrRole" name="class_or_program" required
+                        data-current-value="{{ (values and values.class_or_program) or '' }}"
+                        data-programs='{{ program_list | tojson }}'
+                        data-employee-roles='{{ emp_role_list | tojson }}'
+                        data-departments='{{ dept_list | tojson }}'>
+                  <option value="" {% if not (values and values.class_or_program) %}selected{% endif %} disabled>Select Program / Role</option>
+                  {% set cur_prog = (values and values.class_or_program) or '' %}
+                  {% if acc_val == 'STUDENT' %}
+                    {% for prog in program_list %}
+                      <option value="{{ prog }}" {% if cur_prog == prog %}selected{% endif %}>{{ prog }}</option>
+                    {% endfor %}
+                  {% elif acc_val == 'EMPLOYEE' %}
+                    <optgroup label="Employee Roles">
+                      {% for r in emp_role_list %}
+                        <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
+                      {% endfor %}
+                    </optgroup>
+                    <optgroup label="University Departments">
+                      {% for d in dept_list %}
+                        <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
+                      {% endfor %}
+                    </optgroup>
+                  {% elif acc_val == 'ADMIN' %}
+                    <option value="Admin" {% if cur_prog in ('Admin', 'ADMIN', '') %}selected{% endif %}>Admin</option>
+                  {% else %}
+                    <optgroup label="Academic Programs (Student)">
+                      {% for prog in program_list %}
+                        <option value="{{ prog }}" {% if cur_prog == prog %}selected{% endif %}>{{ prog }}</option>
+                      {% endfor %}
+                    </optgroup>
+                    <optgroup label="Employee Roles &amp; Departments">
+                      {% for r in emp_role_list %}
+                        <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
+                      {% endfor %}
+                      {% for d in dept_list %}
+                        <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
+                      {% endfor %}
+                    </optgroup>
+                    <optgroup label="Administration">
+                      <option value="Admin" {% if cur_prog == 'Admin' %}selected{% endif %}>Admin</option>
+                    </optgroup>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('class_or_program') %}d-none{% endif %}" id="err-class_or_program">
+                {{ f_err.get('class_or_program', '') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Rows 4 & 5: Email + Title on Left, Description Textarea on Right (Matching Image 2) -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6 d-flex flex-column justify-content-between">
+              <div class="mb-3">
+                <label class="form-label cmp-label" for="cmpEmail">
+                  Email Address <span class="cmp-req">*</span>
+                </label>
+                <div class="cmp-input-group {% if f_err.get('email') %}is-invalid-group{% endif %}">
+                  <input type="email" class="form-control cmp-input" id="cmpEmail" name="email"
+                         maxlength="254" required placeholder="Enter your email address"
+                         value="{{ (values and values.email) or '' }}"
+                         {% if current_user and current_user.role == 'STUDENT' %}readonly{% endif %}>
+                </div>
+                <div class="cmp-field-error {% if not f_err.get('email') %}d-none{% endif %}" id="err-email">
+                  {{ f_err.get('email', '') }}
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label cmp-label" for="cmpTitle">
+                  Complaint Title <span class="cmp-req">*</span>
+                </label>
+                <div class="cmp-input-group {% if f_err.get('complaint_title') %}is-invalid-group{% endif %}">
+                  <input type="text" class="form-control cmp-input" id="cmpTitle" name="complaint_title"
+                         minlength="3" maxlength="200" required placeholder="Enter a short title"
+                         value="{{ (values and values.complaint_title) or '' }}">
+                </div>
+                <div class="cmp-field-error {% if not f_err.get('complaint_title') %}d-none{% endif %}" id="err-complaint_title">
+                  {{ f_err.get('complaint_title', '') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6 d-flex flex-column">
+              <label class="form-label cmp-label" for="cmpDescription">
+                Complaint Description <span class="cmp-req">*</span>
+              </label>
+              <div class="cmp-input-group flex-grow-1 position-relative d-flex flex-column {% if f_err.get('complaint_text') %}is-invalid-group{% endif %}">
+                <textarea class="form-control cmp-input cmp-textarea flex-grow-1" id="cmpDescription" name="complaint_text"
+                          rows="4" maxlength="5000" required data-counter="cmpCharCount"
+                          placeholder="Describe your complaint in detail..."
+                          style="min-height: 122px; resize: vertical;">{{ (values and values.complaint_text) or '' }}</textarea>
+                <div class="position-absolute bottom-0 end-0 p-2 pointer-events-none">
+                  <span class="cmp-char-counter small text-muted"><span id="cmpCharCount">0</span> / 5000</span>
+                </div>
+              </div>
+              <div class="cmp-field-error {% if not f_err.get('complaint_text') %}d-none{% endif %}" id="err-complaint_text">
+                {{ f_err.get('complaint_text', '') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Attach Image (Optional) (Matching Image 2) -->
+          <div class="mb-3">
+            <label class="form-label cmp-label" for="cmpAttachment">
+              Attach Image <span class="cmp-opt">(Optional)</span>
+            </label>
+            <label for="cmpAttachment" class="cmp-dropzone w-100 {% if f_err.get('attachment') %}is-invalid-group{% endif %}" id="cmpDropzone" tabindex="0" role="button" aria-label="Attach image upload area">
+              <input type="file" id="cmpAttachment" name="attachment"
+                     accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" class="cmp-file-input-hidden">
+
+              <!-- Default Upload Prompt -->
+              <div class="cmp-dropzone-prompt text-center py-2" id="cmpDropzonePrompt">
+                <div class="fw-bold" style="color: #0B3D91; font-size: 0.95rem;">Click to upload <span class="fw-normal text-muted">or drag and drop</span></div>
+                <div class="small text-muted mt-1">PNG, JPG, JPEG, WEBP (Max 5MB)</div>
+              </div>
+
+              <!-- Selected Image Preview -->
+              <div class="cmp-preview-box d-none" id="cmpPreviewBox">
+                <img src="" alt="Selected attachment preview" class="cmp-preview-img" id="cmpPreviewImg">
+                <div class="cmp-preview-meta">
+                  <div class="cmp-preview-name" id="cmpPreviewName"></div>
+                  <div class="cmp-preview-size" id="cmpPreviewSize"></div>
+                </div>
+                <div class="cmp-preview-actions">
+                  <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" id="cmpReplaceBtn">
+                    Replace
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="cmpRemoveBtn">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </label>
+            <div class="cmp-field-error {% if not f_err.get('attachment') %}d-none{% endif %}" id="err-attachment">
+              {{ f_err.get('attachment', '') }}
+            </div>
+          </div>
+
+          <!-- Full-Width Golden Submit Complaint Button (No Icon, Matching Image 2) -->
+          <button type="submit" class="btn cmp-submit-btn w-100" id="cmpSubmitBtn">
+            <span class="spinner-border spinner-border-sm me-2 d-none" id="cmpSubmitSpinner" role="status" aria-hidden="true"></span>
+            <span id="cmpSubmitText">Submit Complaint</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</main>
 {% endblock %}
+
+{% block footer %}{% endblock %}

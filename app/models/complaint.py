@@ -28,6 +28,11 @@ class Complaint(Base):
     phone: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     class_or_program: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     subject: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    account_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    originating_campus: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    target_campus: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    attachment_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    attachment_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     complaint_text: Mapped[str] = mapped_column(Text)  # original text - never overwritten
     status: Mapped[str] = mapped_column(String(30), default=ComplaintStatus.NEW.value, index=True)

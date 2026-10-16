@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.database import Base
@@ -28,6 +28,9 @@ class User(Base):
     admin_id: Mapped[Optional[str]] = mapped_column(String(60), unique=True, index=True, nullable=True)
     department: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     program: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    campus: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    campus_id: Mapped[Optional[int]] = mapped_column(ForeignKey("campuses.id"), nullable=True, index=True)
+    role_designation: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
@@ -41,7 +44,7 @@ class User(Base):
         if self.role == UserRole.EMPLOYEE.value:
             return self.employee_id or self.email
         if self.role == UserRole.PROFESSOR.value:
-            return self.professor_id or self.email
+            return self.professor_id or self.employee_id or self.email
         return self.admin_id or self.employee_id or "ADMIN-001"
 
     @property
@@ -60,5 +63,8 @@ class UniversityDirectory(Base):
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     department: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     program: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    campus: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    campus_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    role_designation: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     is_claimed: Mapped[bool] = mapped_column(Boolean, default=False)
 
