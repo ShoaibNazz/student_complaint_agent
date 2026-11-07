@@ -16,28 +16,69 @@ class ComplaintStatus(str, Enum):
     ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
     WAITING_FOR_STUDENT = "WAITING_FOR_STUDENT"
+    RESOLVED_AWAITING_CONFIRMATION = "RESOLVED_AWAITING_CONFIRMATION"
     RESOLVED = "RESOLVED"
     CLOSED = "CLOSED"
+    REOPENED = "REOPENED"
     REJECTED = "REJECTED"
 
 
 OPEN_STATUSES = (
-    ComplaintStatus.NEW, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED,
-    ComplaintStatus.IN_PROGRESS, ComplaintStatus.WAITING_FOR_STUDENT,
+    ComplaintStatus.NEW,
+    ComplaintStatus.UNDER_REVIEW,
+    ComplaintStatus.ASSIGNED,
+    ComplaintStatus.IN_PROGRESS,
+    ComplaintStatus.WAITING_FOR_STUDENT,
+    ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION,
+    ComplaintStatus.REOPENED,
 )
 FINISHED_STATUSES = (ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED, ComplaintStatus.REJECTED)
 
 VALID_STATUS_TRANSITIONS: dict[ComplaintStatus, set[ComplaintStatus]] = {
     ComplaintStatus.NEW: {ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.REJECTED},
-    ComplaintStatus.UNDER_REVIEW: {ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.REJECTED},
-    ComplaintStatus.ASSIGNED: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED},
-    ComplaintStatus.IN_PROGRESS: {ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED, ComplaintStatus.UNDER_REVIEW},
-    ComplaintStatus.WAITING_FOR_STUDENT: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED},
-    ComplaintStatus.RESOLVED: {ComplaintStatus.CLOSED, ComplaintStatus.IN_PROGRESS},
-    ComplaintStatus.CLOSED: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.UNDER_REVIEW},
+    ComplaintStatus.UNDER_REVIEW: {ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED, ComplaintStatus.REJECTED},
+    ComplaintStatus.ASSIGNED: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED},
+    ComplaintStatus.IN_PROGRESS: {ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED, ComplaintStatus.UNDER_REVIEW},
+    ComplaintStatus.WAITING_FOR_STUDENT: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED},
+    ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION: {ComplaintStatus.CLOSED, ComplaintStatus.RESOLVED, ComplaintStatus.REOPENED, ComplaintStatus.IN_PROGRESS},
+    ComplaintStatus.RESOLVED: {ComplaintStatus.CLOSED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.REOPENED},
+    ComplaintStatus.CLOSED: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.REOPENED},
+    ComplaintStatus.REOPENED: {ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED},
     ComplaintStatus.REJECTED: {ComplaintStatus.UNDER_REVIEW},
 }
 
+
+class RequestCategory(str, Enum):
+    LEAVE = "Leave Application"
+    TIMETABLE_ADJUSTMENT = "Timetable Adjustment"
+    WORKLOAD_CHANGE = "Workload Change"
+    PROMOTION_SERVICE = "Promotion / Service Matter"
+    RESOURCE_REQUEST = "Resource Request"
+    ADMINISTRATIVE_ASSISTANCE = "Administrative Assistance"
+    OTHER = "Other Institutional Matter"
+
+
+class RequestStatus(str, Enum):
+    SUBMITTED = "SUBMITTED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class NotificationType(str, Enum):
+    COMPLAINT_ASSIGNED = "COMPLAINT_ASSIGNED"
+    COMPLAINT_STATUS_UPDATE = "COMPLAINT_STATUS_UPDATE"
+    RESOLUTION_AWAITING_CONFIRMATION = "RESOLUTION_AWAITING_CONFIRMATION"
+    COMPLAINT_REOPENED = "COMPLAINT_REOPENED"
+    COMPLAINT_FORWARDED = "COMPLAINT_FORWARDED"
+    REQUEST_STATUS_UPDATE = "REQUEST_STATUS_UPDATE"
+
+
+class DeliveryStatus(str, Enum):
+    QUEUED = "QUEUED"
+    SENT = "SENT"
+    FAILED = "FAILED"
 
 
 class AnalysisStatus(str, Enum):

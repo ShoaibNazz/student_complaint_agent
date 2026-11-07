@@ -1,4 +1,4 @@
-"""SQLAlchemy engine/session setup. Change DATABASE_URL to move to PostgreSQL."""
+"""SQLAlchemy engine/session setup supporting MySQL (primary) and SQLite (tests)."""
 from __future__ import annotations
 
 from typing import Iterator
@@ -20,6 +20,9 @@ def make_engine(url: str) -> Engine:
         kwargs["connect_args"] = {"check_same_thread": False}
         if ":memory:" in url:
             kwargs["poolclass"] = StaticPool
+    elif url.startswith("mysql"):
+        kwargs["pool_pre_ping"] = True
+        kwargs["pool_recycle"] = 3600
     return create_engine(url, **kwargs)
 
 
@@ -92,42 +95,63 @@ def _migrate_db(bind: Engine) -> None:
                 ("target_campus", "VARCHAR(120)"),
                 ("attachment_path", "VARCHAR(500)"),
                 ("attachment_name", "VARCHAR(255)"),
+                ("is_confidential", "BOOLEAN DEFAULT 0"),
             ]
             for col_name, col_type in complaint_migrations:
                 if col_name not in columns:
-                    conn.execute(text(f"ALTER TABLE complaints ADD COLUMN {col_name} {col_type};"))
+                    try:
+                        conn.execute(text(f"ALTER TABLE complaints ADD COLUMN {col_name} {col_type};"))
+                    except Exception:
+                        pass
             # Backfill legacy complaints with default campus
-            conn.execute(text("UPDATE complaints SET originating_campus = 'Township Campus, Lahore (Main Campus)' WHERE originating_campus IS NULL;"))
-            conn.execute(text("UPDATE complaints SET target_campus = 'Township Campus, Lahore (Main Campus)' WHERE target_campus IS NULL;"))
-            conn.commit()
+            try:
+                conn.execute(text("UPDATE complaints SET originating_campus = 'Township Campus, Lahore (Main Campus)' WHERE originating_campus IS NULL;"))
+                conn.execute(text("UPDATE complaints SET target_campus = 'Township Campus, Lahore (Main Campus)' WHERE target_campus IS NULL;"))
+                conn.commit()
+            except Exception:
+                pass
 
         # 4. Users table migration
         if "users" in tables:
             user_columns = [c["name"] for c in inspector.get_columns("users")]
-            if "admin_id" not in user_columns:
-                conn.execute(text("ALTER TABLE users ADD COLUMN admin_id VARCHAR(60);"))
-            if "role_designation" not in user_columns:
-                conn.execute(text("ALTER TABLE users ADD COLUMN role_designation VARCHAR(120);"))
-            if "campus" not in user_columns:
-                conn.execute(text("ALTER TABLE users ADD COLUMN campus VARCHAR(120);"))
-            if "campus_id" not in user_columns:
-                conn.execute(text("ALTER TABLE users ADD COLUMN campus_id INTEGER;"))
-            # Backfill legacy users with default campus
-            conn.execute(text("UPDATE users SET campus = 'Township Campus, Lahore (Main Campus)', campus_id = 1 WHERE campus IS NULL;"))
-            conn.commit()
+            user_migrations = [
+                ("admin_id", "VARCHAR(60)"),
+                ("role_designation", "VARCHAR(120)"),
+                ("campus", "VARCHAR(120)"),
+                ("campus_id", "INTEGER"),
+                ("avatar_path", "VARCHAR(500)"),
+            ]
+            for col_name, col_type in user_migrations:
+                if col_name not in user_columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type};"))
+                    except Exception:
+                        pass
+            try:
+                conn.execute(text("UPDATE users SET campus = 'Township Campus, Lahore (Main Campus)', campus_id = 1 WHERE campus IS NULL;"))
+                conn.commit()
+            except Exception:
+                pass
 
         # 5. University Directory migration
         if "university_directory" in tables:
             dir_columns = [c["name"] for c in inspector.get_columns("university_directory")]
-            if "role_designation" not in dir_columns:
-                conn.execute(text("ALTER TABLE university_directory ADD COLUMN role_designation VARCHAR(120);"))
-            if "campus" not in dir_columns:
-                conn.execute(text("ALTER TABLE university_directory ADD COLUMN campus VARCHAR(120);"))
-            if "campus_id" not in dir_columns:
-                conn.execute(text("ALTER TABLE university_directory ADD COLUMN campus_id INTEGER;"))
-            # Backfill legacy directory records with default campus
-            conn.execute(text("UPDATE university_directory SET campus = 'Township Campus, Lahore (Main Campus)', campus_id = 1 WHERE campus IS NULL;"))
-            conn.commit()
+            dir_migrations = [
+                ("role_designation", "VARCHAR(120)"),
+                ("campus", "VARCHAR(120)"),
+                ("campus_id", "INTEGER"),
+            ]
+            for col_name, col_type in dir_migrations:
+                if col_name not in dir_columns:
+                    try:
+                        conn.execute(text(f"ALTER TABLE university_directory ADD COLUMN {col_name} {col_type};"))
+                    except Exception:
+                        pass
+            try:
+                conn.execute(text("UPDATE university_directory SET campus = 'Township Campus, Lahore (Main Campus)', campus_id = 1 WHERE campus IS NULL;"))
+                conn.commit()
+            except Exception:
+                pass
 
 
 def init_db(bind: Engine | None = None) -> None:
@@ -135,5 +159,3 @@ def init_db(bind: Engine | None = None) -> None:
     b = bind or engine
     Base.metadata.create_all(bind=b)
     _migrate_db(b)
-
-

@@ -1,0 +1,40 @@
+{
+  "authorities": [
+    {
+      "id": "campus_dir",
+      "name": "Campus Directorate / Principal Office",
+      "scope": "Campus Level",
+      "description": "Handles unresolved campus administrative and departmental concerns."
+    },
+    {
+      "id": "exam_controller",
+      "name": "Controller of Examinations",
+      "scope": "University Level",
+      "description": "Authorized authority for results, mark sheets, grade disputes, and transcript issues."
+    },
+    {
+      "id": "registrar",
+      "name": "Registrar Office",
+      "scope": "University Level",
+      "description": "Handles admissions, enrollment disputes, official verification, and institutional governance."
+    },
+    {
+      "id": "student_affairs",
+      "name": "Directorate of Student Affairs (DSA)",
+      "scope": "University Level",
+      "description": "Handles student welfare, harassment inquiries, hostel disputes, and disciplinary matters."
+    },
+    {
+      "id": "treasurer",
+      "name": "Treasurer / Fee Section",
+      "scope": "University Level",
+      "description": "Handles tuition fee discrepancies, refund inquiries, and financial accounts."
+    },
+    {
+      "id": "vc_office",
+      "name": "Vice-Chancellor's Secretariat",
+      "scope": "Executive Level",
+      "description": "Highest institutional appellate authority for exceptional, policy-level escalations."
+    }
+  ]
+}

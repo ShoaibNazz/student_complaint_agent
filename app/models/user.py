@@ -31,6 +31,7 @@ class User(Base):
     campus: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
     campus_id: Mapped[Optional[int]] = mapped_column(ForeignKey("campuses.id"), nullable=True, index=True)
     role_designation: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    avatar_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)

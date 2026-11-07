@@ -21,19 +21,37 @@
   </div>
 
   <div class="col-lg-7">
-    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h5 fw-bold mb-0"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Student & Complaint Information</h2>
+    <div class="card portal-card-modern mb-4">
+      <div class="card-header portal-header-blue d-flex align-items-center">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px;">
+          <i class="bi bi-person-lines-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>Student & Complaint Information</span>
       </div>
       <div class="card-body p-4">
-        <div class="row g-2 mb-3 small bg-light p-3 rounded">
-          <div class="col-sm-6"><strong>Student Name:</strong> {{ c.student_name }}</div>
-          <div class="col-sm-6"><strong>Student ID:</strong> {{ c.student_id or '–' }}</div>
-          <div class="col-sm-6"><strong>Email:</strong> {{ c.email or '–' }}</div>
-          <div class="col-sm-6"><strong>Program:</strong> {{ c.class_or_program or '–' }}</div>
-          {% if c.originating_campus %}<div class="col-sm-6"><strong>Originating Campus:</strong> {{ c.originating_campus }}</div>{% endif %}
-          {% if c.target_campus %}<div class="col-sm-6"><strong>Target Campus:</strong> {{ c.target_campus }}</div>{% endif %}
-        </div>
+        {% if c.is_confidential %}
+          <div class="alert alert-warning py-2 px-3 small mb-3 border-start border-4 border-warning">
+            <i class="bi bi-shield-lock-fill text-danger me-1"></i>
+            <strong>Confidential Complaint:</strong> The student has requested confidentiality. Personal identifying records are restricted to authorized university safeguarding investigators.
+          </div>
+          <div class="row g-2 mb-3 small bg-light p-3 rounded">
+            <div class="col-sm-6"><strong>Student Name:</strong> <span class="text-muted fst-italic">[Confidential Student]</span></div>
+            <div class="col-sm-6"><strong>Student ID:</strong> <span class="text-muted fst-italic">[Restricted]</span></div>
+            <div class="col-sm-6"><strong>Email:</strong> <span class="text-muted fst-italic">[Restricted]</span></div>
+            <div class="col-sm-6"><strong>Program:</strong> <span class="text-muted fst-italic">[Restricted]</span></div>
+            {% if c.originating_campus %}<div class="col-sm-6"><strong>Originating Campus:</strong> {{ c.originating_campus }}</div>{% endif %}
+            {% if c.target_campus %}<div class="col-sm-6"><strong>Target Campus:</strong> {{ c.target_campus }}</div>{% endif %}
+          </div>
+        {% else %}
+          <div class="row g-2 mb-3 small bg-light p-3 rounded">
+            <div class="col-sm-6"><strong>Student Name:</strong> {{ c.student_name }}</div>
+            <div class="col-sm-6"><strong>Student ID:</strong> {{ c.student_id or '–' }}</div>
+            <div class="col-sm-6"><strong>Email:</strong> {{ c.email or '–' }}</div>
+            <div class="col-sm-6"><strong>Program:</strong> {{ c.class_or_program or '–' }}</div>
+            {% if c.originating_campus %}<div class="col-sm-6"><strong>Originating Campus:</strong> {{ c.originating_campus }}</div>{% endif %}
+            {% if c.target_campus %}<div class="col-sm-6"><strong>Target Campus:</strong> {{ c.target_campus }}</div>{% endif %}
+          </div>
+        {% endif %}
 
         <h3 class="h6 fw-bold mb-1">{{ c.title }}</h3>
         {% if c.subject %}<div class="badge bg-light text-dark border mb-3">Subject: {{ c.subject }}</div>{% endif %}
@@ -62,9 +80,12 @@
 
   <div class="col-lg-5">
     <!-- Staff Action Card -->
-    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h5 fw-bold mb-0"><i class="bi bi-gear-wide-connected me-2 text-primary"></i>Staff Update</h2>
+    <div class="card portal-card-modern mb-4">
+      <div class="card-header portal-header-blue d-flex align-items-center">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px;">
+          <i class="bi bi-gear-wide-connected" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>Staff Update</span>
       </div>
       <div class="card-body p-4">
         <form method="post" action="/employee/complaints/{{ c.id }}/update">
@@ -83,7 +104,7 @@
             <div class="form-text small">Internal tracking notes.</div>
           </div>
 
-          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+          <button type="submit" class="btn btn-gold-pill w-100 fw-semibold">
             <i class="bi bi-check2-circle me-1"></i>Save Update
           </button>
         </form>

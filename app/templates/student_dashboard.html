@@ -8,8 +8,14 @@
     <div class="card shadow-sm border-0 bg-white rounded-3">
       <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div class="d-flex align-items-center gap-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
-            <i class="bi bi-mortarboard-fill"></i>
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden shadow-sm" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
+            {% if student and student.avatar_path %}
+              <img src="{{ student.avatar_path }}" alt="{{ student.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% elif current_user and current_user.avatar_path %}
+              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% else %}
+              <i class="bi bi-mortarboard-fill"></i>
+            {% endif %}
           </div>
           <div>
             <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ student.full_name }}</h1>

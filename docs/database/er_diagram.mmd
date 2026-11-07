@@ -1,0 +1,242 @@
+erDiagram
+    CAMPUSES ||--o{ USERS : "registers in"
+    DEPARTMENTS ||--o{ COMPLAINT_ASSIGNMENTS : "handles"
+    USERS ||--o{ COMPLAINTS : "submits"
+    USERS ||--o{ EMPLOYEE_REQUESTS : "submits"
+    USERS ||--o{ COMPLAINT_ASSIGNMENTS : "assigned as handler"
+    USERS ||--o{ COMPLAINT_FORWARDINGS : "forwards"
+    USERS ||--o{ RESOLUTION_FEEDBACK : "confirms"
+    USERS ||--o{ REQUEST_APPROVALS : "approves"
+    USERS ||--o{ AUDIT_LOGS : "performs"
+
+    COMPLAINTS ||--|| COMPLAINT_ANALYSES : "analyzed by"
+    COMPLAINTS ||--o{ COMPLAINT_HISTORY : "tracks events"
+    COMPLAINTS ||--o{ COMPLAINT_ASSIGNMENTS : "assigned to"
+    COMPLAINTS ||--o{ COMPLAINT_FORWARDINGS : "escalated via"
+    COMPLAINTS ||--o| RESOLUTION_FEEDBACK : "confirmed by student"
+    COMPLAINTS ||--o{ EMAIL_NOTIFICATIONS : "triggers"
+
+    EMPLOYEE_REQUESTS ||--o{ REQUEST_APPROVALS : "approval trail"
+    EMPLOYEE_REQUESTS ||--o{ EMAIL_NOTIFICATIONS : "triggers"
+
+    CAMPUSES {
+        int id PK
+        string name UK
+        string code UK
+        string description
+        boolean is_active
+    }
+
+    DEPARTMENTS {
+        int id PK
+        string name UK
+        string description
+        string campuses_served
+        boolean is_active
+    }
+
+    USERS {
+        int id PK
+        string full_name
+        string email UK
+        string password_hash
+        string role
+        string student_id UK
+        string employee_id UK
+        string professor_id UK
+        string admin_id UK
+        string department
+        string program
+        string campus
+        int campus_id FK
+        string role_designation
+        string avatar_path
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    UNIVERSITY_DIRECTORY {
+        int id PK
+        string role
+        string identifier UK
+        string full_name
+        string email UK
+        string department
+        string program
+        string campus
+        int campus_id
+        string role_designation
+        boolean is_claimed
+    }
+
+    COMPLAINTS {
+        int id PK
+        int user_id FK
+        string complaint_number UK
+        string student_name
+        string student_id
+        string email
+        string phone
+        string class_or_program
+        string subject
+        string account_type
+        string originating_campus
+        string target_campus
+        string attachment_path
+        string attachment_name
+        string title
+        text complaint_text
+        string status
+        boolean is_confidential
+        string analysis_status
+        boolean possible_duplicate
+        int duplicate_of_id FK
+        text internal_notes
+        boolean is_deleted
+        datetime deleted_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    COMPLAINT_ANALYSES {
+        int id PK
+        int complaint_id FK
+        text summary
+        string category
+        string subcategory
+        float category_confidence
+        string priority
+        float priority_score
+        text priority_reason
+        string assigned_department
+        text routing_reason
+        boolean requires_human_review
+        text human_review_reason
+        text suggested_action
+        text draft_response
+        text original_draft_response
+        boolean response_approved
+        json tags
+        string ai_model_used
+        string analysis_error
+        datetime analyzed_at
+    }
+
+    COMPLAINT_HISTORY {
+        int id PK
+        int complaint_id FK
+        datetime timestamp
+        string action
+        text previous_value
+        text new_value
+        string performed_by
+    }
+
+    COMPLAINT_ASSIGNMENTS {
+        int id PK
+        int complaint_id FK
+        int department_id FK
+        string department_name
+        int handler_id FK
+        string handler_name
+        int assigned_by_id FK
+        string assigned_by_name
+        datetime assigned_at
+        text notes
+        string status
+    }
+
+    COMPLAINT_FORWARDINGS {
+        int id PK
+        int complaint_id FK
+        int forwarded_by_id FK
+        string forwarded_by_name
+        string sender_authority
+        string receiving_authority
+        int recipient_user_id FK
+        text forwarding_reason
+        text admin_remarks
+        string category
+        string priority
+        datetime forwarded_at
+        string response_status
+        text response_remarks
+        datetime responded_at
+    }
+
+    RESOLUTION_FEEDBACK {
+        int id PK
+        int complaint_id FK
+        int student_id FK
+        boolean is_resolved
+        int satisfaction_rating
+        text feedback_remarks
+        datetime confirmed_at
+        string reopened_review_status
+    }
+
+    EMPLOYEE_REQUESTS {
+        int id PK
+        string request_number UK
+        int user_id FK
+        string employee_name
+        string employee_id
+        string department
+        string campus
+        string category
+        string title
+        text description
+        string attachment_path
+        string attachment_name
+        string status
+        string current_stage
+        int reviewing_officer_id FK
+        string reviewing_officer_name
+        int approving_authority_id FK
+        string approving_authority_name
+        text decision_remarks
+        datetime decided_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    REQUEST_APPROVALS {
+        int id PK
+        int request_id FK
+        string stage
+        string action
+        int actor_id FK
+        string actor_name
+        text remarks
+        datetime action_at
+    }
+
+    EMAIL_NOTIFICATIONS {
+        int id PK
+        string recipient_email
+        string recipient_name
+        int related_complaint_id FK
+        int related_request_id FK
+        string notification_type
+        string subject
+        text body_preview
+        string delivery_status
+        int attempt_count
+        text error_message
+        datetime sent_at
+        datetime created_at
+    }
+
+    AUDIT_LOGS {
+        int id PK
+        int user_id FK
+        string user_identifier
+        string action
+        string target_type
+        int target_id
+        string campus
+        string ip_address
+        text details
+        datetime created_at
+    }

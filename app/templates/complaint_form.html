@@ -171,9 +171,9 @@
         </div>
       </div>
 
-      <!-- Complaint Form State (Matches Reference Image 2) -->
+      <!-- Complaint Form State -->
       <div id="complaintFormPanel" class="{% if submitted %}d-none{% endif %}">
-        <!-- Header matching Reference Image 2: Gold square + Submit Complaint -->
+        <!-- Header -->
         <div class="complaint-card-header">
           <div class="complaint-header-icon" aria-hidden="true"></div>
           <div>
@@ -194,6 +194,16 @@
           </div>
         </div>
 
+        {% if not current_user %}
+          <!-- Unregistered User Notice -->
+          <div class="alert alert-warning d-flex align-items-center py-2 px-3 small mb-3 border-0 border-start border-4 border-warning shadow-sm">
+            <i class="bi bi-shield-exclamation text-warning fs-5 me-2 flex-shrink-0"></i>
+            <div>
+              <strong>Registration Required:</strong> Only registered students can submit complaints. If you do not have an account, please <a href="/register" class="alert-link fw-bold">register first</a> before submitting. Already registered? Please <a href="/login" class="alert-link fw-bold">log in</a> to auto-populate your details.
+            </div>
+          </div>
+        {% endif %}
+
         <form method="post" action="{{ form_action or '/submit' }}" id="complaintSubmitForm" enctype="multipart/form-data" novalidate>
           <input type="hidden" name="ui_mode" value="v2">
 
@@ -205,12 +215,17 @@
                 Account Type <span class="cmp-req">*</span>
               </label>
               <div class="cmp-input-group {% if f_err.get('account_type') %}is-invalid-group{% endif %}">
-                <select class="form-select cmp-input" id="cmpAccountType" name="account_type" required>
-                  <option value="" {% if not acc_val %}selected{% endif %} disabled>Select Account Type</option>
-                  <option value="STUDENT" {% if acc_val == 'STUDENT' %}selected{% endif %}>Student</option>
-                  <option value="EMPLOYEE" {% if acc_val == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
-                  <option value="ADMIN" {% if acc_val == 'ADMIN' %}selected{% endif %}>Admin</option>
-                </select>
+                {% if current_user %}
+                  <input type="hidden" id="cmpAccountType" name="account_type" value="{{ acc_val or (current_user.role | upper) }}">
+                  <input type="text" class="form-control cmp-input bg-light" value="{{ 'Student' if acc_val == 'STUDENT' else (acc_val | title) }}" readonly>
+                {% else %}
+                  <select class="form-select cmp-input" id="cmpAccountType" name="account_type" required>
+                    <option value="" {% if not acc_val %}selected{% endif %} disabled>Select Account Type</option>
+                    <option value="STUDENT" {% if acc_val == 'STUDENT' %}selected{% endif %}>Student</option>
+                    <option value="EMPLOYEE" {% if acc_val == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
+                    <option value="ADMIN" {% if acc_val == 'ADMIN' %}selected{% endif %}>Admin</option>
+                  </select>
+                {% endif %}
               </div>
               <div class="cmp-field-error {% if not f_err.get('account_type') %}d-none{% endif %}" id="err-account_type">
                 {{ f_err.get('account_type', '') }}
@@ -219,15 +234,20 @@
 
             <div class="col-md-6">
               <label class="form-label cmp-label" for="cmpOriginatingCampus">
-                Originating Campus <span class="cmp-req">*</span>
+                Originating / Registered Campus <span class="cmp-req">*</span>
               </label>
               <div class="cmp-input-group {% if f_err.get('originating_campus') %}is-invalid-group{% endif %}">
-                <select class="form-select cmp-input" id="cmpOriginatingCampus" name="originating_campus" required>
-                  <option value="" {% if not (values and values.originating_campus) %}selected{% endif %} disabled>Select Campus</option>
-                  {% for c_name in campus_list %}
-                    <option value="{{ c_name }}" {% if values and values.originating_campus == c_name %}selected{% endif %}>{{ c_name }}</option>
-                  {% endfor %}
-                </select>
+                {% if current_user and (values and values.originating_campus) %}
+                  <input type="hidden" id="cmpOriginatingCampus" name="originating_campus" value="{{ values.originating_campus }}">
+                  <input type="text" class="form-control cmp-input bg-light" value="{{ values.originating_campus }}" readonly>
+                {% else %}
+                  <select class="form-select cmp-input" id="cmpOriginatingCampus" name="originating_campus" required>
+                    <option value="" {% if not (values and values.originating_campus) %}selected{% endif %} disabled>Select Campus</option>
+                    {% for c_name in campus_list %}
+                      <option value="{{ c_name }}" {% if values and values.originating_campus == c_name %}selected{% endif %}>{{ c_name }}</option>
+                    {% endfor %}
+                  </select>
+                {% endif %}
               </div>
               <div class="cmp-field-error {% if not f_err.get('originating_campus') %}d-none{% endif %}" id="err-originating_campus">
                 {{ f_err.get('originating_campus', '') }}
@@ -240,10 +260,10 @@
                 Full Name <span class="cmp-req">*</span>
               </label>
               <div class="cmp-input-group {% if f_err.get('student_name') %}is-invalid-group{% endif %}">
-                <input type="text" class="form-control cmp-input" id="cmpFullName" name="student_name"
+                <input type="text" class="form-control cmp-input {% if current_user and values and values.student_name %}bg-light{% endif %}" id="cmpFullName" name="student_name"
                        maxlength="120" required placeholder="Enter your full name"
                        value="{{ (values and values.student_name) or '' }}"
-                       {% if current_user and current_user.role == 'STUDENT' %}readonly{% endif %}>
+                       {% if current_user and values and values.student_name %}readonly{% endif %}>
               </div>
               <div class="cmp-field-error {% if not f_err.get('student_name') %}d-none{% endif %}" id="err-student_name">
                 {{ f_err.get('student_name', '') }}
@@ -273,10 +293,10 @@
                 Student ID / Employee ID <span class="cmp-req">*</span>
               </label>
               <div class="cmp-input-group {% if f_err.get('student_id') %}is-invalid-group{% endif %}">
-                <input type="text" class="form-control cmp-input" id="cmpStudentId" name="student_id"
+                <input type="text" class="form-control cmp-input {% if current_user and values and values.student_id %}bg-light{% endif %}" id="cmpStudentId" name="student_id"
                        maxlength="60" required placeholder="Enter your ID"
                        value="{{ (values and values.student_id) or '' }}"
-                       {% if current_user and current_user.role == 'STUDENT' and current_user.student_id %}readonly{% endif %}>
+                       {% if current_user and values and values.student_id %}readonly{% endif %}>
               </div>
               <div class="cmp-field-error {% if not f_err.get('student_id') %}d-none{% endif %}" id="err-student_id">
                 {{ f_err.get('student_id', '') }}
@@ -288,49 +308,54 @@
                 Academic Program / Role <span class="cmp-req">*</span>
               </label>
               <div class="cmp-input-group {% if f_err.get('class_or_program') %}is-invalid-group{% endif %}">
-                <select class="form-select cmp-input" id="cmpProgramOrRole" name="class_or_program" required
-                        data-current-value="{{ (values and values.class_or_program) or '' }}"
-                        data-programs='{{ program_list | tojson }}'
-                        data-employee-roles='{{ emp_role_list | tojson }}'
-                        data-departments='{{ dept_list | tojson }}'>
-                  <option value="" {% if not (values and values.class_or_program) %}selected{% endif %} disabled>Select Program / Role</option>
-                  {% set cur_prog = (values and values.class_or_program) or '' %}
-                  {% if acc_val == 'STUDENT' %}
-                    {% for prog in program_list %}
-                      <option value="{{ prog }}" {% if cur_prog == prog %}selected{% endif %}>{{ prog }}</option>
-                    {% endfor %}
-                  {% elif acc_val == 'EMPLOYEE' %}
-                    <optgroup label="Employee Roles">
-                      {% for r in emp_role_list %}
-                        <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
-                      {% endfor %}
-                    </optgroup>
-                    <optgroup label="University Departments">
-                      {% for d in dept_list %}
-                        <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
-                      {% endfor %}
-                    </optgroup>
-                  {% elif acc_val == 'ADMIN' %}
-                    <option value="Admin" {% if cur_prog in ('Admin', 'ADMIN', '') %}selected{% endif %}>Admin</option>
-                  {% else %}
-                    <optgroup label="Academic Programs (Student)">
+                {% if current_user and values and values.class_or_program and current_user.role == 'STUDENT' %}
+                  <input type="hidden" id="cmpProgramOrRole" name="class_or_program" value="{{ values.class_or_program }}">
+                  <input type="text" class="form-control cmp-input bg-light" value="{{ values.class_or_program }}" readonly>
+                {% else %}
+                  <select class="form-select cmp-input" id="cmpProgramOrRole" name="class_or_program" required
+                          data-current-value="{{ (values and values.class_or_program) or '' }}"
+                          data-programs='{{ program_list | tojson }}'
+                          data-employee-roles='{{ emp_role_list | tojson }}'
+                          data-departments='{{ dept_list | tojson }}'>
+                    <option value="" {% if not (values and values.class_or_program) %}selected{% endif %} disabled>Select Program / Role</option>
+                    {% set cur_prog = (values and values.class_or_program) or '' %}
+                    {% if acc_val == 'STUDENT' %}
                       {% for prog in program_list %}
                         <option value="{{ prog }}" {% if cur_prog == prog %}selected{% endif %}>{{ prog }}</option>
                       {% endfor %}
-                    </optgroup>
-                    <optgroup label="Employee Roles &amp; Departments">
-                      {% for r in emp_role_list %}
-                        <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
-                      {% endfor %}
-                      {% for d in dept_list %}
-                        <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
-                      {% endfor %}
-                    </optgroup>
-                    <optgroup label="Administration">
-                      <option value="Admin" {% if cur_prog == 'Admin' %}selected{% endif %}>Admin</option>
-                    </optgroup>
-                  {% endif %}
-                </select>
+                    {% elif acc_val == 'EMPLOYEE' %}
+                      <optgroup label="Employee Roles">
+                        {% for r in emp_role_list %}
+                          <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
+                        {% endfor %}
+                      </optgroup>
+                      <optgroup label="University Departments">
+                        {% for d in dept_list %}
+                          <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                      </optgroup>
+                    {% elif acc_val == 'ADMIN' %}
+                      <option value="Admin" {% if cur_prog in ('Admin', 'ADMIN', '') %}selected{% endif %}>Admin</option>
+                    {% else %}
+                      <optgroup label="Academic Programs (Student)">
+                        {% for prog in program_list %}
+                          <option value="{{ prog }}" {% if cur_prog == prog %}selected{% endif %}>{{ prog }}</option>
+                        {% endfor %}
+                      </optgroup>
+                      <optgroup label="Employee Roles &amp; Departments">
+                        {% for r in emp_role_list %}
+                          <option value="{{ r }}" {% if cur_prog == r %}selected{% endif %}>{{ r }}</option>
+                        {% endfor %}
+                        {% for d in dept_list %}
+                          <option value="{{ d }}" {% if cur_prog == d %}selected{% endif %}>{{ d }}</option>
+                        {% endfor %}
+                      </optgroup>
+                      <optgroup label="Administration">
+                        <option value="Admin" {% if cur_prog == 'Admin' %}selected{% endif %}>Admin</option>
+                      </optgroup>
+                    {% endif %}
+                  </select>
+                {% endif %}
               </div>
               <div class="cmp-field-error {% if not f_err.get('class_or_program') %}d-none{% endif %}" id="err-class_or_program">
                 {{ f_err.get('class_or_program', '') }}
@@ -338,7 +363,7 @@
             </div>
           </div>
 
-          <!-- Rows 4 & 5: Email + Title on Left, Description Textarea on Right (Matching Image 2) -->
+          <!-- Rows 4 & 5: Email + Title on Left, Description Textarea on Right -->
           <div class="row g-3 mb-3">
             <div class="col-md-6 d-flex flex-column justify-content-between">
               <div class="mb-3">
@@ -346,10 +371,10 @@
                   Email Address <span class="cmp-req">*</span>
                 </label>
                 <div class="cmp-input-group {% if f_err.get('email') %}is-invalid-group{% endif %}">
-                  <input type="email" class="form-control cmp-input" id="cmpEmail" name="email"
+                  <input type="email" class="form-control cmp-input {% if current_user and values and values.email %}bg-light{% endif %}" id="cmpEmail" name="email"
                          maxlength="254" required placeholder="Enter your email address"
                          value="{{ (values and values.email) or '' }}"
-                         {% if current_user and current_user.role == 'STUDENT' %}readonly{% endif %}>
+                         {% if current_user and values and values.email %}readonly{% endif %}>
                 </div>
                 <div class="cmp-field-error {% if not f_err.get('email') %}d-none{% endif %}" id="err-email">
                   {{ f_err.get('email', '') }}
@@ -390,20 +415,55 @@
             </div>
           </div>
 
-          <!-- Attach Image (Optional) (Matching Image 2) -->
+          <!-- Confidentiality Control (Module 1.3) -->
+          <div class="card p-3 rounded-3 border bg-light mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="form-label cmp-label fw-bold mb-0">
+                <i class="bi bi-shield-lock-fill me-1 text-primary"></i>Submission Privacy &amp; Confidentiality
+              </label>
+              <span class="badge bg-secondary-subtle text-secondary border">Optional</span>
+            </div>
+            <p class="text-muted small mb-2">
+              Allow confidential submissions for sensitive matters including alleged teacher misconduct, harassment, discrimination, or other safety-related issues.
+            </p>
+            <div class="d-flex flex-wrap gap-4 mb-2">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="is_confidential" id="confidentialNo" value="0"
+                       {% if not (values and values.is_confidential) %}checked{% endif %}
+                       onchange="var n = document.getElementById('confidentialNotice'); if (n) n.classList.add('d-none');">
+                <label class="form-check-label small fw-semibold text-dark" for="confidentialNo">
+                  <i class="bi bi-person-check-fill me-1 text-success"></i>Submitting with my identity
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="is_confidential" id="confidentialYes" value="1"
+                       {% if values and values.is_confidential %}checked{% endif %}
+                       onchange="var n = document.getElementById('confidentialNotice'); if (n) n.classList.remove('d-none');">
+                <label class="form-check-label small fw-semibold text-danger" for="confidentialYes">
+                  <i class="bi bi-shield-shaded me-1 text-danger"></i>Keep my identity confidential
+                </label>
+              </div>
+            </div>
+            <div id="confidentialNotice" class="small text-muted p-2 rounded bg-white border border-warning-subtle {% if not (values and values.is_confidential) %}d-none{% endif %}">
+              <div class="fw-semibold text-dark mb-1"><i class="bi bi-info-circle-fill text-warning me-1"></i>Privacy Implications:</div>
+              When confidentiality is selected, your name, student ID, and direct contact details are hidden from ordinary department staff, professors, and general complaint listings. Only authorized university compliance and safeguarding investigators can access identifying information for inquiry. Complete anonymity cannot be guaranteed under university safety regulations, but your privacy will be protected under strict role-based access.
+            </div>
+          </div>
+
+          <!-- Attach Image (Optional) -->
           <div class="mb-3">
             <label class="form-label cmp-label" for="cmpAttachment">
               Attach Image <span class="cmp-opt">(Optional)</span>
             </label>
-            <label for="cmpAttachment" class="cmp-dropzone w-100 {% if f_err.get('attachment') %}is-invalid-group{% endif %}" id="cmpDropzone" tabindex="0" role="button" aria-label="Attach image upload area">
+            <div class="cmp-dropzone w-100 {% if f_err.get('attachment') %}is-invalid-group{% endif %}" id="cmpDropzone" aria-label="Attach image upload area">
               <input type="file" id="cmpAttachment" name="attachment"
                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" class="cmp-file-input-hidden">
 
               <!-- Default Upload Prompt -->
-              <div class="cmp-dropzone-prompt text-center py-2" id="cmpDropzonePrompt">
+              <label for="cmpAttachment" class="cmp-dropzone-prompt text-center py-2 d-block w-100 m-0" id="cmpDropzonePrompt" style="cursor: pointer;" aria-label="Click to upload image or drag and drop">
                 <div class="fw-bold" style="color: #0B3D91; font-size: 0.95rem;">Click to upload <span class="fw-normal text-muted">or drag and drop</span></div>
-                <div class="small text-muted mt-1">PNG, JPG, JPEG, WEBP (Max 5MB)</div>
-              </div>
+                <div class="small text-muted mt-1">PNG, JPG, JPEG, WEBP (Max 500KB)</div>
+              </label>
 
               <!-- Selected Image Preview -->
               <div class="cmp-preview-box d-none" id="cmpPreviewBox">
@@ -421,13 +481,13 @@
                   </button>
                 </div>
               </div>
-            </label>
+            </div>
             <div class="cmp-field-error {% if not f_err.get('attachment') %}d-none{% endif %}" id="err-attachment">
               {{ f_err.get('attachment', '') }}
             </div>
           </div>
 
-          <!-- Full-Width Golden Submit Complaint Button (No Icon, Matching Image 2) -->
+          <!-- Full-Width Golden Submit Complaint Button -->
           <button type="submit" class="btn cmp-submit-btn w-100" id="cmpSubmitBtn">
             <span class="spinner-border spinner-border-sm me-2 d-none" id="cmpSubmitSpinner" role="status" aria-hidden="true"></span>
             <span id="cmpSubmitText">Submit Complaint</span>

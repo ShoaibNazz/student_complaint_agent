@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
+from typing import Optional
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.security import require_student
@@ -80,7 +82,7 @@ def submit_complaint(
     db: Session = Depends(get_db),
     student: User = Depends(require_student),
 ):
-    # Automatically attach student's identity - cannot spoof
+    # Automatically attach student's identity - cannot spoof or alter registered campus
     create_payload = ComplaintCreate(
         student_name=student.full_name,
         student_id=student.student_id,
@@ -88,10 +90,11 @@ def submit_complaint(
         class_or_program=payload.class_or_program or student.program,
         subject=payload.subject,
         account_type="STUDENT",
-        originating_campus=payload.originating_campus,
-        target_campus=payload.target_campus,
+        originating_campus=student.campus or payload.originating_campus,
+        target_campus=payload.target_campus or student.campus,
         complaint_title=payload.complaint_title,
         complaint_text=payload.complaint_text,
+        is_confidential=payload.is_confidential,
     )
     c = svc.create_complaint(db, create_payload, user_id=student.id)
     return ComplaintReceipt(
@@ -119,3 +122,33 @@ def get_student_complaint(
 ):
     c = svc.get_student_complaint(db, complaint_id, student)
     return _to_student_detail(c)
+
+
+class StudentFeedbackSubmit(BaseModel):
+    is_resolved: bool
+    feedback_remarks: Optional[str] = None
+    satisfaction_rating: Optional[int] = None
+
+
+@router.post("/complaints/{complaint_id}/feedback")
+def submit_complaint_feedback(
+    complaint_id: int,
+    payload: StudentFeedbackSubmit,
+    db: Session = Depends(get_db),
+    student: User = Depends(require_student),
+):
+    fb = svc.record_resolution_feedback(
+        db=db,
+        complaint_id=complaint_id,
+        user=student,
+        is_resolved=payload.is_resolved,
+        feedback_remarks=payload.feedback_remarks or "",
+        satisfaction_rating=payload.satisfaction_rating,
+    )
+    return {
+        "ok": True,
+        "complaint_id": complaint_id,
+        "is_resolved": fb.is_resolved,
+        "confirmed_at": fb.confirmed_at,
+        "status": fb.complaint.status,
+    }

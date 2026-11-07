@@ -772,3 +772,224 @@ def init_default_users(db: Session) -> None:
             if unlinked:
                 db.commit()
                 logger.info("Linked %d complaints to student %s", len(unlinked), user.student_id)
+
+
+def save_user_avatar(upload_file, user_id: int) -> Optional[str]:
+    """Validate and persist a profile avatar image under /static/uploads/avatars."""
+    import uuid
+    from pathlib import Path
+    from app.core.config import BASE_DIR
+    from app.services.complaint_service import _is_valid_image_header, ALLOWED_IMAGE_EXTENSIONS, ALLOWED_IMAGE_MIME_TYPES
+
+    if upload_file is None:
+        return None
+
+    raw_filename = (getattr(upload_file, "filename", None) or "").strip()
+    if not raw_filename:
+        return None
+
+    file_obj = getattr(upload_file, "file", None)
+    if file_obj is not None:
+        file_obj.seek(0)
+        content = file_obj.read()
+    else:
+        content = b""
+
+    if not content:
+        raise ValueError("Uploaded profile picture file is empty.")
+
+    ext = Path(raw_filename).suffix.lower()
+    raw_content_type = (getattr(upload_file, "content_type", None) or "").lower().strip()
+    content_type = raw_content_type.split(";")[0].strip() if raw_content_type else ""
+
+    if ext not in ALLOWED_IMAGE_EXTENSIONS or (
+        content_type and content_type not in ALLOWED_IMAGE_MIME_TYPES and content_type != "application/octet-stream"
+    ):
+        raise ValueError("Unsupported image format. Allowed formats: PNG, JPG, JPEG, WEBP.")
+
+    if len(content) > 500 * 1024:
+        raise ValueError("Profile image exceeds the maximum allowed size of 500 KB.")
+
+    if not _is_valid_image_header(content, ext):
+        raise ValueError("Invalid or corrupted image file. Please upload a valid PNG, JPG, JPEG, or WEBP image.")
+
+    upload_dir = Path(BASE_DIR) / "app" / "static" / "uploads" / "avatars"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_filename = f"avatar_{user_id}_{uuid.uuid4().hex[:12]}{ext}"
+    dest_path = upload_dir / safe_filename
+    dest_path.write_bytes(content)
+
+    return f"/static/uploads/avatars/{safe_filename}"
+
+
+def update_user_profile(
+    db: Session,
+    user: User,
+    full_name: str,
+    email: str,
+    identifier: Optional[str] = None,
+    campus: Optional[str] = None,
+    program: Optional[str] = None,
+    role_designation: Optional[str] = None,
+    department: Optional[str] = None,
+    new_password: Optional[str] = None,
+    confirm_password: Optional[str] = None,
+    avatar: Optional[Any] = None,
+    remove_avatar: bool = False,
+) -> User:
+    """Updates user profile attributes, with validation and data synchronization."""
+    name_clean = (full_name or "").strip()
+    if not name_clean:
+        raise ValueError("Full Name cannot be empty.")
+
+    email_clean = (email or "").strip().lower()
+    if not email_clean or "@" not in email_clean or "." not in email_clean.split("@")[-1]:
+        raise ValueError("Please provide a valid email address.")
+
+    # Check email uniqueness against other users
+    other_email = db.scalars(
+        select(User).where(User.id != user.id, User.email.ilike(email_clean))
+    ).first()
+    if other_email:
+        raise ValueError("This email address is already in use by another account.")
+
+    # Validate identifier if provided
+    ident_clean = (identifier or "").strip()
+    if not ident_clean:
+        ident_clean = user.identifier
+
+    # Check identifier uniqueness against other users
+    other_ident = db.scalars(
+        select(User).where(
+            User.id != user.id,
+            or_(
+                User.student_id.ilike(ident_clean),
+                User.employee_id.ilike(ident_clean),
+                User.professor_id.ilike(ident_clean),
+                User.admin_id.ilike(ident_clean),
+            )
+        )
+    ).first()
+    if other_ident:
+        raise ValueError(f"The ID '{ident_clean}' is already registered to another user.")
+
+    # Validate campus
+    campus_clean = (campus or "").strip()
+    final_campus_id = user.campus_id
+    if campus_clean:
+        from app.services.complaint_service import get_campus_names
+        from app.models.campus import Campus
+
+        valid_campuses = get_campus_names()
+        if campus_clean in valid_campuses:
+            user.campus = campus_clean
+            campus_rec = db.scalars(select(Campus).where(Campus.name == campus_clean)).first()
+            if campus_rec:
+                final_campus_id = campus_rec.id
+                user.campus_id = campus_rec.id
+
+    # Update basic fields
+    user.full_name = name_clean
+    user.email = email_clean
+
+    # Update role-specific fields
+    old_identifier = user.identifier
+    role_key = (user.role or "").upper()
+    if role_key == UserRole.STUDENT.value:
+        user.student_id = ident_clean
+        if program is not None:
+            user.program = program.strip() or None
+    elif role_key == UserRole.EMPLOYEE.value:
+        user.employee_id = ident_clean
+        if role_designation is not None:
+            user.role_designation = role_designation.strip() or None
+        if department is not None:
+            user.department = department.strip() or None
+    elif role_key == UserRole.PROFESSOR.value:
+        user.professor_id = ident_clean
+        user.employee_id = ident_clean
+        if role_designation is not None:
+            user.role_designation = role_designation.strip() or None
+        if department is not None:
+            user.department = department.strip() or None
+    elif role_key == UserRole.ADMIN.value:
+        user.admin_id = ident_clean
+        user.employee_id = ident_clean
+        if department is not None:
+            user.department = department.strip() or None
+
+    # Handle optional password change
+    new_pw = (new_password or "").strip()
+    conf_pw = (confirm_password or "").strip()
+    if new_pw or conf_pw:
+        if len(new_pw) < 6:
+            raise ValueError("New password must be at least 6 characters.")
+        if new_pw != conf_pw:
+            raise ValueError("New passwords do not match.")
+        user.password_hash = hash_password(new_pw)
+
+    # Sync with UniversityDirectory if existing entry matches old identifier or email
+    dir_entry = db.scalars(
+        select(UniversityDirectory).where(
+            or_(
+                UniversityDirectory.identifier.ilike(old_identifier),
+                UniversityDirectory.email.ilike(user.email),
+                UniversityDirectory.identifier.ilike(ident_clean),
+            )
+        )
+    ).first()
+    if dir_entry:
+        dir_entry.full_name = user.full_name
+        dir_entry.email = user.email
+        dir_entry.identifier = ident_clean
+        dir_entry.campus = user.campus
+        dir_entry.campus_id = final_campus_id
+        if user.program:
+            dir_entry.program = user.program
+        if user.department:
+            dir_entry.department = user.department
+        if user.role_designation:
+            dir_entry.role_designation = user.role_designation
+
+    # Sync user's complaints
+    user_complaints = db.scalars(
+        select(Complaint).where(Complaint.user_id == user.id)
+    ).all()
+    for c in user_complaints:
+        c.student_name = user.full_name
+        c.email = user.email
+        if role_key == UserRole.STUDENT.value:
+            c.student_id = user.student_id
+
+    # Handle profile avatar update / removal
+    if remove_avatar and user.avatar_path:
+        from pathlib import Path
+        from app.core.config import BASE_DIR
+        old_file = Path(BASE_DIR) / "app" / user.avatar_path.lstrip("/")
+        if old_file.exists():
+            try:
+                old_file.unlink()
+            except Exception:
+                pass
+        user.avatar_path = None
+
+    if avatar is not None and getattr(avatar, "filename", None):
+        new_avatar_path = save_user_avatar(avatar, user.id)
+        if new_avatar_path:
+            if user.avatar_path and user.avatar_path != new_avatar_path:
+                from pathlib import Path
+                from app.core.config import BASE_DIR
+                old_file = Path(BASE_DIR) / "app" / user.avatar_path.lstrip("/")
+                if old_file.exists():
+                    try:
+                        old_file.unlink()
+                    except Exception:
+                        pass
+            user.avatar_path = new_avatar_path
+
+    db.commit()
+    db.refresh(user)
+    logger.info("Updated profile for user ID %s (%s, %s)", user.id, user.full_name, user.identifier)
+    return user
+

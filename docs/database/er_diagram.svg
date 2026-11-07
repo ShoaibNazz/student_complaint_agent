@@ -1,0 +1,246 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200" width="1600" height="1200" style="background:#0F172A; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <linearGradient id="headerGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Title Banner -->
+  <rect x="50" y="30" width="1500" height="70" rx="12" fill="url(#headerGrad)" filter="url(#shadow)"/>
+  <text x="80" y="75" fill="#FFFFFF" font-size="26" font-weight="bold">UNIVERSITY COMPLAINT PORTAL — ENTITY-RELATIONSHIP ARCHITECTURE (14 TABLES)</text>
+  <text x="1350" y="73" fill="#F4C430" font-size="16" font-weight="600">MySQL 8.0 &middot; InnoDB</text>
+
+  <!-- Entity 1: Campuses -->
+  <g transform="translate(60, 130)" filter="url(#shadow)">
+    <rect width="250" height="180" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+    <rect width="250" height="36" rx="8" fill="#0284C7"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">CAMPUSES</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="80" fill="#E2E8F0" font-size="12">name (VARCHAR, UK)</text>
+    <text x="15" y="102" fill="#E2E8F0" font-size="12">code (VARCHAR, UK)</text>
+    <text x="15" y="124" fill="#94A3B8" font-size="12">description (VARCHAR)</text>
+    <text x="15" y="146" fill="#94A3B8" font-size="12">is_active (BOOLEAN)</text>
+  </g>
+
+  <!-- Entity 2: Departments -->
+  <g transform="translate(60, 340)" filter="url(#shadow)">
+    <rect width="250" height="180" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+    <rect width="250" height="36" rx="8" fill="#0284C7"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">DEPARTMENTS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="80" fill="#E2E8F0" font-size="12">name (VARCHAR, UK)</text>
+    <text x="15" y="102" fill="#94A3B8" font-size="12">description (VARCHAR)</text>
+    <text x="15" y="124" fill="#94A3B8" font-size="12">campuses_served (VARCHAR)</text>
+    <text x="15" y="146" fill="#94A3B8" font-size="12">is_active (BOOLEAN)</text>
+  </g>
+
+  <!-- Entity 3: Users (Central) -->
+  <g transform="translate(360, 130)" filter="url(#shadow)">
+    <rect width="280" height="390" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+    <rect width="280" height="36" rx="8" fill="#D97706"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">USERS (Unified Auth &amp; RBAC)</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#E2E8F0" font-size="12">full_name (VARCHAR)</text>
+    <text x="15" y="98" fill="#38BDF8" font-size="12">email (VARCHAR, UK, IDX)</text>
+    <text x="15" y="118" fill="#94A3B8" font-size="12">password_hash (VARCHAR)</text>
+    <text x="15" y="138" fill="#A855F7" font-size="12">role (ENUM, IDX)</text>
+    <text x="15" y="158" fill="#E2E8F0" font-size="12">student_id / employee_id (UK)</text>
+    <text x="15" y="178" fill="#E2E8F0" font-size="12">admin_id / professor_id (UK)</text>
+    <text x="15" y="198" fill="#94A3B8" font-size="12">department (VARCHAR)</text>
+    <text x="15" y="218" fill="#94A3B8" font-size="12">program (VARCHAR)</text>
+    <text x="15" y="238" fill="#38BDF8" font-size="12">campus (VARCHAR, IDX)</text>
+    <text x="15" y="258" fill="#F4C430" font-size="12">campus_id (INT, FK)</text>
+    <text x="15" y="278" fill="#94A3B8" font-size="12">role_designation (VARCHAR)</text>
+    <text x="15" y="298" fill="#94A3B8" font-size="12">avatar_path (VARCHAR)</text>
+    <text x="15" y="318" fill="#94A3B8" font-size="12">is_active (BOOLEAN)</text>
+    <text x="15" y="338" fill="#64748B" font-size="12">created_at / updated_at</text>
+  </g>
+
+  <!-- Entity 4: Complaints (Core) -->
+  <g transform="translate(700, 130)" filter="url(#shadow)">
+    <rect width="280" height="390" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
+    <rect width="280" height="36" rx="8" fill="#059669"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">COMPLAINTS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">user_id (INT, FK -> users.id)</text>
+    <text x="15" y="98" fill="#38BDF8" font-size="12">complaint_number (VARCHAR, UK)</text>
+    <text x="15" y="118" fill="#E2E8F0" font-size="12">student_name, student_id</text>
+    <text x="15" y="138" fill="#E2E8F0" font-size="12">email, phone, program</text>
+    <text x="15" y="158" fill="#E2E8F0" font-size="12">originating &amp; target campus</text>
+    <text x="15" y="178" fill="#E2E8F0" font-size="12">attachment_path, name</text>
+    <text x="15" y="198" fill="#FFFFFF" font-size="12" font-weight="bold">title, complaint_text</text>
+    <text x="15" y="218" fill="#F4C430" font-size="12" font-weight="bold">status (VARCHAR, IDX)</text>
+    <text x="15" y="238" fill="#EF4444" font-size="12" font-weight="bold">&#128274; is_confidential (BOOLEAN)</text>
+    <text x="15" y="258" fill="#94A3B8" font-size="12">analysis_status (VARCHAR)</text>
+    <text x="15" y="278" fill="#94A3B8" font-size="12">possible_duplicate (BOOLEAN)</text>
+    <text x="15" y="298" fill="#F4C430" font-size="12">duplicate_of_id (INT, FK)</text>
+    <text x="15" y="318" fill="#94A3B8" font-size="12">internal_notes (TEXT)</text>
+    <text x="15" y="338" fill="#64748B" font-size="12">is_deleted, created_at, updated_at</text>
+  </g>
+
+  <!-- Entity 5: AI Analysis -->
+  <g transform="translate(1040, 130)" filter="url(#shadow)">
+    <rect width="260" height="280" rx="8" fill="#1E293B" stroke="#8B5CF6" stroke-width="2"/>
+    <rect width="260" height="36" rx="8" fill="#7C3AED"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">COMPLAINT_ANALYSES (AI)</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">complaint_id (INT, FK, UK)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">summary (TEXT)</text>
+    <text x="15" y="118" fill="#38BDF8" font-size="12">category, subcategory</text>
+    <text x="15" y="138" fill="#F59E0B" font-size="12">category_confidence (FLOAT)</text>
+    <text x="15" y="158" fill="#EF4444" font-size="12">priority, priority_score</text>
+    <text x="15" y="178" fill="#38BDF8" font-size="12">assigned_department</text>
+    <text x="15" y="198" fill="#E2E8F0" font-size="12">draft_response (TEXT)</text>
+    <text x="15" y="218" fill="#10B981" font-size="12">response_approved (BOOLEAN)</text>
+    <text x="15" y="238" fill="#64748B" font-size="12">ai_model_used, analyzed_at</text>
+  </g>
+
+  <!-- Entity 6: Complaint Assignments -->
+  <g transform="translate(1040, 440)" filter="url(#shadow)">
+    <rect width="260" height="220" rx="8" fill="#1E293B" stroke="#38BDF8" stroke-width="2"/>
+    <rect width="260" height="36" rx="8" fill="#0284C7"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">COMPLAINT_ASSIGNMENTS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">complaint_id (INT, FK)</text>
+    <text x="15" y="98" fill="#F4C430" font-size="12">department_id (INT, FK)</text>
+    <text x="15" y="118" fill="#F4C430" font-size="12">handler_id (INT, FK -> users)</text>
+    <text x="15" y="138" fill="#E2E8F0" font-size="12">assigned_by_name (VARCHAR)</text>
+    <text x="15" y="158" fill="#94A3B8" font-size="12">notes (TEXT), status (VARCHAR)</text>
+    <text x="15" y="178" fill="#64748B" font-size="12">assigned_at (DATETIME)</text>
+  </g>
+
+  <!-- Entity 7: Complaint Forwardings (Escalation) -->
+  <g transform="translate(1330, 130)" filter="url(#shadow)">
+    <rect width="240" height="260" rx="8" fill="#1E293B" stroke="#EC4899" stroke-width="2"/>
+    <rect width="240" height="36" rx="8" fill="#DB2777"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="13" font-weight="bold">COMPLAINT_FORWARDINGS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">complaint_id (INT, FK, SAME ID)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">sender_authority (VARCHAR)</text>
+    <text x="15" y="118" fill="#38BDF8" font-size="12">receiving_authority (VARCHAR)</text>
+    <text x="15" y="138" fill="#E2E8F0" font-size="12">forwarding_reason (TEXT)</text>
+    <text x="15" y="158" fill="#94A3B8" font-size="12">admin_remarks (TEXT)</text>
+    <text x="15" y="178" fill="#F4C430" font-size="12">response_status (VARCHAR)</text>
+    <text x="15" y="198" fill="#64748B" font-size="12">forwarded_at (DATETIME)</text>
+  </g>
+
+  <!-- Entity 8: Student Resolution Feedback -->
+  <g transform="translate(1330, 420)" filter="url(#shadow)">
+    <rect width="240" height="220" rx="8" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
+    <rect width="240" height="36" rx="8" fill="#059669"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="13" font-weight="bold">RESOLUTION_FEEDBACK</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">complaint_id (INT, FK, UK)</text>
+    <text x="15" y="98" fill="#F4C430" font-size="12">student_id (INT, FK -> users)</text>
+    <text x="15" y="118" fill="#10B981" font-size="12">is_resolved (BOOLEAN)</text>
+    <text x="15" y="138" fill="#F59E0B" font-size="12">satisfaction_rating (1-5)</text>
+    <text x="15" y="158" fill="#E2E8F0" font-size="12">feedback_remarks (TEXT)</text>
+    <text x="15" y="178" fill="#64748B" font-size="12">confirmed_at (DATETIME)</text>
+  </g>
+
+  <!-- Entity 9: Employee Requests (Staff Applications) -->
+  <g transform="translate(700, 560)" filter="url(#shadow)">
+    <rect width="280" height="290" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+    <rect width="280" height="36" rx="8" fill="#D97706"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">EMPLOYEE_REQUESTS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#38BDF8" font-size="12">request_number (VARCHAR, UK)</text>
+    <text x="15" y="98" fill="#F4C430" font-size="12">user_id (INT, FK -> users.id)</text>
+    <text x="15" y="118" fill="#E2E8F0" font-size="12">employee_name, employee_id</text>
+    <text x="15" y="138" fill="#E2E8F0" font-size="12">campus, department</text>
+    <text x="15" y="158" fill="#F4C430" font-size="12">category (Leave, Workload, etc.)</text>
+    <text x="15" y="178" fill="#E2E8F0" font-size="12">title, description</text>
+    <text x="15" y="198" fill="#10B981" font-size="12">status, current_stage</text>
+    <text x="15" y="218" fill="#F4C430" font-size="12">reviewing_officer_id (FK)</text>
+    <text x="15" y="238" fill="#F4C430" font-size="12">approving_authority_id (FK)</text>
+    <text x="15" y="258" fill="#64748B" font-size="12">created_at, decided_at</text>
+  </g>
+
+  <!-- Entity 10: Request Approvals -->
+  <g transform="translate(1040, 690)" filter="url(#shadow)">
+    <rect width="260" height="160" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+    <rect width="260" height="36" rx="8" fill="#D97706"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">REQUEST_APPROVALS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">request_id (INT, FK -> requests)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">stage, action (VARCHAR)</text>
+    <text x="15" y="118" fill="#F4C430" font-size="12">actor_id (INT, FK), actor_name</text>
+    <text x="15" y="138" fill="#64748B" font-size="12">remarks (TEXT), action_at</text>
+  </g>
+
+  <!-- Entity 11: Complaint History -->
+  <g transform="translate(360, 560)" filter="url(#shadow)">
+    <rect width="280" height="160" rx="8" fill="#1E293B" stroke="#64748B" stroke-width="2"/>
+    <rect width="280" height="36" rx="8" fill="#475569"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">COMPLAINT_HISTORY (Audit)</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">complaint_id (INT, FK)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">action (VARCHAR)</text>
+    <text x="15" y="118" fill="#94A3B8" font-size="12">previous_value, new_value</text>
+    <text x="15" y="138" fill="#64748B" font-size="12">performed_by, timestamp</text>
+  </g>
+
+  <!-- Entity 12: Email Notifications -->
+  <g transform="translate(1330, 670)" filter="url(#shadow)">
+    <rect width="240" height="210" rx="8" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+    <rect width="240" height="36" rx="8" fill="#0891B2"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="13" font-weight="bold">EMAIL_NOTIFICATIONS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#38BDF8" font-size="12">recipient_email (VARCHAR)</text>
+    <text x="15" y="98" fill="#F4C430" font-size="12">related_complaint_id (FK)</text>
+    <text x="15" y="118" fill="#F4C430" font-size="12">related_request_id (FK)</text>
+    <text x="15" y="138" fill="#E2E8F0" font-size="12">notification_type, subject</text>
+    <text x="15" y="158" fill="#10B981" font-size="12">delivery_status (SENT/FAILED)</text>
+    <text x="15" y="178" fill="#64748B" font-size="12">sent_at, created_at</text>
+  </g>
+
+  <!-- Entity 13: University Directory -->
+  <g transform="translate(60, 560)" filter="url(#shadow)">
+    <rect width="250" height="180" rx="8" fill="#1E293B" stroke="#64748B" stroke-width="2"/>
+    <rect width="250" height="36" rx="8" fill="#475569"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="13" font-weight="bold">UNIVERSITY_DIRECTORY</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#E2E8F0" font-size="12">role, identifier (UK)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">full_name, email (UK)</text>
+    <text x="15" y="118" fill="#94A3B8" font-size="12">department, program</text>
+    <text x="15" y="138" fill="#94A3B8" font-size="12">campus, role_designation</text>
+    <text x="15" y="158" fill="#10B981" font-size="12">is_claimed (BOOLEAN)</text>
+  </g>
+
+  <!-- Entity 14: Audit Logs -->
+  <g transform="translate(360, 750)" filter="url(#shadow)">
+    <rect width="280" height="170" rx="8" fill="#1E293B" stroke="#64748B" stroke-width="2"/>
+    <rect width="280" height="36" rx="8" fill="#475569"/>
+    <text x="15" y="24" fill="#FFFFFF" font-size="14" font-weight="bold">AUDIT_LOGS</text>
+    <text x="15" y="58" fill="#F4C430" font-size="12">id (INT, PK)</text>
+    <text x="15" y="78" fill="#F4C430" font-size="12">user_id (INT, FK -> users)</text>
+    <text x="15" y="98" fill="#E2E8F0" font-size="12">action (VARCHAR, IDX)</text>
+    <text x="15" y="118" fill="#94A3B8" font-size="12">target_type, target_id</text>
+    <text x="15" y="138" fill="#94A3B8" font-size="12">campus, ip_address, details</text>
+    <text x="15" y="158" fill="#64748B" font-size="12">created_at (DATETIME)</text>
+  </g>
+
+  <!-- Connector Lines -->
+  <!-- Campuses to Users -->
+  <path d="M 310 220 L 360 220" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow)"/>
+  <!-- Users to Complaints -->
+  <path d="M 640 250 L 700 250" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- Complaints to AI Analysis -->
+  <path d="M 980 230 L 1040 230" stroke="#10B981" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- Complaints to Forwardings -->
+  <path d="M 980 200 L 1330 200" stroke="#EC4899" stroke-width="2" stroke-dasharray="2" marker-end="url(#arrow)"/>
+  <!-- Complaints to Feedback -->
+  <path d="M 980 320 L 1330 460" stroke="#10B981" stroke-width="2" stroke-dasharray="2" marker-end="url(#arrow)"/>
+  <!-- Users to Employee Requests -->
+  <path d="M 500 520 L 500 660 L 700 660" stroke="#F59E0B" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <!-- Employee Requests to Approvals -->
+  <path d="M 980 720 L 1040 720" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow)"/>
+</svg>

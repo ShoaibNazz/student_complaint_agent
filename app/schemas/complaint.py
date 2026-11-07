@@ -35,6 +35,7 @@ class ComplaintCreate(BaseModel):
     target_campus: Optional[str] = Field(default=None, max_length=120)
     attachment_path: Optional[str] = Field(default=None, max_length=500)
     attachment_name: Optional[str] = Field(default=None, max_length=255)
+    is_confidential: bool = False
     complaint_title: str = Field(min_length=3, max_length=200)
     complaint_text: str = Field(min_length=1, max_length=5000)
 
@@ -72,6 +73,8 @@ class AssignmentUpdate(BaseModel):
     category: Optional[str] = Field(default=None, max_length=120)
     subcategory: Optional[str] = Field(default=None, max_length=120)
     department: Optional[str] = Field(default=None, max_length=120)
+    handler_id: Optional[int] = None
+    handler_name: Optional[str] = None
     priority: Optional[Priority] = None
 
 
@@ -106,6 +109,7 @@ class ComplaintOut(BaseModel):
     attachment_path: Optional[str] = None
     attachment_name: Optional[str] = None
     title: str
+    is_confidential: bool = False
     complaint_text: str
     status: str
     analysis_status: str
@@ -153,6 +157,7 @@ class DashboardStats(BaseModel):
 
 
 class StudentComplaintSubmit(BaseModel):
+    is_confidential: bool = False
     complaint_title: str = Field(min_length=3, max_length=200)
     subject: Optional[str] = Field(default=None, max_length=120)
     originating_campus: Optional[str] = Field(default=None, max_length=120)
@@ -199,6 +204,7 @@ class StudentComplaintDetailOut(BaseModel):
     attachment_path: Optional[str] = None
     attachment_name: Optional[str] = None
     title: str
+    is_confidential: bool = False
     complaint_text: str
     status: str
     created_at: datetime
@@ -221,3 +227,15 @@ class StudentDashboardStats(BaseModel):
     closed: int
     pending: int
 
+
+
+class ResolutionFeedbackCreate(BaseModel):
+    is_resolved: bool
+    satisfaction_rating: Optional[int] = Field(default=None, ge=1, le=5)
+    feedback_remarks: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ForwardingCreate(BaseModel):
+    receiving_authority: str = Field(min_length=2, max_length=120)
+    forwarding_reason: str = Field(min_length=5, max_length=2000)
+    admin_remarks: Optional[str] = Field(default=None, max_length=2000)

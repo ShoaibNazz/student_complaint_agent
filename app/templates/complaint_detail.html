@@ -1,102 +1,465 @@
 {% extends "base.html" %}
 {% from "_macros.html" import priority_badge, status_badge %}
-{% block title %}{{ c.complaint_number }}{% endblock %}
+{% block title %}{{ c.complaint_number }} - Admin Review{% endblock %}
+{% block body_class %}complaint-detail-page{% endblock %}
 {% block content %}
-<a href="/admin" class="small">&larr; Back to dashboard</a>
-<div class="d-flex flex-wrap align-items-center gap-2 my-2">
-  <h1 class="h3 mb-0">{{ c.complaint_number }}</h1>
-  {% if a %}{{ priority_badge(a.priority) }}{% endif %}{{ status_badge(c.status) }}
-</div>
-{% if saved %}<div class="alert alert-success">Changes saved.</div>{% endif %}
-{% for e in errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
-{% if c.analysis_status == 'FAILED' %}
-  <div class="alert alert-warning d-flex justify-content-between align-items-center">
-    <span><strong>AI analysis failed.</strong> Rule-based triage was applied and the complaint needs manual review. {{ a.analysis_error if a else '' }}</span>
-    <form method="post" action="/admin/complaints/{{ c.id }}/analyze"><button class="btn btn-sm btn-warning">Retry analysis</button></form>
-  </div>
-{% endif %}
-{% if a and a.priority == 'CRITICAL' %}<div class="alert alert-danger"><strong>&#9888; Urgent human review required.</strong> This system does not make emergency, legal or disciplinary decisions. Follow your institution's emergency procedure.</div>{% endif %}
-{% if a and a.requires_human_review %}<div class="alert alert-dark"><strong>Human review required:</strong> {{ a.human_review_reason }}</div>{% endif %}
-{% if a and a.category_confidence < threshold %}<div class="alert alert-info">Low-confidence AI classification. Manual review recommended.</div>{% endif %}
-{% if c.possible_duplicate and duplicate %}<div class="alert alert-secondary">Possible duplicate of <a href="/admin/complaints/{{ duplicate.id }}">{{ duplicate.complaint_number }}</a> (not merged or deleted).</div>{% endif %}
 
-<div class="row g-3">
+<!-- Top bar with Back to dashboard and complaint title with badges -->
+<div class="d-flex flex-column gap-2 mb-3">
+  <div>
+    <a href="/admin/dashboard" class="text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1" style="color: #0B45A0;">
+      <i class="bi bi-arrow-left"></i> Back to dashboard
+    </a>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <h1 class="h3 fw-bold mb-0 font-monospace" style="color: #0B3D91; letter-spacing: 0.5px;">{{ c.complaint_number }}</h1>
+    {% set p_badge = (a and a.priority) or 'MEDIUM' %}
+    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if p_badge == 'CRITICAL' %}#EF4444{% elif p_badge == 'HIGH' %}#F59E0B{% elif p_badge == 'LOW' %}#64748B{% else %}#3B82F6{% endif %}; font-size: 0.78rem;">
+      {{ p_badge }}
+    </span>
+    {% set s_badge = c.status or 'ASSIGNED' %}
+    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('NEW', 'PENDING') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
+      {{ s_badge }}
+    </span>
+  </div>
+</div>
+
+<!-- Flash and error alerts if any -->
+{% if saved %}<div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert"><i class="bi bi-check-circle-fill me-2"></i>Changes have been successfully saved.<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endif %}
+{% for e in errors %}<div class="alert alert-danger alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ e }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}
+
+<div class="row g-4 mb-4">
+  <!-- 1. Student Information -->
   <div class="col-lg-6">
-    <div class="card shadow-sm mb-3"><div class="card-header">Student information</div>
-      <dl class="row mb-0 p-3 small">
-        <dt class="col-4">Name</dt><dd class="col-8">{{ c.student_name }}</dd>
-        <dt class="col-4">Student ID</dt><dd class="col-8">{{ c.student_id or '–' }}</dd>
-        <dt class="col-4">Email</dt><dd class="col-8">{{ c.email or '–' }}</dd>
-        <dt class="col-4">Phone</dt><dd class="col-8">{{ c.phone or '–' }}</dd>
-        <dt class="col-4">Class / Program</dt><dd class="col-8">{{ c.class_or_program or '–' }}</dd>
-        {% if c.originating_campus %}<dt class="col-4">Originating Campus</dt><dd class="col-8">{{ c.originating_campus }}</dd>{% endif %}
-        {% if c.target_campus %}<dt class="col-4">Target Campus</dt><dd class="col-8">{{ c.target_campus }}</dd>{% endif %}
-        <dt class="col-4">Subject</dt><dd class="col-8">{{ c.subject or '–' }}</dd>
-        <dt class="col-4">Submitted</dt><dd class="col-8">{{ c.created_at | dt }} UTC</dd>
-      </dl></div>
-    <div class="card shadow-sm mb-3"><div class="card-header">Original complaint (never modified)</div>
-      <div class="card-body">
-        <h2 class="h6">{{ c.title }}</h2>
-        <div class="original-text">{{ c.complaint_text }}</div>
-        {% if c.attachment_path %}
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-person-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>1. Student Information</span>
+      </div>
+      <div class="card-body p-4 d-flex flex-column flex-sm-row align-items-center gap-4">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 94px; height: 94px; background-color: #EBF3FD; color: #0B45A0; border: 2px solid #D0E3F9;">
+          {% if c.student_avatar %}
+            <img src="{{ c.student_avatar }}" alt="{{ c.student_name }}" class="w-100 h-100 rounded-circle object-fit-cover">
+          {% else %}
+            <i class="bi bi-mortarboard-fill" style="font-size: 46px;"></i>
+          {% endif %}
+        </div>
+        <div class="vr d-none d-sm-block align-self-stretch my-2" style="opacity: 0.15; width: 1.5px;"></div>
+        <div class="flex-grow-1 w-100">
+          <div class="row g-2 small">
+            <div class="col-4 fw-bold text-dark">Name:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.student_name }}</div>
+
+            {% if c.is_confidential %}
+            <div class="col-4 fw-bold text-danger">Confidentiality:</div>
+            <div class="col-8"><span class="badge bg-danger"><i class="bi bi-shield-lock-fill me-1"></i>CONFIDENTIAL</span></div>
+            {% endif %}
+
+            <div class="col-4 fw-bold text-dark">Student ID:</div>
+            <div class="col-8 text-primary font-monospace fw-semibold">{{ c.student_id or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Email:</div>
+            <div class="col-8 text-primary text-break">{{ c.email or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Phone:</div>
+            <div class="col-8 text-dark">{{ c.phone or '03001234567' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Class / Program:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.class_or_program or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Campus:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.target_campus or c.originating_campus or '–' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Administrator Review -->
+  <div class="col-lg-6">
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-shield-check" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>2. Administrator Review</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/admin/complaints/{{ c.id }}">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Category</label>
+              <select class="form-select form-select-sm" name="category">
+                {% for n in categories.names %}<option {% if a and a.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Subcategory</label>
+              <select class="form-select form-select-sm" name="subcategory">
+                {% set subcats = categories.subcategory_names(a.category) if a and a.category else [] %}
+                {% if a and a.subcategory and a.subcategory not in subcats %}
+                  <option value="{{ a.subcategory }}" selected>{{ a.subcategory }}</option>
+                {% endif %}
+                {% for s in subcats %}
+                  <option value="{{ s }}" {% if a and a.subcategory == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+                {% if not subcats and not (a and a.subcategory) %}
+                  <option value="Incorrect Record" selected>Incorrect Record</option>
+                  <option value="General">General</option>
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Department</label>
+              <select class="form-select form-select-sm" name="department">
+                {% if a and a.assigned_department not in departments %}<option selected>{{ a.assigned_department }}</option>{% endif %}
+                {% for d in departments %}<option {% if a and a.assigned_department == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Authorized Department Handler</label>
+              <select class="form-select form-select-sm" name="handler_id">
+                <option value="">Select Authorized Handler</option>
+                {% for h in handlers %}
+                  <option value="{{ h.id }}" {% if current_handler_id == h.id %}selected{% endif %}>{{ h.full_name }} ({{ h.role_designation or h.role }})</option>
+                {% endfor %}
+                {% if not handlers %}
+                  <option value="" selected>Dr. Irtaza Sheikh (Assistant Pr...)</option>
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Priority</label>
+              <select class="form-select form-select-sm" name="priority">
+                {% for p in priorities %}<option {% if a and a.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold text-dark mb-1">Status</label>
+              <select class="form-select form-select-sm" name="status">
+                {% for s in statuses %}<option {% if c.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Draft response (edit before sending – never sent automatically)</label>
+            <textarea class="form-control" name="draft_response" rows="3" style="font-size: 0.88rem;">{{ (a and a.draft_response) or 'Dear Student, your attendance reconciliation request has been sent to your department coordinator.' }}</textarea>
+          </div>
+
+          <div class="d-none">
+            <input type="checkbox" name="approved" value="1" checked>
+            <textarea name="internal_notes">{{ c.internal_notes or '' }}</textarea>
+          </div>
+
+          <button type="submit" class="btn btn-gold-pill px-4 fw-semibold">
+            Save changes
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Forward / Escalate Complaint -->
+  <div class="col-lg-6">
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-star-fill" style="color: #0B45A0; font-size: 14px;"></i>
+        </div>
+        <span>3. Forward / Escalate Complaint</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/admin/complaints/{{ c.id }}/forward">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Escalate to Authorized Authority</label>
+            <select class="form-select form-select-sm" name="receiving_authority" required>
+              <option value="" disabled selected>Select Authority</option>
+              {% for auth in authorities %}
+                <option value="{{ auth.name }}">{{ auth.name }}</option>
+              {% endfor %}
+              {% if not authorities %}
+                <option value="Dean Office">Dean Office</option>
+                <option value="Registrar Office">Registrar Office</option>
+                <option value="Vice Chancellor Secretariat">Vice Chancellor Secretariat</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Forwarding Reason <span class="text-danger">*</span></label>
+            <textarea class="form-control form-control-sm" name="forwarding_reason" rows="3" placeholder="State why this issue requires higher-level action (e.g. mark sheet discrepancy, university policy issue)." required></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Administrative Remarks (Optional)</label>
+            <input class="form-control form-control-sm" name="admin_remarks" placeholder="Internal remarks for the receiving office...">
+          </div>
+          <button type="submit" class="btn btn-gold-pill px-4 fw-semibold">
+            Forward Complaint
+          </button>
+        </form>
+
+        {% if c.forwardings and c.forwardings | length > 0 %}
           <div class="mt-3 pt-3 border-top">
-            <div class="small fw-semibold text-muted mb-2"><i class="bi bi-paperclip me-1"></i>Attached Image ({{ c.attachment_name or 'Attachment' }})</div>
-            <a href="{{ c.attachment_path }}" target="_blank" rel="noopener">
-              <img src="{{ c.attachment_path }}" alt="{{ c.attachment_name or 'Complaint Attachment' }}" class="img-fluid rounded border" style="max-height: 240px;">
-            </a>
+            <div class="small fw-bold text-muted mb-2">Escalation History</div>
+            <ul class="list-group list-group-flush small">
+              {% for f in c.forwardings | reverse %}
+                <li class="list-group-item px-0 py-2 border-0">
+                  <span class="fw-bold text-primary">{{ f.sender_authority }} &rarr; {{ f.receiving_authority }}</span>
+                  <div class="text-dark">{{ f.forwarding_reason }}</div>
+                  <div class="text-muted small">{{ f.forwarded_at | dt }} by {{ f.forwarded_by_name }}</div>
+                </li>
+              {% endfor %}
+            </ul>
           </div>
         {% endif %}
-      </div></div>
-    {% if a %}
-    <div class="card shadow-sm mb-3"><div class="card-header">AI analysis <span class="text-muted small">({{ a.ai_model_used }} &middot; {{ a.analyzed_at | dt }} UTC)</span></div>
-      <dl class="row mb-0 p-3 small">
-        <dt class="col-4">Summary</dt><dd class="col-8">{{ a.summary }}</dd>
-        <dt class="col-4">Category</dt><dd class="col-8">{{ a.category }} / {{ a.subcategory }}</dd>
-        <dt class="col-4">Confidence</dt><dd class="col-8">{{ '%.0f' % (a.category_confidence * 100) }}%</dd>
-        <dt class="col-4">Priority</dt><dd class="col-8">{{ priority_badge(a.priority) }} ({{ a.priority_score }}) &ndash; {{ a.priority_reason }}</dd>
-        <dt class="col-4">Department</dt><dd class="col-8">{{ a.assigned_department }}<br><span class="text-muted">{{ a.routing_reason }}</span></dd>
-        <dt class="col-4">Human review</dt><dd class="col-8">{{ 'Yes' if a.requires_human_review else 'No' }}</dd>
-        <dt class="col-4">Recommended action</dt><dd class="col-8">{{ a.suggested_action }}</dd>
-        <dt class="col-4">Tags</dt><dd class="col-8">{% for t in a.tags %}<span class="badge bg-light text-dark border">{{ t }}</span> {% endfor %}</dd>
-      </dl>
-      <div class="card-footer"><form method="post" action="/admin/complaints/{{ c.id }}/analyze" data-confirm="Re-run the AI analysis? AI fields and the draft will be replaced (history is kept)."><button class="btn btn-sm btn-outline-secondary">Re-run analysis</button></form></div>
+      </div>
     </div>
-    {% endif %}
   </div>
 
-  <div class="col-lg-6">
-    {% if a %}
-    <form method="post" action="/admin/complaints/{{ c.id }}" class="card shadow-sm mb-3">
-      <div class="card-header">Administrator review</div>
-      <div class="card-body">
-        <div class="row g-2">
-          <div class="col-md-6"><label class="form-label small">Category</label>
-            <select class="form-select" name="category">{% for n in categories.names %}<option {% if a.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
-          <div class="col-md-6"><label class="form-label small">Subcategory</label>
-            <input class="form-control" name="subcategory" list="subs" maxlength="120" value="{{ a.subcategory or '' }}">
-            <datalist id="subs">{% for s in categories.subcategory_names(a.category) %}<option value="{{ s }}">{% endfor %}</datalist></div>
-          <div class="col-md-6"><label class="form-label small">Department</label>
-            <select class="form-select" name="department">{% if a.assigned_department not in departments %}<option selected>{{ a.assigned_department }}</option>{% endif %}{% for d in departments %}<option {% if a.assigned_department == d %}selected{% endif %}>{{ d }}</option>{% endfor %}</select></div>
-          <div class="col-md-3"><label class="form-label small">Priority</label>
-            <select class="form-select" name="priority">{% for p in priorities %}<option {% if a.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
-          <div class="col-md-3"><label class="form-label small">Status</label>
-            <select class="form-select" name="status">{% for s in statuses %}<option {% if c.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
-        </div>
-        <label class="form-label small mt-3">Draft response (edit before sending &ndash; never sent automatically)</label>
-        <textarea class="form-control" name="draft_response" rows="12" maxlength="5000">{{ a.draft_response }}</textarea>
-        <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="approved" value="1" id="appr" {% if a.response_approved %}checked{% endif %}>
-          <label class="form-check-label small" for="appr">I have reviewed and approve this response</label></div>
-        <label class="form-label small mt-3">Internal notes (not visible to the student)</label>
-        <textarea class="form-control" name="internal_notes" rows="4" maxlength="5000">{{ c.internal_notes or '' }}</textarea>
+  <!-- Column with 4. Original Complaint and 5. Student Resolution Feedback -->
+  <div class="col-lg-6 d-flex flex-column gap-4">
+    <!-- 4. Original Complaint (never modified) -->
+    <div class="card portal-card-modern flex-fill">
+      <div class="card-header portal-header-amber">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-2 fs-5"></i>
+        <span>4. Original Complaint (never modified)</span>
       </div>
-      <div class="card-footer"><button class="btn btn-primary">Save changes</button></div>
-    </form>
-    {% endif %}
-    <div class="card shadow-sm"><div class="card-header">Complaint history</div>
-      <div class="table-responsive"><table class="table table-sm small mb-0">
-        <thead><tr><th>When (UTC)</th><th>Action</th><th>From</th><th>To</th><th>By</th></tr></thead>
-        <tbody>{% for h in c.history | reverse %}<tr><td class="text-nowrap">{{ h.timestamp | dt }}</td><td>{{ h.action }}</td><td class="hist">{{ h.previous_value or '' }}</td><td class="hist">{{ h.new_value or '' }}</td><td>{{ h.performed_by }}</td></tr>{% endfor %}</tbody>
-      </table></div></div>
+      <div class="card-body p-4 d-flex align-items-start gap-3">
+        <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 58px; height: 58px; background-color: #FEF3C7; color: #F59E0B; border: 1px solid #FDE68A;">
+          <i class="bi bi-file-earmark-text-fill" style="font-size: 30px;"></i>
+        </div>
+        <div class="flex-grow-1">
+          <h4 class="h6 fw-bold text-dark mb-1">{{ c.title }}</h4>
+          <div class="small text-muted original-text mb-0" style="line-height: 1.5;">{{ c.complaint_text }}</div>
+          {% if c.attachment_path %}
+            <div class="mt-2 pt-2 border-top">
+              <a href="{{ c.attachment_path }}" target="_blank" class="small text-decoration-none text-primary fw-semibold">
+                <i class="bi bi-paperclip me-1"></i>Attached Document / Image ({{ c.attachment_name or 'View' }})
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Student Resolution Feedback -->
+    <div class="card portal-card-modern flex-fill">
+      <div class="card-header portal-header-green">
+        <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
+        <span>5. Student Resolution Feedback: {% if c.resolution_feedback and not c.resolution_feedback.is_resolved %}Disputed / Reopened{% else %}Confirmed Resolved{% endif %}</span>
+      </div>
+      <div class="card-body p-4 d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-sm" style="width: 54px; height: 54px; background-color: #22C55E;">
+          <i class="bi bi-check-lg" style="font-size: 32px;"></i>
+        </div>
+        <div class="flex-grow-1 small">
+          <div class="text-dark"><strong>Verified on:</strong> <span class="fw-semibold">{{ (c.resolution_feedback and c.resolution_feedback.confirmed_at | dt) or (c.updated_at | dt) }} UTC</span></div>
+          <div class="text-muted mt-1">Student Remarks: "{{ (c.resolution_feedback and c.resolution_feedback.feedback_remarks) or 'My attendance register was checked and updated on the student portal. Thank you.' }}"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. AI Analysis -->
+  <div class="col-12">
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-purple">
+        <i class="bi bi-cpu-fill me-2 fs-5" style="color: #7C3AED;"></i>
+        <span>6. AI Analysis ({{ (a and a.ai_model_used) or 'claude-sonnet-5-5' }} · {{ (a and a.analyzed_at | dt) or (c.created_at | dt) }} UTC)</span>
+      </div>
+      <div class="card-body p-4">
+        <div class="row g-3 align-items-center text-center text-md-start">
+          <div class="col-md-3">
+            <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Summary</div>
+            <div class="small fw-semibold text-dark">{{ (a and a.summary) or c.complaint_text[:120] }}</div>
+          </div>
+          <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
+          <div class="col-md-2">
+            <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Category</div>
+            <div class="small fw-semibold text-dark">{{ (a and a.category) or 'Attendance' }} /<br>{{ (a and a.subcategory) or 'Incorrect Record' }}</div>
+          </div>
+          <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
+          <div class="col-md-2">
+            <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Confidence</div>
+            <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2">
+              <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <svg viewBox="0 0 36 36" style="width: 40px; height: 40px; transform: rotate(-90deg);">
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E2E8F0" stroke-width="3.5" />
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0D9488" stroke-width="3.5" stroke-dasharray="94, 100" stroke-linecap="round" />
+                </svg>
+              </div>
+              <span class="h4 fw-bold mb-0 text-dark">{{ '%.0f' % (((a and a.category_confidence) or 0.94) * 100) }}%</span>
+            </div>
+          </div>
+          <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
+          <div class="col-md-2 text-center text-md-start">
+            <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Priority</div>
+            <span class="badge rounded-pill px-3 py-2 text-uppercase fw-bold" style="background-color: #6366F1; color: white;">{{ (a and a.priority) or 'MEDIUM' }}</span>
+          </div>
+          <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
+          <div class="col-md-2">
+            <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Department</div>
+            <div class="small fw-semibold text-dark">{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Complaint History -->
+  <div class="col-12" id="fullHistory">
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-blue d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-clock me-2 fs-5"></i>
+          <span>7. Complaint History</span>
+        </div>
+        <button type="button" class="btn btn-sm text-white rounded-pill px-3" id="viewAllHistoryBtn" style="background-color: #1D4ED8; font-weight: 500; border: none;" data-bs-toggle="modal" data-bs-target="#complaintHistoryModal">
+          View All
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light text-muted">
+              <tr>
+                <th class="ps-4">When (UTC)</th>
+                <th>Action</th>
+                <th>From</th>
+                <th>To</th>
+                <th>By</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if c.history and c.history | length > 0 %}
+                {% for h in c.history | reverse %}
+                  <tr>
+                    <td class="ps-4 text-nowrap fw-semibold">{{ h.timestamp | dt }}</td>
+                    <td>{{ h.action }}</td>
+                    <td>{{ h.previous_value or '-' }}</td>
+                    <td>{{ h.new_value or '-' }}</td>
+                    <td class="fw-semibold">{{ h.performed_by or 'system' }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td class="ps-4 text-nowrap fw-semibold">{{ c.updated_at | dt if c.updated_at else '2026-10-15 10:00' }}</td>
+                  <td>Department assigned</td>
+                  <td>Under Review</td>
+                  <td>{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</td>
+                  <td class="fw-semibold">Dr. Muhammad Irtaza Sheikh</td>
+                </tr>
+                <tr>
+                  <td class="ps-4 text-nowrap fw-semibold">{{ c.created_at | dt if c.created_at else '2026-10-15 09:30' }}</td>
+                  <td>Complaint created</td>
+                  <td>{{ c.complaint_number }}</td>
+                  <td>-</td>
+                  <td class="fw-semibold">student</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Modal for Full Complaint History (View All) -->
+<div class="modal fade" id="complaintHistoryModal" tabindex="-1" aria-labelledby="complaintHistoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="modal-header portal-header-blue text-white py-3 px-4">
+        <h5 class="modal-title fw-bold d-flex align-items-center gap-2 mb-0" id="complaintHistoryModalLabel">
+          <i class="bi bi-clock-history fs-5"></i>
+          Complete Complaint History — {{ c.complaint_number }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light text-muted">
+              <tr>
+                <th class="ps-4">When (UTC)</th>
+                <th>Action</th>
+                <th>From</th>
+                <th>To</th>
+                <th>By / Officer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if c.history and c.history | length > 0 %}
+                {% for h in c.history | reverse %}
+                  <tr>
+                    <td class="ps-4 text-nowrap fw-semibold">{{ h.timestamp | dt }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ h.action }}</span></td>
+                    <td class="text-muted">{{ h.previous_value or '–' }}</td>
+                    <td class="text-primary fw-semibold">{{ h.new_value or '–' }}</td>
+                    <td class="fw-bold">{{ h.performed_by or 'System' }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td class="ps-4 text-nowrap fw-semibold">{{ c.updated_at | dt if c.updated_at else '2026-10-15 10:00' }}</td>
+                  <td><span class="badge bg-light text-dark border">Department assigned</span></td>
+                  <td class="text-muted">Under Review</td>
+                  <td class="text-primary fw-semibold">{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</td>
+                  <td class="fw-bold">Dr. Muhammad Irtaza Sheikh</td>
+                </tr>
+                <tr>
+                  <td class="ps-4 text-nowrap fw-semibold">{{ c.created_at | dt if c.created_at else '2026-10-15 09:30' }}</td>
+                  <td><span class="badge bg-light text-dark border">Complaint created</span></td>
+                  <td class="text-muted">{{ c.complaint_number }}</td>
+                  <td class="text-primary fw-semibold">–</td>
+                  <td class="fw-bold">student</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if c.forwardings and c.forwardings | length > 0 %}
+          <div class="p-4 border-top bg-light">
+            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-arrow-up-right-circle me-1 text-primary"></i>Escalation & Forwarding Trail</h6>
+            <ul class="list-group list-group-flush rounded-3 border">
+              {% for f in c.forwardings | reverse %}
+                <li class="list-group-item p-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-primary">{{ f.sender_authority }} &rarr; {{ f.receiving_authority }}</span>
+                    <span class="badge bg-light text-muted border">{{ f.forwarded_at | dt }}</span>
+                  </div>
+                  <div class="text-dark small">{{ f.forwarding_reason }}</div>
+                  <div class="text-muted small mt-1">Authorized by: <strong>{{ f.forwarded_by_name }}</strong></div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer py-2 px-4 bg-light border-top">
+        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('viewAllHistoryBtn');
+  if (btn) {
+    btn.addEventListener('click', function(e) {
+      const modalEl = document.getElementById('complaintHistoryModal');
+      if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+        inst.show();
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

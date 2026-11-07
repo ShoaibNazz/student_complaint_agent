@@ -5,8 +5,14 @@
 <div class="card shadow-sm border-0 bg-white rounded-3 mb-3">
   <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
     <div class="d-flex align-items-center gap-3">
-      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
-        <i class="bi bi-shield-lock-fill"></i>
+      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden shadow-sm" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
+        {% if current_user and current_user.avatar_path %}
+          <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+        {% elif admin and admin.avatar_path %}
+          <img src="{{ admin.avatar_path }}" alt="{{ admin.full_name }}" class="w-100 h-100 object-fit-cover">
+        {% else %}
+          <i class="bi bi-shield-lock-fill"></i>
+        {% endif %}
       </div>
       <div>
         <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ (current_user and current_user.full_name) or (admin and admin.full_name) or 'System Administrator' }}</h1>
@@ -19,9 +25,12 @@
         </div>
       </div>
     </div>
-    <div>
-      <a class="btn" style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);" href="/submit">
-        Submit Complaint
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-gold-pill" href="/admin/requests">
+        My Requests
+      </a>
+      <a class="btn btn-gold-pill" href="/admin/requests/new">
+        Submit Request
       </a>
     </div>
   </div>
@@ -42,39 +51,226 @@
 {% if stats.analysis_failed %}<div class="alert alert-warning">{{ stats.analysis_failed }} complaint(s) have failed AI analysis and were triaged by rules only. Open them and use <strong>Retry analysis</strong>.</div>{% endif %}
 {% for e in errors %}<div class="alert alert-danger">{{ e }}</div>{% endfor %}
 
-<form class="card card-body mb-3 shadow-sm" method="get" action="/admin">
-  <div class="row g-2 align-items-end">
-    <div class="col-md-2"><label class="form-label small">Search</label><input class="form-control" name="q" value="{{ f.q }}" placeholder="Search..."></div>
-    <div class="col-md-2"><label class="form-label small">Campus</label><select class="form-select" name="campus"><option value="">All Campuses</option>{% for camp in campuses %}<option value="{{ camp }}" {% if f.campus == camp %}selected{% endif %}>{{ camp.split(',')[0] }}</option>{% endfor %}</select></div>
-    <div class="col-md-2"><label class="form-label small">Priority</label><select class="form-select" name="priority"><option value="">Any</option>{% for p in priorities %}<option {% if f.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
-    <div class="col-md-2"><label class="form-label small">Category</label><select class="form-select" name="category"><option value="">Any</option>{% for n in categories.names %}<option {% if f.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></div>
-    <div class="col-md-2"><label class="form-label small">Status</label><select class="form-select" name="status"><option value="">Any</option><option value="OPEN" {% if f.status == 'OPEN' %}selected{% endif %}>OPEN (unfinished)</option>{% for s in statuses %}<option {% if f.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></div>
-    <div class="col-md-1"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="review" value="1" id="rv" {% if f.review == '1' %}checked{% endif %}><label class="form-check-label small" for="rv">Review</label></div></div>
-    <div class="col-md-1"><button class="btn btn-primary w-100">Filter</button></div>
+<!-- Optimized Filter Bar (Reference Image 1) -->
+<form class="admin-filter-card" method="get" action="/admin">
+  <div class="admin-filter-grid">
+    <div>
+      <label class="admin-filter-label" for="filterSearch">Search</label>
+      <input type="text" class="form-control admin-filter-input" id="filterSearch" name="q" value="{{ f.q }}" placeholder="Search...">
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterCampus">Campus</label>
+      <select class="form-select admin-filter-select" id="filterCampus" name="campus">
+        <option value="">All Campuses</option>
+        {% for camp in campuses %}
+          <option value="{{ camp }}" {% if f.campus == camp %}selected{% endif %}>{{ camp.split(',')[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterPriority">Priority</label>
+      <select class="form-select admin-filter-select" id="filterPriority" name="priority">
+        <option value="">Any</option>
+        {% for p in priorities %}
+          <option value="{{ p }}" {% if f.priority == p %}selected{% endif %}>{{ p | capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterCategory">Category</label>
+      <select class="form-select admin-filter-select" id="filterCategory" name="category">
+        <option value="">Any</option>
+        {% for n in categories.names %}
+          <option value="{{ n }}" {% if f.category == n %}selected{% endif %}>{{ n }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterStatus">Status</label>
+      <select class="form-select admin-filter-select" id="filterStatus" name="status">
+        <option value="">Any</option>
+        <option value="OPEN" {% if f.status == 'OPEN' %}selected{% endif %}>OPEN (unfinished)</option>
+        {% for s in statuses %}
+          <option value="{{ s }}" {% if f.status == s %}selected{% endif %}>{{ s | replace('_', ' ') | title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterReview">Review</label>
+      <select class="form-select admin-filter-select" id="filterReview" name="review">
+        <option value="" {% if not f.review %}selected{% endif %}>Review</option>
+        <option value="1" {% if f.review == '1' %}selected{% endif %}>Needs Review</option>
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-filter-gold w-100">
+        <i class="bi bi-funnel-fill"></i> Filter
+      </button>
+    </div>
   </div>
 </form>
 
-<div class="card shadow-sm"><div class="table-responsive">
-<table class="table table-hover align-middle mb-0">
-  <thead class="table-light"><tr><th>Complaint #</th><th>Student</th><th>Campus</th><th>Title</th><th>Category</th><th>Priority</th><th>Department</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
-  <tbody>
-  {% for c in complaints %}
-    <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}table-danger{% endif %}">
-      <td class="text-nowrap">{{ c.complaint_number }}{% if c.possible_duplicate %} <span class="badge bg-secondary" title="Possible duplicate">dup?</span>{% endif %}</td>
-      <td>{{ c.student_name }}</td>
-      <td><span class="badge bg-light text-dark border">{{ (c.target_campus or c.originating_campus or '–').split(',')[0] }}</span></td>
-      <td>{{ c.title }}</td>
-      <td>{% if c.analysis %}{{ c.analysis.category }}{% else %}&ndash;{% endif %}</td>
-      <td>{% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% if c.analysis.requires_human_review %} <span class="badge text-bg-dark" title="Requires human review">&#128065; review</span>{% endif %}{% endif %}</td>
-      <td>{% if c.analysis %}{{ c.analysis.assigned_department }}{% endif %}</td>
-      <td>{{ status_badge(c.status) }}{% if c.analysis_status == 'FAILED' %} <span class="badge bg-warning text-dark">AI failed</span>{% endif %}</td>
-      <td class="text-nowrap">{{ c.created_at | dt }}</td>
-      <td><a class="btn btn-sm btn-outline-primary" href="/admin/complaints/{{ c.id }}">Open</a></td>
-    </tr>
-  {% else %}
-    <tr><td colspan="10" class="text-center text-muted py-4">No complaints found.</td></tr>
-  {% endfor %}
-  </tbody>
-</table></div></div>
-<p class="text-muted small mt-2">Showing {{ complaints|length }} of {{ total }} &middot; sorted by priority, then newest.</p>
+<!-- Optimized Compact Complaint Management Table Card (Reference Image 1) -->
+<div class="complaint-table-card">
+  <div class="table-responsive w-100 mb-0">
+    <table class="table complaint-table-compact align-middle">
+      <thead>
+        <tr>
+          <th style="width: 15%;">Student</th>
+          <th style="width: 11%;">Campus</th>
+          <th style="width: 24%;">Title</th>
+          <th style="width: 13%;">Category</th>
+          <th style="width: 8%; text-align: center;">Priority</th>
+          <th style="width: 11%; text-align: center;">Status</th>
+          <th style="width: 11%;">Submitted</th>
+          <th style="width: 7%; text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+          <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}row-critical{% endif %}">
+            <!-- 1. Student -->
+            <td>
+              <div class="student-cell">
+                <div class="student-avatar-circle">
+                  {% if c.user and c.user.avatar_path %}
+                    <img src="{{ c.user.avatar_path }}" alt="{{ c.student_name }}" class="w-100 h-100 rounded-circle object-fit-cover">
+                  {% else %}
+                    <i class="bi bi-person-fill"></i>
+                  {% endif %}
+                </div>
+                <div class="student-info-meta">
+                  <div class="student-name-text">{{ c.student_name }}</div>
+                  <div class="student-sub-id">
+                    {{ c.complaint_number }}
+                    {% if c.possible_duplicate %}
+                      <span class="badge bg-secondary ms-1" style="font-size: 9px;" title="Possible duplicate">dup?</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. Campus -->
+            <td>
+              <span class="campus-pill-badge">
+                {{ (c.target_campus or c.originating_campus or '–').split(',')[0] }}
+              </span>
+            </td>
+
+            <!-- 3. Title -->
+            <td>
+              <div class="complaint-title-cell">
+                {{ c.title }}
+                {% if c.attachment_path %}
+                  <i class="bi bi-paperclip text-muted ms-1" title="Attached: {{ c.attachment_name or 'Image' }}"></i>
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- 4. Category -->
+            <td>
+              {% if c.analysis %}
+                {% set cat_class = 'cat-other' if c.analysis.category == 'Other' else '' %}
+                <span class="category-badge-pill {{ cat_class }}">
+                  {{ c.analysis.category }}
+                </span>
+                {% if c.analysis.assigned_department %}
+                  <div class="text-muted small mt-1" style="font-size: 11px; line-height: 1.2;">
+                    {{ c.analysis.assigned_department }}
+                  </div>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">&ndash;</span>
+              {% endif %}
+            </td>
+
+            <!-- 5. Priority -->
+            <td class="text-center">
+              {% if c.analysis %}
+                {% if c.analysis.priority == 'CRITICAL' %}
+                  <span class="priority-pill-urgent">Urgent</span>
+                {% elif c.analysis.priority == 'HIGH' %}
+                  <span class="priority-pill-high">High</span>
+                {% elif c.analysis.priority == 'MEDIUM' %}
+                  <span class="priority-pill-medium">Medium</span>
+                {% else %}
+                  <span class="priority-pill-low">Low</span>
+                {% endif %}
+                {% if c.analysis.requires_human_review %}
+                  <div class="mt-1">
+                    <span class="badge bg-dark rounded-pill" style="font-size: 9.5px;" title="Requires human review">&#128065; review</span>
+                  </div>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">&ndash;</span>
+              {% endif %}
+            </td>
+
+            <!-- 6. Status -->
+            <td class="text-center">
+              {% if c.status in ('RESOLVED', 'CLOSED', 'CLOSED_CONFIRMED', 'RESOLVED_AWAITING_CONFIRMATION') %}
+                <span class="status-pill-closed"><i class="bi bi-check-lg"></i> Closed</span>
+              {% elif c.status in ('UNDER_REVIEW', 'WAITING_FOR_STUDENT') %}
+                <span class="status-pill-review"><i class="bi bi-hourglass-split"></i> Review</span>
+              {% elif c.status in ('IN_PROGRESS', 'ASSIGNED') %}
+                <span class="status-pill-progress"><i class="bi bi-play-fill"></i> In Progress</span>
+              {% elif c.status == 'NEW' %}
+                <span class="status-pill-new">New</span>
+              {% elif c.status == 'REOPENED' %}
+                <span class="badge rounded-pill" style="background-color: #FEE2E2; color: #DC2626; font-size: 11px; font-weight: 600; padding: 4px 8px;"><i class="bi bi-arrow-repeat me-1"></i>Reopened</span>
+              {% elif c.status == 'REJECTED' %}
+                <span class="badge rounded-pill" style="background-color: #FEE2E2; color: #DC2626; font-size: 11px; font-weight: 600; padding: 4px 8px;">Rejected</span>
+              {% else %}
+                <span class="badge rounded-pill bg-secondary" style="font-size: 11px;">{{ c.status | replace('_', ' ') | title }}</span>
+              {% endif %}
+              {% if c.analysis_status == 'FAILED' %}
+                <div class="mt-1"><span class="badge bg-warning text-dark" style="font-size: 9.5px;">AI failed</span></div>
+              {% endif %}
+            </td>
+
+            <!-- 7. Submitted -->
+            <td>
+              <div class="d-inline-flex align-items-center gap-1 text-muted text-nowrap" style="font-size: 12px;">
+                <i class="bi bi-calendar3 text-dark"></i>
+                <span>{{ c.created_at | dt }}</span>
+              </div>
+            </td>
+
+            <!-- 8. Action -->
+            <td class="text-center">
+              <a class="action-view-btn" href="/admin/complaints/{{ c.id }}">
+                <i class="bi bi-eye"></i> View
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">No complaints found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination / Summary Footer Matching Reference Image 1 -->
+  <div class="table-pagination-footer">
+    <div class="text-muted small fw-medium">
+      Showing 1 to {{ complaints|length }} of {{ total }} complaints
+    </div>
+    <nav aria-label="Table pagination">
+      <ul class="pagination pagination-sm mb-0 align-items-center gap-1">
+        <li class="page-item disabled">
+          <span class="page-link rounded px-2 py-1 text-muted border bg-white" style="font-size: 11px; cursor: default;"><i class="bi bi-chevron-left"></i></span>
+        </li>
+        <li class="page-item active">
+          <span class="page-link rounded px-2.5 py-1 text-white fw-bold border-0" style="background-color: #0A3D91; font-size: 11px;">1</span>
+        </li>
+        <li class="page-item disabled">
+          <span class="page-link rounded px-2 py-1 text-muted border bg-white" style="font-size: 11px; cursor: default;"><i class="bi bi-chevron-right"></i></span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
 {% endblock %}

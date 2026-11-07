@@ -7,8 +7,14 @@
     <div class="card shadow-sm border-0 bg-white rounded-3">
       <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div class="d-flex align-items-center gap-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
-            <i class="bi bi-briefcase-fill"></i>
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden shadow-sm" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
+            {% if employee and employee.avatar_path %}
+              <img src="{{ employee.avatar_path }}" alt="{{ employee.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% elif current_user and current_user.avatar_path %}
+              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% else %}
+              <i class="bi bi-briefcase-fill"></i>
+            {% endif %}
           </div>
           <div>
             <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ employee.full_name }}</h1>
@@ -22,11 +28,6 @@
               <span><strong>Campus:</strong> {{ employee.campus or 'Township Campus, Lahore (Main Campus)' }}</span>
             </div>
           </div>
-        </div>
-        <div>
-          <a class="btn" style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);" href="/submit">
-            Submit Complaint
-          </a>
         </div>
       </div>
     </div>

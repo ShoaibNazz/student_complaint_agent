@@ -41,8 +41,8 @@ def _int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    app_name: str = "AI Student Complaint Agent"
-    database_url: str = f"sqlite:///{(BASE_DIR / 'complaints.db').as_posix()}"
+    app_name: str = "University Complaint Portal"
+    database_url: str = "mysql+pymysql://root:@localhost:3306/university_complaints"
     log_level: str = "INFO"
     config_dir: Path = BASE_DIR / "config"
 
@@ -64,6 +64,18 @@ class Settings:
     admin_password: str = field(default="", repr=False)
     secret_key: str = field(default="supersecret-complaint-agent-token-key-2026", repr=False)
     admin_registration_token: str = field(default="ADMIN-SECRET-2026", repr=False)
+
+    # Email / SMTP configuration
+    smtp_enabled: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = field(default="", repr=False)
+    smtp_from_email: str = "complaints@ue.edu.pk"
+    smtp_use_tls: bool = True
+
+    # Escalation routing authorities config
+    escalation_authorities_file: str = "escalation_authorities"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -87,8 +99,15 @@ class Settings:
             admin_password=_get("ADMIN_PASSWORD"),
             secret_key=_get("SECRET_KEY", d.secret_key),
             admin_registration_token=_get("ADMIN_REGISTRATION_TOKEN", d.admin_registration_token),
+            smtp_enabled=_bool("SMTP_ENABLED", False),
+            smtp_host=_get("SMTP_HOST", ""),
+            smtp_port=_int("SMTP_PORT", 587),
+            smtp_user=_get("SMTP_USER", ""),
+            smtp_password=_get("SMTP_PASSWORD", ""),
+            smtp_from_email=_get("SMTP_FROM_EMAIL", "complaints@ue.edu.pk"),
+            smtp_use_tls=_bool("SMTP_USE_TLS", True),
+            escalation_authorities_file=_get("ESCALATION_AUTHORITIES_FILE", "escalation_authorities"),
         )
-
 
 
 @lru_cache
@@ -99,6 +118,8 @@ def get_settings() -> Settings:
 def load_json_config(name: str) -> dict[str, Any]:
     """Load config/<name>.json (editable by institutions without touching code)."""
     path = get_settings().config_dir / f"{name}.json"
+    if not path.exists():
+        return {}
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
 

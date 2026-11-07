@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ req.request_number }} - Application Details{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div>
+        <a class="btn btn-outline-secondary btn-sm mb-2" href="/employee/requests">&larr; Back to My Requests</a>
+        <div class="d-flex align-items-center gap-2">
+          <h1 class="h3 fw-bold mb-0 text-primary font-monospace">{{ req.request_number }}</h1>
+          {% if req.status == 'APPROVED' %}
+            <span class="badge bg-success">Approved</span>
+          {% elif req.status == 'REJECTED' %}
+            <span class="badge bg-danger">Rejected</span>
+          {% elif req.status == 'UNDER_REVIEW' %}
+            <span class="badge bg-warning text-dark">Under Review</span>
+          {% else %}
+            <span class="badge bg-primary">Submitted</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="text-muted small text-end">
+        <div><strong>Submitted:</strong> {{ req.created_at | dt }}</div>
+        <div><strong>Current Stage:</strong> {{ req.current_stage }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Application Particulars</h2>
+      </div>
+      <div class="card-body p-4">
+        <h3 class="h6 fw-bold text-dark mb-2">{{ req.title }}</h3>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-light text-dark border"><i class="bi bi-tag me-1"></i>{{ req.category }}</span>
+          <span class="badge bg-light text-dark border"><i class="bi bi-bank2 me-1"></i>{{ req.campus }}</span>
+          <span class="badge bg-light text-dark border"><i class="bi bi-building me-1"></i>{{ req.department }}</span>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label text-muted small fw-semibold text-uppercase">Application Statement</label>
+          <div class="p-3 bg-light rounded-3 border original-text">{{ req.description }}</div>
+          {% if req.attachment_path %}
+            <div class="mt-3">
+              <div class="small fw-semibold text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Attached Supporting Document</div>
+              <a href="{{ req.attachment_path }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-download me-1"></i>View Attachment ({{ req.attachment_name or 'Document' }})
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        {% if req.decision_remarks %}
+          <div class="p-3 bg-light-subtle border rounded-3 border-start border-4 {% if req.status == 'APPROVED' %}border-success{% elif req.status == 'REJECTED' %}border-danger{% else %}border-primary{% endif %}">
+            <h6 class="fw-bold mb-1">Official Decision Remarks</h6>
+            <p class="small mb-1">{{ req.decision_remarks }}</p>
+            {% if req.approving_authority_name %}
+              <div class="text-muted small">Decided by: <strong>{{ req.approving_authority_name }}</strong> on {{ req.decided_at | dt }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0 rounded-3 bg-white">
+      <div class="card-header bg-white py-3 border-bottom">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Approval Trail</h2>
+      </div>
+      <div class="card-body p-4">
+        {% if req.approvals and req.approvals | length > 0 %}
+          <ul class="list-group list-group-flush small">
+            {% for ap in req.approvals %}
+              <li class="list-group-item px-0 py-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-navy">{{ ap.stage }}</span>
+                  <span class="text-muted small">{{ ap.action_at | dt }}</span>
+                </div>
+                <div class="text-primary fw-semibold">{{ ap.action }} by {{ ap.actor_name }}</div>
+                {% if ap.remarks %}
+                  <div class="text-muted mt-1 bg-light p-2 rounded">{{ ap.remarks }}</div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small mb-0">No approval actions recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

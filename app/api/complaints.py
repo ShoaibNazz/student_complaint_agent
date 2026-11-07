@@ -17,9 +17,36 @@ router = APIRouter(prefix="/api/complaints", tags=["complaints"])
 
 
 @router.post("", response_model=ComplaintReceipt, status_code=status.HTTP_201_CREATED,
-             summary="Submit a complaint (public)")
+             summary="Submit a complaint")
 def submit_complaint(payload: ComplaintCreate, db: Session = Depends(get_db)):
-    c = svc.create_complaint(db, payload)
+    from fastapi import HTTPException
+    from app.models.enums import UserRole
+    from app.services.user_service import get_user_by_email, get_user_by_student_id, get_user_by_identifier
+
+    student_id = (payload.student_id or "").strip()
+    email = (payload.email or "").strip()
+    matched_user = None
+    if student_id:
+        matched_user = get_user_by_student_id(db, student_id) or get_user_by_identifier(db, UserRole.STUDENT.value, student_id)
+    if not matched_user and email:
+        matched_user = get_user_by_email(db, email)
+
+    if not matched_user or matched_user.role != UserRole.STUDENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please register first before submitting a complaint.",
+        )
+
+    # Strictly enforce registered profile information and registered campus
+    payload.student_name = matched_user.full_name
+    payload.student_id = matched_user.student_id or matched_user.identifier
+    payload.email = matched_user.email
+    if matched_user.campus:
+        payload.originating_campus = matched_user.campus
+    if matched_user.program:
+        payload.class_or_program = matched_user.program
+
+    c = svc.create_complaint(db, payload, user_id=matched_user.id)
     return ComplaintReceipt(id=c.id, complaint_number=c.complaint_number, status=c.status)
 
 

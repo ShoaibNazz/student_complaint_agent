@@ -8,7 +8,7 @@
       <h1 class="h3 fw-bold mb-1">My Complaints</h1>
       <p class="text-muted small mb-0">Track and review all grievances registered under your student ID ({{ student.student_id or '–' }})</p>
     </div>
-    <a class="btn btn-primary" href="/student/complaints/new">
+    <a class="btn" style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);" href="/student/complaints/new">
       <i class="bi bi-plus-circle me-1"></i>Submit New Complaint
     </a>
   </div>
@@ -60,7 +60,12 @@
                   <tr>
                     <td class="ps-4 fw-semibold text-primary font-monospace">{{ c.complaint_number }}</td>
                     <td>
-                      <div class="fw-bold text-truncate" style="max-width: 320px;">{{ c.title }}</div>
+                      <div class="fw-bold text-truncate" style="max-width: 320px;">
+                        {{ c.title }}
+                        {% if c.attachment_path %}
+                          <i class="bi bi-paperclip text-primary ms-1" title="Attached Image: {{ c.attachment_name or 'Image' }}"></i>
+                        {% endif %}
+                      </div>
                       {% if c.subject %}<span class="text-muted small">Subject: {{ c.subject }}</span>{% endif %}
                     </td>
                     <td>

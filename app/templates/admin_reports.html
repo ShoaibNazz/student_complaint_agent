@@ -2,72 +2,149 @@
 {% block title %}System Reports - Admin Portal{% endblock %}
 {% block content %}
 <div class="row g-4">
+  <!-- Top Header Section (Reference Image 2) -->
   <div class="col-12">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
-      <div>
-        <h1 class="h3 fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph-fill text-primary me-2"></i>Complaints & System Reports</h1>
-        <p class="text-muted small mb-0">High-level triage summaries, SLA health, and department workload reports.</p>
+      <div class="d-flex align-items-center gap-3">
+        <div class="reports-icon-box flex-shrink-0">
+          <i class="bi bi-file-earmark-bar-graph-fill"></i>
+        </div>
+        <div>
+          <h1 class="h3 fw-bold mb-1" style="color: #0A2E68; letter-spacing: -0.2px;">Complaints &amp; System Reports</h1>
+          <p class="text-muted small mb-0" style="color: #475569; font-size: 13.5px;">High-level usage summaries, SLA health, and department workload reports.</p>
+        </div>
       </div>
       <div>
-        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+        <a class="btn bg-white fw-semibold px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm" href="/admin/dashboard" style="border: 1.5px solid #2563EB; color: #1D4ED8; font-size: 13.5px; border-radius: 8px;">
+          <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
       </div>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0 rounded-3 bg-white h-100">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h6 fw-bold mb-0"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Status Distribution</h2>
+  <!-- Card 1: Status Distribution (Reference Image 2) -->
+  <div class="col-lg-6">
+    <div class="reports-card">
+      <div class="reports-card-header">
+        <i class="bi bi-pie-chart-fill me-2 fs-5 text-white"></i>
+        <h2 class="h6 fw-bold mb-0 text-white" style="font-size: 16px; letter-spacing: 0.2px;">Status Distribution</h2>
       </div>
       <div class="card-body p-4">
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Total Logged Complaints</span>
-            <span class="badge bg-primary fs-6">{{ stats.total }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>New (Unprocessed)</span>
-            <span class="badge bg-info text-dark fs-6">{{ stats.new }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Pending Resolution</span>
-            <span class="badge bg-warning text-dark fs-6">{{ stats.pending }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Successfully Resolved</span>
-            <span class="badge bg-success fs-6">{{ stats.resolved }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Human Review Required</span>
-            <span class="badge bg-dark fs-6">{{ stats.requires_human_review }}</span>
-          </li>
-        </ul>
+        <div class="d-flex flex-column">
+          <!-- 1. Total Logged Complaints -->
+          <div class="reports-row-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; background-color: #10B981; color: #FFFFFF; font-size: 14px;">
+                <i class="bi bi-check-lg"></i>
+              </span>
+              <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Total Logged Complaints</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="background-color: #3B82F6; color: #FFFFFF; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.total }}</span>
+          </div>
+
+          <!-- 2. New (Unprocessed) -->
+          <div class="reports-row-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; background-color: #2563EB; color: #FFFFFF; font-size: 14px;">
+                <i class="bi bi-plus-lg"></i>
+              </span>
+              <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">New (Unprocessed)</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="background-color: #BAE6FD; color: #0284C7; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.new }}</span>
+          </div>
+
+          <!-- 3. Pending Resolution -->
+          <div class="reports-row-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; background-color: #F59E0B; color: #FFFFFF; font-size: 14px;">
+                <i class="bi bi-clock-fill"></i>
+              </span>
+              <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Pending Resolution</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="background-color: #FDE68A; color: #92400E; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.pending }}</span>
+          </div>
+
+          <!-- 4. Successfully Resolved -->
+          <div class="reports-row-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; background-color: #10B981; color: #FFFFFF; font-size: 14px;">
+                <i class="bi bi-check-lg"></i>
+              </span>
+              <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Successfully Resolved</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="background-color: #A7F3D0; color: #065F46; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.resolved }}</span>
+          </div>
+
+          <!-- 5. Human Review Required -->
+          <div class="reports-row-item">
+            <div class="d-flex align-items-center gap-3">
+              <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; background-color: #8B5CF6; color: #FFFFFF; font-size: 14px;">
+                <i class="bi bi-star-fill"></i>
+              </span>
+              <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Human Review Required</span>
+            </div>
+            <span class="badge rounded-pill fw-bold" style="background-color: #E2E8F0; color: #334155; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.requires_human_review }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="col-md-6">
-    <div class="card shadow-sm border-0 rounded-3 bg-white h-100">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h6 fw-bold mb-0"><i class="bi bi-exclamation-octagon-fill me-2 text-danger"></i>Priority Breakdown</h2>
+  <!-- Card 2: Priority Breakdown (Reference Image 2) -->
+  <div class="col-lg-6">
+    <div class="reports-card d-flex flex-column justify-content-between">
+      <div>
+        <div class="reports-card-header">
+          <span class="rounded-circle d-inline-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 24px; height: 24px; background-color: #EF4444; color: #FFFFFF; font-weight: 900; font-size: 14px;">!</span>
+          <h2 class="h6 fw-bold mb-0 text-white" style="font-size: 16px; letter-spacing: 0.2px;">Priority Breakdown</h2>
+        </div>
+        <div class="card-body p-4 pb-0">
+          <div class="d-flex flex-column">
+            <!-- 1. Critical Severity (Threats / Safety) -->
+            <div class="reports-row-item">
+              <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; color: #EF4444; font-size: 20px;">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                </span>
+                <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Critical Severity (Threats / Safety)</span>
+              </div>
+              <span class="badge rounded-pill fw-bold" style="background-color: #FECACA; color: #991B1B; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.critical }}</span>
+            </div>
+
+            <!-- 2. High Priority (Academic / Marks) -->
+            <div class="reports-row-item">
+              <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; color: #F59E0B; font-size: 20px;">
+                  <i class="bi bi-mortarboard-fill"></i>
+                </span>
+                <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">High Priority (Academic / Marks)</span>
+              </div>
+              <span class="badge rounded-pill fw-bold" style="background-color: #FDE68A; color: #92400E; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.high }}</span>
+            </div>
+
+            <!-- 3. Rule-Based / AI Triage Failures -->
+            <div class="reports-row-item">
+              <div class="d-flex align-items-center gap-3">
+                <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; color: #64748B; font-size: 20px;">
+                  <i class="bi bi-cpu-fill"></i>
+                </span>
+                <span class="fw-semibold" style="color: #1E293B; font-size: 14px;">Rule-Based / AI Triage Failures</span>
+              </div>
+              <span class="badge rounded-pill fw-bold" style="background-color: #E2E8F0; color: #334155; font-size: 14px; padding: 6px 18px; min-width: 48px;">{{ stats.analysis_failed }}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-body p-4">
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Critical Severity (Threats / Safety)</span>
-            <span class="badge bg-danger fs-6">{{ stats.critical }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>High Priority (Academic / Marks)</span>
-            <span class="badge bg-warning text-dark fs-6">{{ stats.high }}</span>
-          </li>
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>Rule-Based / AI Triage Failures</span>
-            <span class="badge bg-secondary fs-6">{{ stats.analysis_failed }}</span>
-          </li>
-        </ul>
-        <div class="mt-4 p-3 bg-light rounded text-muted small">
-          <i class="bi bi-shield-check text-success me-1"></i>System SLA target: &lt;48h response for High/Critical tickets.
+
+      <!-- Bottom SLA Alert Box (Matching Reference Image 2) -->
+      <div class="p-4 pt-0">
+        <div class="reports-sla-box">
+          <span class="d-inline-flex align-items-center justify-content-center flex-shrink-0" style="color: #0284C7; font-size: 22px;">
+            <i class="bi bi-shield-fill-check"></i>
+          </span>
+          <span style="color: #1E3A8A; font-size: 13.5px; font-weight: 500;">
+            System SLA target: <strong style="color: #0F172A; font-weight: 700;">&lt; 48h</strong> response for High/Critical tickets.
+          </span>
         </div>
       </div>
     </div>

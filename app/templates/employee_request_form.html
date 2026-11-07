@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Submit Application - Administrative Application - University Portal{% endblock %}
+{% block content %}
+{% set base_req_url = '/admin/requests' if current_user.role == 'ADMIN' else '/employee/requests' %}
+
+<div class="row justify-content-center">
+  <div class="col-lg-10 col-xl-9">
+
+    {% if error %}
+      <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-3 shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endif %}
+
+    <!-- Submit Application Portal Card (Reference Image 2) -->
+    <div class="req-portal-card">
+      <!-- Dark Navy Header Banner -->
+      <div class="req-header-banner">
+        <div class="req-header-left">
+          <div class="req-header-icon-box">
+            <i class="bi bi-file-earmark-plus"></i>
+          </div>
+          <div>
+            <h1 class="req-header-title">Submit Application</h1>
+            <p class="req-header-subtitle">Submit a formal administrative application to your department or campus administration.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Body -->
+      <div class="req-form-body bg-white">
+        <form method="post" action="{{ base_req_url }}/new" enctype="multipart/form-data">
+          <!-- Row 1: Profile 3-column verification (Employee Name, Designation & Department, Assigned Campus) -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label class="req-label">
+                <i class="bi bi-briefcase-fill"></i> Employee Name <span class="text-danger">*</span>
+              </label>
+              <div class="req-readonly-box">
+                {{ current_user.full_name }}
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="req-label">
+                <i class="bi bi-building-fill"></i> Designation & Department <span class="text-danger">*</span>
+              </label>
+              <div class="req-styled-dropdown-box">
+                <span>{{ current_user.role_designation or 'Staff' }} - {{ current_user.department or 'General' }}</span>
+                <i class="bi bi-chevron-down text-muted"></i>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="req-label">
+                <i class="bi bi-geo-alt-fill"></i> Assigned Campus <span class="text-danger">*</span>
+              </label>
+              <div class="req-styled-dropdown-box">
+                <span>{{ current_user.campus or 'Multan Campus' }}</span>
+                <i class="bi bi-chevron-down text-muted"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 2: Application Category -->
+          <div class="mb-4">
+            <label class="req-label" for="reqCategory">
+              <i class="bi bi-grid-fill"></i> Application Category <span class="text-danger">*</span>
+            </label>
+            <select class="form-select req-select-box" id="reqCategory" name="category" required>
+              <option value="" disabled selected>Select Category</option>
+              <option value="Leave Application">Leave Application (Casual, Duty, Medical)</option>
+              <option value="Timetable Adjustment">Timetable / Lecture Adjustment</option>
+              <option value="Workload Change">Workload / Course Allocation Concern</option>
+              <option value="Promotion / Service Matter">Promotion / Service-Related Matter</option>
+              <option value="Resource Request">Resource / Lab / Equipment Requisition</option>
+              <option value="Administrative Assistance">Administrative Assistance / Verification</option>
+              <option value="Other Institutional Matter">Other Institutional Matter</option>
+            </select>
+          </div>
+
+          <!-- Row 3: Application Subject / Title -->
+          <div class="mb-4">
+            <label class="req-label" for="reqTitle">
+              <i class="bi bi-file-text-fill"></i> Application Subject / Title <span class="text-danger">*</span>
+            </label>
+            <input type="text" class="form-control req-input-box" id="reqTitle" name="title" placeholder="Brief subject of your application" required minlength="3" maxlength="200">
+          </div>
+
+          <!-- Row 4: Application Details / Statement -->
+          <div class="mb-4">
+            <label class="req-label" for="reqDesc">
+              <i class="bi bi-card-text"></i> Application Details / Statement <span class="text-danger">*</span>
+            </label>
+            <textarea class="form-control req-textarea-box" id="reqDesc" name="description" rows="5" placeholder="Detail your request, applicable dates, and justifications..." required minlength="10" maxlength="5000"></textarea>
+          </div>
+
+          <!-- Row 5: Supporting Document (Optional, Max 500 KB) -->
+          <div class="mb-4">
+            <label class="req-label" for="reqAttachment">
+              <i class="bi bi-paperclip"></i> Supporting Document (Optional, Max 500 KB)
+            </label>
+            <label class="req-file-upload-container w-100" for="reqAttachment">
+              <span class="req-file-btn">
+                <i class="bi bi-folder-fill"></i> Choose file
+              </span>
+              <span id="fileChosenText" class="req-file-name">No file chosen</span>
+            </label>
+            <input type="file" id="reqAttachment" name="attachment" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display: none;" onchange="document.getElementById('fileChosenText').textContent = this.files.length ? this.files[0].name : 'No file chosen'">
+            <div class="form-text small text-muted mt-1">Accepted formats: PDF, PNG, JPG. Maximum file size: 500 KB.</div>
+          </div>
+
+          <!-- Row 6: Action Buttons (Right-aligned) -->
+          <div class="d-flex justify-content-end align-items-center gap-3 pt-2">
+            <a href="{{ base_req_url }}" class="btn btn-req-cancel">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-req-submit">
+              <i class="bi bi-send-fill me-1"></i> Submit Application
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

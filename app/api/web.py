@@ -11,16 +11,18 @@ from pydantic import ValidationError
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.config import BASE_DIR, get_settings
+from app.core.config import BASE_DIR, get_settings, load_json_config
 from app.core.exceptions import ComplaintValidationError
 from app.core.security import (authenticate_user, create_access_token, decode_access_token,
                                get_current_user_optional, verify_same_origin)
 from app.database.database import get_db
 from app.models.complaint import Complaint
-from app.models.enums import ComplaintStatus, Priority, UserRole
+from app.models.enums import ComplaintStatus, Priority, UserRole, RequestStatus
 from app.models.user import User
 from app.schemas.complaint import AssignmentUpdate, ComplaintCreate, ComplaintUpdate, ResponseUpdate, StatusUpdate
 from app.services import complaint_service as svc
+from app.services import request_service
+from app.services.notification_service import NotificationService
 from app.services.category_service import get_catalog
 from app.services.routing_service import get_routing_service
 
@@ -111,6 +113,25 @@ def _auth_ctx(**overrides) -> dict:
     }
     ctx.update(overrides)
     return ctx
+
+
+def _profile_ctx(user: User, **overrides) -> dict:
+    from app.services.complaint_service import get_campus_names
+    from app.services.user_service import DEGREE_PROGRAMS, EMPLOYEE_ROLES
+    ctx = {
+        "current_user": user,
+        "campuses": get_campus_names(),
+        "departments": get_routing_service().department_names,
+        "degree_programs": DEGREE_PROGRAMS,
+        "employee_roles": EMPLOYEE_ROLES,
+        "stats": None,
+        "saved": False,
+        "error": None,
+        "edit_mode": False,
+    }
+    ctx.update(overrides)
+    return ctx
+
 
 
 @router.get("/login")
@@ -472,6 +493,8 @@ def handle_reset_password(
     reset_email: str = Form(""),
     new_password: str = Form(""),
     confirm_password: str = Form(""),
+    avatar: Optional[UploadFile] = File(default=None),
+    remove_avatar: str = Form(""),
     db: Session = Depends(get_db),
 ):
     from app.services.user_service import complete_password_reset
@@ -574,14 +597,15 @@ def _complaint_form_ctx(
         default_values = {
             "account_type": acc_type or "",
             "student_name": user.full_name or "",
-            "student_id": user.identifier or "",
+            "student_id": (user.student_id or user.identifier or "") if user.role == UserRole.STUDENT.value else (user.identifier or ""),
             "email": user.email or "",
-            "originating_campus": "",
-            "target_campus": "",
+            "originating_campus": user.campus or "",
+            "target_campus": user.campus or "",
             "class_or_program": prog_or_role or "",
             "subject": "",
             "complaint_title": "",
             "complaint_text": "",
+            "is_confidential": False,
         }
 
     merged_values = dict(default_values)
@@ -625,6 +649,7 @@ def _handle_web_complaint_post(
     ui_mode: str,
     attachment: Optional[UploadFile],
     enforce_student_identity: bool = False,
+    is_confidential: str = "0",
 ) -> Response:
     from app.services.user_service import get_user_by_email, get_user_by_identifier
 
@@ -644,12 +669,15 @@ def _handle_web_complaint_post(
     title_clean = (complaint_title or "").strip()
     text_clean = (complaint_text or "").strip()
 
-    if enforce_student_identity and user:
-        acc_clean = acc_clean or UserRole.STUDENT.value
+    if user and (enforce_student_identity or user.role == UserRole.STUDENT.value):
+        acc_clean = UserRole.STUDENT.value
         name_clean = user.full_name
-        id_clean = user.student_id or id_clean
+        id_clean = user.student_id or user.identifier or id_clean
         email_clean = user.email
-        prog_clean = prog_clean or (user.program or "")
+        if user.campus:
+            orig_clean = user.campus
+        if user.program:
+            prog_clean = user.program
 
     values = dict(
         account_type=acc_clean,
@@ -660,6 +688,7 @@ def _handle_web_complaint_post(
         target_campus=targ_clean,
         class_or_program=prog_clean,
         subject=subj_clean,
+        is_confidential=bool(is_confidential in ("1", "true", "True", "on", "yes")),
         complaint_title=title_clean,
         complaint_text=text_clean,
     )
@@ -719,16 +748,49 @@ def _handle_web_complaint_post(
             status_code=422,
         )
 
-    # Link to authenticated user or matched user in DB
+    # Link to authenticated user or verify registered student in DB
     effective_user_id = user.id if user else None
-    if not effective_user_id:
+    if not user:
+        from app.services.user_service import get_user_by_student_id
         matched_user = None
-        if acc_clean and id_clean:
-            matched_user = get_user_by_identifier(db, acc_clean, id_clean)
+        if id_clean:
+            matched_user = get_user_by_student_id(db, id_clean) or get_user_by_identifier(db, UserRole.STUDENT.value, id_clean)
         if not matched_user and email_clean:
             matched_user = get_user_by_email(db, email_clean)
-        if matched_user:
-            effective_user_id = matched_user.id
+
+        # 1.1 Submission Authentication: only registered users can submit complaints
+        if not matched_user or matched_user.role != UserRole.STUDENT.value:
+            reg_msg = "Please register first before submitting a complaint."
+            field_errors["student_id"] = reg_msg
+            errors = [reg_msg]
+            if wants_json:
+                return JSONResponse(
+                    {"ok": False, "errors": errors, "field_errors": field_errors},
+                    status_code=422,
+                )
+            return templates.TemplateResponse(
+                request,
+                template_name,
+                _complaint_form_ctx(
+                    None,
+                    form_action=form_action,
+                    values=values,
+                    errors=errors,
+                    field_errors=field_errors,
+                ),
+                status_code=422,
+            )
+
+        # Enforce registered identity to prevent spoofing or altered campus
+        effective_user_id = matched_user.id
+        acc_clean = UserRole.STUDENT.value
+        name_clean = matched_user.full_name
+        id_clean = matched_user.student_id or matched_user.identifier or id_clean
+        email_clean = matched_user.email
+        if matched_user.campus:
+            orig_clean = matched_user.campus
+        if matched_user.program:
+            prog_clean = matched_user.program
 
     payload_data = dict(
         student_name=name_clean,
@@ -741,6 +803,7 @@ def _handle_web_complaint_post(
         target_campus=targ_clean or None,
         attachment_path=attachment_path,
         attachment_name=attachment_name,
+        is_confidential=bool(is_confidential in ("1", "true", "True", "on", "yes")),
         complaint_title=title_clean,
         complaint_text=text_clean,
     )
@@ -826,6 +889,7 @@ def student_complaint_form_submit(
     complaint_title: str = Form(""),
     complaint_text: str = Form(""),
     ui_mode: str = Form(""),
+    is_confidential: str = Form("0"),
     attachment: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
 ):
@@ -852,6 +916,7 @@ def student_complaint_form_submit(
         ui_mode=ui_mode,
         attachment=attachment,
         enforce_student_identity=True,
+        is_confidential=is_confidential,
     )
 
 
@@ -875,15 +940,18 @@ def student_complaint_detail_page(cid: int, request: Request, db: Session = Depe
 
 
 @router.get("/student/profile")
-def student_profile_page(request: Request, db: Session = Depends(get_db)):
+def student_profile_page(request: Request, saved: int = 0, edit: int = 0, db: Session = Depends(get_db)):
     student, redirect = _require_web_role(request, db, UserRole.STUDENT.value)
     if redirect:
         return redirect
     stats = svc.get_student_stats(db, student)
-    return templates.TemplateResponse(request, "profile.html", {
-        "current_user": student,
-        "stats": stats,
-    })
+    return templates.TemplateResponse(request, "profile.html", _profile_ctx(
+        student,
+        stats=stats,
+        saved=bool(saved),
+        edit_mode=bool(edit),
+    ))
+
 
 
 # ---------------- Employee Portal Pages ----------------
@@ -935,14 +1003,52 @@ def employee_complaints_page(
 
 
 @router.get("/employee/profile")
-def employee_profile_page(request: Request, db: Session = Depends(get_db)):
+def employee_profile_page(request: Request, saved: int = 0, edit: int = 0, db: Session = Depends(get_db)):
     employee, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
     if redirect:
         return redirect
     stats = svc.get_employee_stats(db, employee)
-    return templates.TemplateResponse(request, "profile.html", {
+    return templates.TemplateResponse(request, "profile.html", _profile_ctx(
+        employee,
+        stats=stats,
+        saved=bool(saved),
+        edit_mode=bool(edit),
+    ))
+
+
+
+@router.get("/employee/my-complaints")
+def employee_my_complaints_page(request: Request, db: Session = Depends(get_db)):
+    employee, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    complaints = svc.get_user_submitted_complaints(db, employee)
+    stats = svc.get_user_submitted_stats(db, employee)
+    return templates.TemplateResponse(request, "my_complaints.html", {
         "current_user": employee,
+        "employee": employee,
+        "complaints": complaints,
         "stats": stats,
+        "view_base_url": "/employee/my-complaints",
+        "back_url": "/employee/dashboard",
+    })
+
+
+@router.get("/employee/my-complaints/{cid}")
+def employee_my_complaint_detail_page(cid: int, request: Request, db: Session = Depends(get_db)):
+    employee, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    complaint = svc.get_user_submitted_complaint(db, cid, employee)
+    timeline = svc.build_student_timeline(complaint)
+    return templates.TemplateResponse(request, "my_complaint_detail.html", {
+        "current_user": employee,
+        "c": complaint,
+        "a": complaint.analysis,
+        "timeline": timeline,
+        "back_url": "/employee/my-complaints",
     })
 
 
@@ -1030,14 +1136,52 @@ def professor_complaints_page(
 
 
 @router.get("/professor/profile")
-def professor_profile_page(request: Request, db: Session = Depends(get_db)):
+def professor_profile_page(request: Request, saved: int = 0, edit: int = 0, db: Session = Depends(get_db)):
     professor, redirect = _require_web_role(request, db, UserRole.PROFESSOR.value)
     if redirect:
         return redirect
     stats = svc.get_professor_stats(db, professor)
-    return templates.TemplateResponse(request, "profile.html", {
+    return templates.TemplateResponse(request, "profile.html", _profile_ctx(
+        professor,
+        stats=stats,
+        saved=bool(saved),
+        edit_mode=bool(edit),
+    ))
+
+
+
+@router.get("/professor/my-complaints")
+def professor_my_complaints_page(request: Request, db: Session = Depends(get_db)):
+    professor, redirect = _require_web_role(request, db, UserRole.PROFESSOR.value)
+    if redirect:
+        return redirect
+
+    complaints = svc.get_user_submitted_complaints(db, professor)
+    stats = svc.get_user_submitted_stats(db, professor)
+    return templates.TemplateResponse(request, "my_complaints.html", {
         "current_user": professor,
+        "professor": professor,
+        "complaints": complaints,
         "stats": stats,
+        "view_base_url": "/professor/my-complaints",
+        "back_url": "/professor/dashboard",
+    })
+
+
+@router.get("/professor/my-complaints/{cid}")
+def professor_my_complaint_detail_page(cid: int, request: Request, db: Session = Depends(get_db)):
+    professor, redirect = _require_web_role(request, db, UserRole.PROFESSOR.value)
+    if redirect:
+        return redirect
+
+    complaint = svc.get_user_submitted_complaint(db, cid, professor)
+    timeline = svc.build_student_timeline(complaint)
+    return templates.TemplateResponse(request, "my_complaint_detail.html", {
+        "current_user": professor,
+        "c": complaint,
+        "a": complaint.analysis,
+        "timeline": timeline,
+        "back_url": "/professor/my-complaints",
     })
 
 
@@ -1280,8 +1424,173 @@ def admin_settings_page(request: Request, db: Session = Depends(get_db)):
     })
 
 
+@router.get("/admin/my-complaints")
+def admin_my_complaints_page(request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    complaints = svc.get_user_submitted_complaints(db, admin)
+    stats = svc.get_user_submitted_stats(db, admin)
+    return templates.TemplateResponse(request, "my_complaints.html", {
+        "current_user": admin,
+        "admin": admin,
+        "complaints": complaints,
+        "stats": stats,
+        "view_base_url": "/admin/my-complaints",
+        "back_url": "/admin/dashboard",
+    })
+
+
+@router.get("/admin/my-complaints/{cid}")
+def admin_my_complaint_detail_page(cid: int, request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    complaint = svc.get_user_submitted_complaint(db, cid, admin)
+    timeline = svc.build_student_timeline(complaint)
+    return templates.TemplateResponse(request, "my_complaint_detail.html", {
+        "current_user": admin,
+        "admin": admin,
+        "c": complaint,
+        "a": complaint.analysis,
+        "timeline": timeline,
+        "back_url": "/admin/my-complaints",
+    })
+
+
+@router.get("/admin/profile")
+def admin_profile_page(request: Request, saved: int = 0, edit: int = 0, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+    admin_stats = svc.get_dashboard_stats(db)
+    stats = {
+        "total": admin_stats.total,
+        "resolved": admin_stats.resolved,
+        "in_progress": 0,
+        "pending": admin_stats.pending,
+        "under_review": admin_stats.new,
+    }
+    return templates.TemplateResponse(request, "profile.html", _profile_ctx(
+        admin,
+        stats=stats,
+        saved=bool(saved),
+        edit_mode=bool(edit),
+    ))
+
+
+@router.get("/profile")
+def global_profile_page(request: Request, db: Session = Depends(get_db)):
+    user = _get_web_user(request, db)
+    if not user:
+        return RedirectResponse("/login?next=/profile", status_code=303)
+    if user.role == UserRole.STUDENT.value:
+        return RedirectResponse("/student/profile", status_code=303)
+    elif user.role == UserRole.EMPLOYEE.value:
+        return RedirectResponse("/employee/profile", status_code=303)
+    elif user.role == UserRole.PROFESSOR.value:
+        return RedirectResponse("/professor/profile", status_code=303)
+    elif user.role == UserRole.ADMIN.value:
+        return RedirectResponse("/admin/profile", status_code=303)
+    return RedirectResponse("/", status_code=303)
+
+
+@router.post("/profile/edit")
+@router.post("/student/profile")
+@router.post("/employee/profile")
+@router.post("/professor/profile")
+@router.post("/admin/profile")
+def profile_update_submit(
+    request: Request,
+    full_name: str = Form(""),
+    email: str = Form(""),
+    identifier: str = Form(""),
+    campus: str = Form(""),
+    program: str = Form(""),
+    role_designation: str = Form(""),
+    department: str = Form(""),
+    new_password: str = Form(""),
+    confirm_password: str = Form(""),
+    avatar: Optional[UploadFile] = File(default=None),
+    remove_avatar: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = _get_web_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    if user.role == UserRole.STUDENT.value:
+        profile_path = "/student/profile"
+    elif user.role == UserRole.EMPLOYEE.value:
+        profile_path = "/employee/profile"
+    elif user.role == UserRole.PROFESSOR.value:
+        profile_path = "/professor/profile"
+    else:
+        profile_path = "/admin/profile"
+
+    try:
+        from app.services.user_service import update_user_profile
+        update_user_profile(
+            db=db,
+            user=user,
+            full_name=full_name,
+            email=email,
+            identifier=identifier,
+            campus=campus,
+            program=program,
+            role_designation=role_designation,
+            department=department,
+            new_password=new_password,
+            confirm_password=confirm_password,
+            avatar=avatar,
+            remove_avatar=bool(remove_avatar.strip() if remove_avatar else False),
+        )
+        return RedirectResponse(f"{profile_path}?saved=1", status_code=303)
+    except ValueError as exc:
+        stats = None
+        if user.role == UserRole.STUDENT.value:
+            stats = svc.get_student_stats(db, user)
+        elif user.role == UserRole.EMPLOYEE.value:
+            stats = svc.get_employee_stats(db, user)
+        elif user.role == UserRole.PROFESSOR.value:
+            stats = svc.get_professor_stats(db, user)
+        elif user.role == UserRole.ADMIN.value:
+            admin_stats = svc.get_dashboard_stats(db)
+            stats = {
+                "total": admin_stats.total,
+                "resolved": admin_stats.resolved,
+                "in_progress": 0,
+                "pending": admin_stats.pending,
+                "under_review": admin_stats.new,
+            }
+        return templates.TemplateResponse(
+            request,
+            "profile.html",
+            _profile_ctx(
+                user,
+                stats=stats,
+                error=str(exc),
+                edit_mode=True,
+            ),
+            status_code=400,
+        )
+
+
+
 def _admin_detail(request, db, cid, admin, errors=None, saved=False, code=200):
     complaint = svc.get_complaint(db, cid)
+    dept_name = complaint.analysis.assigned_department if complaint.analysis else ""
+    handlers = svc.get_department_handlers(db, dept_name, admin.campus)
+    auths_data = load_json_config("escalation_authorities")
+    authorities = auths_data.get("authorities", []) if isinstance(auths_data, dict) else []
+
+    # Get active handler ID if any
+    current_handler_id = None
+    if complaint.assignments:
+        current_handler_id = complaint.assignments[-1].handler_id
+
     return templates.TemplateResponse(request, "complaint_detail.html", {
         "current_user": admin,
         "c": complaint,
@@ -1289,6 +1598,9 @@ def _admin_detail(request, db, cid, admin, errors=None, saved=False, code=200):
         "errors": errors or [],
         "saved": saved,
         "admin": admin,
+        "handlers": handlers,
+        "authorities": authorities,
+        "current_handler_id": current_handler_id,
         "duplicate": db.get(type(complaint), complaint.duplicate_of_id) if complaint.duplicate_of_id else None,
         "threshold": get_settings().low_confidence_threshold,
         **_admin_ctx(),
@@ -1312,6 +1624,7 @@ def admin_save_complaint(
     department: str = Form(""),
     priority: str = Form(""),
     status: str = Form(""),
+    handler_id: Optional[int] = Form(None),
     draft_response: str = Form(""),
     approved: str = Form(""),
     internal_notes: str = Form(""),
@@ -1330,6 +1643,7 @@ def admin_save_complaint(
                     category=category or None,
                     subcategory=subcategory or None,
                     department=department or None,
+                    handler_id=handler_id,
                     priority=Priority.parse(priority),
                 ),
                 admin.username,
@@ -1343,6 +1657,14 @@ def admin_save_complaint(
         if status:
             svc.update_status(db, c, StatusUpdate(status=status), admin.username)
         svc.update_complaint(db, c, ComplaintUpdate(internal_notes=internal_notes.strip() or None), admin.username)
+
+        # Module 6: Automatic Email Notification triggered post successful save
+        NotificationService.send_assignment_notification(
+            db,
+            c,
+            student_facing_response=draft_response if approved else None,
+            assigned_department=department or (c.analysis.assigned_department if c.analysis else None),
+        )
     except ValidationError as exc:
         return _admin_detail(request, db, cid, admin, errors=_pydantic_messages(exc), code=422)
     except ComplaintValidationError as exc:
@@ -1388,6 +1710,7 @@ def legacy_submit(
     complaint_title: str = Form(""),
     complaint_text: str = Form(""),
     ui_mode: str = Form(""),
+    is_confidential: str = Form("0"),
     attachment: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
 ):
@@ -1411,5 +1734,206 @@ def legacy_submit(
         complaint_text=complaint_text,
         ui_mode=ui_mode,
         attachment=attachment,
-        enforce_student_identity=False,
+        enforce_student_identity=bool(user and user.role == UserRole.STUDENT.value),
+        is_confidential=is_confidential,
     )
+
+
+# ---------------- Module 2: Resolution Feedback Endpoint ----------------
+@router.post("/student/complaints/{cid}/feedback")
+def student_feedback_submit(
+    cid: int,
+    request: Request,
+    is_resolved: str = Form("1"),
+    remarks: str = Form(""),
+    rating: Optional[int] = Form(None),
+    db: Session = Depends(get_db),
+):
+    student, redirect = _require_web_role(request, db, UserRole.STUDENT.value)
+    if redirect:
+        return redirect
+
+    resolved_bool = is_resolved in ("1", "true", "True", "yes")
+    svc.record_resolution_feedback(
+        db,
+        complaint_id=cid,
+        user=student,
+        is_resolved=resolved_bool,
+        feedback_remarks=remarks,
+        satisfaction_rating=rating,
+    )
+    return RedirectResponse(f"/student/complaints/{cid}", status_code=303)
+
+
+# ---------------- Module 5: Admin Forwarding Endpoint ----------------
+@router.post("/admin/complaints/{cid}/forward", dependencies=[Depends(verify_same_origin)])
+def admin_forward_complaint(
+    cid: int,
+    request: Request,
+    receiving_authority: str = Form(...),
+    forwarding_reason: str = Form(...),
+    admin_remarks: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    svc.forward_complaint(
+        db,
+        complaint_id=cid,
+        admin_user=admin,
+        receiving_authority=receiving_authority,
+        forwarding_reason=forwarding_reason,
+        admin_remarks=admin_remarks.strip() or None,
+    )
+    return RedirectResponse(f"/admin/complaints/{cid}?saved=1", status_code=303)
+
+
+# ---------------- Module 3: Employee Requests Workflow ----------------
+@router.get("/employee/requests")
+def employee_requests_page(request: Request, db: Session = Depends(get_db)):
+    emp, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    reqs = request_service.get_employee_requests(db, emp)
+    return templates.TemplateResponse(request, "employee_requests.html", {
+        "current_user": emp,
+        "employee": emp,
+        "requests": reqs,
+    })
+
+
+@router.get("/employee/requests/new")
+def employee_request_new_page(request: Request, db: Session = Depends(get_db)):
+    emp, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    return templates.TemplateResponse(request, "employee_request_form.html", {
+        "current_user": emp,
+        "employee": emp,
+        "error": None,
+    })
+
+
+@router.post("/employee/requests/new")
+def employee_request_new_submit(
+    request: Request,
+    category: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    attachment: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+):
+    emp, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    try:
+        att_path, att_name = request_service.save_request_attachment(attachment)
+        payload = request_service.RequestCreatePayload(
+            category=category,
+            title=title,
+            description=description,
+            attachment_path=att_path,
+            attachment_name=att_name,
+        )
+        req = request_service.create_employee_request(db, emp, payload)
+        return RedirectResponse(f"/employee/requests/{req.id}", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse(request, "employee_request_form.html", {
+            "current_user": emp,
+            "employee": emp,
+            "error": str(e),
+        }, status_code=400)
+
+
+@router.get("/employee/requests/{rid}")
+def employee_request_detail_page(rid: int, request: Request, db: Session = Depends(get_db)):
+    emp, redirect = _require_web_role(request, db, UserRole.EMPLOYEE.value)
+    if redirect:
+        return redirect
+
+    req = request_service.get_employee_request(db, rid, emp)
+    return templates.TemplateResponse(request, "employee_request_detail.html", {
+        "current_user": emp,
+        "employee": emp,
+        "req": req,
+    })
+
+
+
+# ---------------- Administrator Requests Routes ----------------
+@router.get("/admin/requests")
+def admin_requests_page(request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    reqs = request_service.get_employee_requests(db, admin)
+    return templates.TemplateResponse(request, "employee_requests.html", {
+        "current_user": admin,
+        "employee": admin,
+        "requests": reqs,
+    })
+
+
+@router.get("/admin/requests/new")
+def admin_request_new_page(request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    return templates.TemplateResponse(request, "employee_request_form.html", {
+        "current_user": admin,
+        "employee": admin,
+        "error": None,
+    })
+
+
+@router.post("/admin/requests/new")
+def admin_request_new_submit(
+    request: Request,
+    category: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(...),
+    attachment: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    try:
+        att_path, att_name = request_service.save_request_attachment(attachment)
+        payload = request_service.RequestCreatePayload(
+            category=category,
+            title=title,
+            description=description,
+            attachment_path=att_path,
+            attachment_name=att_name,
+        )
+        req = request_service.create_employee_request(db, admin, payload)
+        return RedirectResponse(f"/admin/requests/{req.id}", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse(request, "employee_request_form.html", {
+            "current_user": admin,
+            "employee": admin,
+            "error": str(e),
+        }, status_code=400)
+
+
+@router.get("/admin/requests/{rid}")
+def admin_request_detail_page(rid: int, request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    req = request_service.get_employee_request(db, rid, admin)
+    return templates.TemplateResponse(request, "employee_request_detail.html", {
+        "current_user": admin,
+        "employee": admin,
+        "req": req,
+    })

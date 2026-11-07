@@ -406,9 +406,10 @@ document.addEventListener("DOMContentLoaded", function () {
     var cmpSubmitSpinner = document.getElementById("cmpSubmitSpinner");
     var cmpSubmitText = document.getElementById("cmpSubmitText");
 
-    var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-    var ALLOWED_MIMES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    var MAX_IMAGE_BYTES = 500 * 1024; // 500 KB
+    var ALLOWED_MIMES = ["image/png", "image/jpeg", "image/jpg", "image/pjpeg", "image/x-png", "image/webp"];
     var ALLOWED_EXTS = [".png", ".jpg", ".jpeg", ".webp"];
+    var selectedAttachmentFile = null;
 
     function setFieldError(fieldName, message) {
       var errEl = document.getElementById("err-" + fieldName);
@@ -707,8 +708,8 @@ document.addEventListener("DOMContentLoaded", function () {
       return (bytes / (1024 * 1024)).toFixed(2) + " MB";
     }
 
-    function validateImageFile(file) {
-      if (!file) return "";
+    function validateImageFileType(file) {
+      if (!file) return "No file selected.";
       var fileName = (file.name || "").toLowerCase();
       var hasValidExt = ALLOWED_EXTS.some(function (ext) {
         return fileName.endsWith(ext);
@@ -720,15 +721,38 @@ document.addEventListener("DOMContentLoaded", function () {
       if (file.size <= 0) {
         return "Uploaded image file is empty.";
       }
+      return "";
+    }
+
+    function validateImageFile(file) {
+      if (!file) return "";
+      var typeErr = validateImageFileType(file);
+      if (typeErr) return typeErr;
       if (file.size > MAX_IMAGE_BYTES) {
-        return "Image size exceeds the 5MB maximum limit.";
+        return "Image size (" + formatFileSize(file.size) + ") exceeds the 500KB maximum limit.";
       }
       return "";
     }
 
+    function syncInputFiles(file) {
+      if (!cmpAttachment || !file) return;
+      try {
+        if (typeof DataTransfer !== "undefined") {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          cmpAttachment.files = dt.files;
+        }
+      } catch (err) {
+        console.warn("DataTransfer sync fallback:", err);
+      }
+    }
+
     function clearSelectedImage() {
+      selectedAttachmentFile = null;
       if (cmpAttachment) {
-        cmpAttachment.value = "";
+        try {
+          cmpAttachment.value = "";
+        } catch (e) {}
       }
       if (cmpPreviewImg) {
         cmpPreviewImg.src = "";
@@ -742,18 +766,10 @@ document.addEventListener("DOMContentLoaded", function () {
       setFieldError("attachment", "");
     }
 
-    function handleSelectedFile(file) {
-      if (!file) {
-        clearSelectedImage();
-        return;
-      }
-      var errMsg = validateImageFile(file);
-      if (errMsg) {
-        clearSelectedImage();
-        setFieldError("attachment", errMsg);
-        return;
-      }
+    function displayPreview(file) {
+      selectedAttachmentFile = file;
       setFieldError("attachment", "");
+
       if (cmpPreviewName) cmpPreviewName.textContent = file.name;
       if (cmpPreviewSize) cmpPreviewSize.textContent = formatFileSize(file.size);
 
@@ -767,17 +783,114 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (cmpDropzonePrompt) cmpDropzonePrompt.classList.add("d-none");
       if (cmpPreviewBox) cmpPreviewBox.classList.remove("d-none");
+      syncInputFiles(file);
+    }
+
+    // Auto-optimize images > 500 KB to fit within server limit
+    function optimizeAndSetImage(file) {
+      var typeErr = validateImageFileType(file);
+      if (typeErr) {
+        clearSelectedImage();
+        setFieldError("attachment", typeErr);
+        return;
+      }
+
+      // If already <= 500 KB, display directly
+      if (file.size <= MAX_IMAGE_BYTES) {
+        displayPreview(file);
+        return;
+      }
+
+      // Try browser canvas compression for images over 500 KB
+      if (typeof document.createElement("canvas").getContext !== "function") {
+        clearSelectedImage();
+        setFieldError("attachment", "Image size (" + formatFileSize(file.size) + ") exceeds the 500KB maximum limit.");
+        return;
+      }
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var canvas = document.createElement("canvas");
+            var width = img.width;
+            var height = img.height;
+            var maxDim = 1600;
+
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            function compressWithQuality(q) {
+              canvas.toBlob(
+                function (blob) {
+                  if (!blob) {
+                    clearSelectedImage();
+                    setFieldError("attachment", "Image exceeds 500KB and could not be compressed.");
+                    return;
+                  }
+                  if (blob.size <= MAX_IMAGE_BYTES || q <= 0.3) {
+                    if (blob.size > MAX_IMAGE_BYTES) {
+                      clearSelectedImage();
+                      setFieldError("attachment", "Image size (" + formatFileSize(blob.size) + ") exceeds the 500KB maximum limit. Please choose a smaller image.");
+                      return;
+                    }
+                    var cleanName = (file.name || "image").replace(/\.[^.]+$/, "") + ".jpg";
+                    var optimizedFile = new File([blob], cleanName, {
+                      type: "image/jpeg",
+                      lastModified: Date.now()
+                    });
+                    displayPreview(optimizedFile);
+                  } else {
+                    compressWithQuality(q - 0.15);
+                  }
+                },
+                "image/jpeg",
+                q
+              );
+            }
+            compressWithQuality(0.85);
+          } catch (compErr) {
+            clearSelectedImage();
+            setFieldError("attachment", "Image size exceeds 500KB limit.");
+          }
+        };
+        img.onerror = function () {
+          clearSelectedImage();
+          setFieldError("attachment", "Could not load image file.");
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = function () {
+        clearSelectedImage();
+        setFieldError("attachment", "Could not read file.");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (cmpDropzonePrompt) {
+      // Keyboard Enter/Space opens file picker
+      cmpDropzonePrompt.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (cmpAttachment) cmpAttachment.click();
+        }
+      });
     }
 
     if (cmpDropzone && cmpAttachment) {
-      // Accessible keyboard trigger (Enter/Space opens file picker)
-      cmpDropzone.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          cmpAttachment.click();
-        }
-      });
-
       ["dragenter", "dragover"].forEach(function (evt) {
         cmpDropzone.addEventListener(evt, function (e) {
           e.preventDefault();
@@ -786,7 +899,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
 
-      ["dragleave", "dragend", "drop"].forEach(function (evt) {
+      ["dragleave", "dragend"].forEach(function (evt) {
         cmpDropzone.addEventListener(evt, function (e) {
           e.preventDefault();
           e.stopPropagation();
@@ -795,29 +908,19 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       cmpDropzone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        cmpDropzone.classList.remove("drag-over");
         var dt = e.dataTransfer;
         if (dt && dt.files && dt.files.length > 0) {
-          var droppedFile = dt.files[0];
-          var errMsg = validateImageFile(droppedFile);
-          if (errMsg) {
-            clearSelectedImage();
-            setFieldError("attachment", errMsg);
-            return;
-          }
-          try {
-            var transfer = new DataTransfer();
-            transfer.items.add(droppedFile);
-            cmpAttachment.files = transfer.files;
-          } catch (err) {
-            // Fallback if DataTransfer constructor is restricted
-          }
-          handleSelectedFile(droppedFile);
+          optimizeAndSetImage(dt.files[0]);
         }
       });
 
       cmpAttachment.addEventListener("change", function () {
-        var file = cmpAttachment.files && cmpAttachment.files[0] ? cmpAttachment.files[0] : null;
-        handleSelectedFile(file);
+        if (cmpAttachment.files && cmpAttachment.files.length > 0) {
+          optimizeAndSetImage(cmpAttachment.files[0]);
+        }
       });
     }
 
@@ -886,10 +989,19 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!cmpDescription || cmpDescription.value.trim().length < 10) {
         flagInvalid("complaint_text", cmpDescription, "Please describe your complaint in detail (at least 10 characters).");
       }
-      if (cmpAttachment && cmpAttachment.files && cmpAttachment.files[0]) {
-        var attachErr = validateImageFile(cmpAttachment.files[0]);
+      var fileToSubmit = selectedAttachmentFile || (cmpAttachment && cmpAttachment.files && cmpAttachment.files[0] ? cmpAttachment.files[0] : null);
+      if (fileToSubmit) {
+        var attachErr = validateImageFile(fileToSubmit);
         if (attachErr) {
           flagInvalid("attachment", cmpDropzone, attachErr);
+        } else if (cmpAttachment && (!cmpAttachment.files || cmpAttachment.files.length === 0) && typeof DataTransfer !== "undefined") {
+          try {
+            var syncTransfer = new DataTransfer();
+            syncTransfer.items.add(fileToSubmit);
+            cmpAttachment.files = syncTransfer.files;
+          } catch (syncErr) {
+            console.warn("Could not sync file to file input:", syncErr);
+          }
         }
       }
 
@@ -902,10 +1014,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       isSubmitting = true;
-      if (cmpSubmitBtn) cmpSubmitBtn.disabled = true;
       if (cmpSubmitIcon) cmpSubmitIcon.classList.add("d-none");
       if (cmpSubmitSpinner) cmpSubmitSpinner.classList.remove("d-none");
       if (cmpSubmitText) cmpSubmitText.textContent = "Submitting Complaint...";
+      setTimeout(function () {
+        if (cmpSubmitBtn) cmpSubmitBtn.disabled = true;
+      }, 50);
     });
   }
 });

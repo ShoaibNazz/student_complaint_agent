@@ -12,8 +12,10 @@
 {%- elif s == 'ASSIGNED' %}<span class="badge bg-info text-dark">ASSIGNED</span>
 {%- elif s == 'IN_PROGRESS' %}<span class="badge bg-primary-subtle text-primary-emphasis border border-primary">IN PROGRESS</span>
 {%- elif s == 'WAITING_FOR_STUDENT' %}<span class="badge bg-warning-subtle text-warning-emphasis border border-warning">WAITING FOR STUDENT</span>
-{%- elif s == 'RESOLVED' %}<span class="badge bg-success">&#10003; RESOLVED</span>
-{%- elif s == 'CLOSED' %}<span class="badge bg-dark">CLOSED</span>
+{%- elif s == 'RESOLVED_AWAITING_CONFIRMATION' %}<span class="badge bg-warning text-dark border border-warning"><i class="bi bi-clock-history me-1"></i>Resolved — Awaiting Confirmation</span>
+{%- elif s == 'REOPENED' %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger"><i class="bi bi-arrow-repeat me-1"></i>Reopened / Resolution Disputed</span>
+{%- elif s == 'RESOLVED' %}<span class="badge bg-success"><i class="bi bi-check2-circle me-1"></i>RESOLVED</span>
+{%- elif s == 'CLOSED' %}<span class="badge bg-dark"><i class="bi bi-check-circle-fill me-1"></i>Closed — Student Confirmed</span>
 {%- elif s == 'REJECTED' %}<span class="badge bg-danger">REJECTED</span>
 {%- else %}<span class="badge bg-secondary">{{ s | replace('_', ' ') }}</span>{% endif -%}
 {%- endmacro %}

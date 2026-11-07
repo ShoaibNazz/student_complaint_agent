@@ -12,6 +12,9 @@ from app.utils.time import utcnow
 
 if TYPE_CHECKING:
     from app.models.analysis import ComplaintAnalysis
+    from app.models.assignment import ComplaintAssignment
+    from app.models.feedback import ResolutionFeedback
+    from app.models.forwarding import ComplaintForwarding
     from app.models.history import ComplaintHistory
     from app.models.user import User
 
@@ -35,7 +38,8 @@ class Complaint(Base):
     attachment_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     complaint_text: Mapped[str] = mapped_column(Text)  # original text - never overwritten
-    status: Mapped[str] = mapped_column(String(30), default=ComplaintStatus.NEW.value, index=True)
+    status: Mapped[str] = mapped_column(String(40), default=ComplaintStatus.NEW.value, index=True)
+    is_confidential: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     analysis_status: Mapped[str] = mapped_column(String(20), default=AnalysisStatus.PENDING.value)
     possible_duplicate: Mapped[bool] = mapped_column(Boolean, default=False)
     duplicate_of_id: Mapped[Optional[int]] = mapped_column(ForeignKey("complaints.id"), nullable=True)
@@ -51,4 +55,13 @@ class Complaint(Base):
     )
     history: Mapped[list["ComplaintHistory"]] = relationship(
         back_populates="complaint", order_by="ComplaintHistory.id", cascade="all, delete-orphan"
+    )
+    assignments: Mapped[list["ComplaintAssignment"]] = relationship(
+        back_populates="complaint", order_by="ComplaintAssignment.id", cascade="all, delete-orphan"
+    )
+    forwardings: Mapped[list["ComplaintForwarding"]] = relationship(
+        back_populates="complaint", order_by="ComplaintForwarding.id", cascade="all, delete-orphan"
+    )
+    resolution_feedback: Mapped[Optional["ResolutionFeedback"]] = relationship(
+        back_populates="complaint", uselist=False, cascade="all, delete-orphan"
     )

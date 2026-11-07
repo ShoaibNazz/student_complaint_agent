@@ -323,15 +323,15 @@ def test_redesigned_complaint_form_and_image_upload(client):
     assert r_bad_type.status_code == 422
     assert "Unsupported image format" in r_bad_type.text
 
-    # 6. Reject oversized file (> 5MB)
-    oversized_bytes = b"\x89PNG\r\n\x1a\n" + (b"\x00" * (5 * 1024 * 1024 + 100))
+    # 6. Reject oversized file (> 500 KB)
+    oversized_bytes = b"\x89PNG\r\n\x1a\n" + (b"\x00" * (500 * 1024 + 100))
     r_big = client.post(
         "/submit",
         data=valid_data,
         files={"attachment": ("huge.png", oversized_bytes, "image/png")},
     )
     assert r_big.status_code == 422
-    assert "5 MB" in r_big.text
+    assert "500 KB" in r_big.text
 
     # Clean up test uploaded file from disk
     from pathlib import Path

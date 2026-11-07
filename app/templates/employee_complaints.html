@@ -70,7 +70,7 @@
             {% for c in complaints %}
               <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}table-danger{% endif %}">
                 <td class="font-monospace fw-bold text-primary">{{ c.complaint_number }}</td>
-                <td>{{ c.student_name }}</td>
+                <td>{% if c.is_confidential %}<span class="badge bg-secondary"><i class="bi bi-shield-lock-fill me-1"></i>[Confidential]</span>{% else %}{{ c.student_name }}{% endif %}</td>
                 <td><span class="fw-semibold">{{ c.title }}</span></td>
                 <td><span class="badge bg-light text-dark border">{{ c.analysis.category if c.analysis else '–' }}</span></td>
                 <td>{% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% endif %}</td>
