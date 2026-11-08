@@ -6,13 +6,13 @@
 <div class="row justify-content-center">
   <div class="col-12 col-xl-11">
 
-    <!-- My Administrative Requests Portal Card (Reference Image 4) -->
+    <!-- My Administrative Requests Portal Card -->
     <div class="req-portal-card">
-      <!-- Dark Navy Header Banner -->
+      <!-- Gradient Header Banner matching reference -->
       <div class="req-header-banner">
         <div class="req-header-left">
           <div class="req-header-icon-box">
-            <i class="bi bi-folder2"></i>
+            <i class="bi bi-folder2 text-white"></i>
           </div>
           <div>
             <h1 class="req-header-title">My Administrative Requests</h1>
@@ -21,7 +21,7 @@
         </div>
         <div>
           <a href="{{ base_req_url }}/new" class="btn btn-req-submit-header">
-            Submit Request
+            <i class="bi bi-plus-lg me-1"></i> Submit Request
           </a>
         </div>
       </div>
@@ -52,6 +52,11 @@
                     </td>
                     <td>
                       <div class="complaint-title-cell">{{ r.title }}</div>
+                      {% if r.target_authority %}
+                        <div class="mt-1" style="font-size: 11.5px; color: #475569;">
+                          <i class="bi bi-person-check text-primary me-1"></i>To: <span class="fw-medium">{{ r.target_authority.split('–')[0].strip() }}</span>
+                        </div>
+                      {% endif %}
                       {% if r.attachment_path %}
                         <div class="mt-1">
                           <span class="badge bg-light text-muted border small"><i class="bi bi-paperclip me-1"></i>Attachment</span>

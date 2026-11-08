@@ -28,6 +28,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".webp"}
 
 class RequestCreatePayload(BaseModel):
     category: str
+    target_authority: Optional[str] = None
     title: str = Field(min_length=3, max_length=200)
     description: str = Field(min_length=10, max_length=5000)
     attachment_path: Optional[str] = None
@@ -74,6 +75,7 @@ def create_employee_request(
         department=user.department or "General Administration",
         campus=user.campus or "Main Campus",
         category=payload.category,
+        target_authority=payload.target_authority,
         title=payload.title,
         description=payload.description,
         attachment_path=payload.attachment_path,

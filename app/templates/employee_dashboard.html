@@ -1,114 +1,237 @@
 {% extends "base.html" %}
 {% from "_macros.html" import priority_badge, status_badge %}
 {% block title %}Employee Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  .emp-stat-card {
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .emp-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  }
+  .emp-view-btn {
+    border-color: #0066CC !important;
+    color: #0066CC !important;
+    background-color: transparent;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .emp-view-btn:hover {
+    background-color: #0066CC !important;
+    color: #FFFFFF !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row g-4">
+  <!-- Welcome Card -->
   <div class="col-12">
-    <div class="card shadow-sm border-0 bg-white rounded-3">
-      <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden shadow-sm" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
-            {% if employee and employee.avatar_path %}
-              <img src="{{ employee.avatar_path }}" alt="{{ employee.full_name }}" class="w-100 h-100 object-fit-cover">
-            {% elif current_user and current_user.avatar_path %}
-              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
-            {% else %}
-              <i class="bi bi-briefcase-fill"></i>
-            {% endif %}
-          </div>
-          <div>
-            <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ employee.full_name }}</h1>
-            <div class="text-muted small d-flex flex-wrap align-items-center gap-2">
-              <span><strong>Employee ID:</strong> {{ employee.employee_id or '–' }}</span>
-              <span>&bull;</span>
-              <span><strong>Role:</strong> {{ employee.role_designation or 'Staff' }}</span>
-              <span>&bull;</span>
-              <span><strong>Department:</strong> {{ employee.department or 'General Administration' }}</span>
-              <span>&bull;</span>
-              <span><strong>Campus:</strong> {{ employee.campus or 'Township Campus, Lahore (Main Campus)' }}</span>
-            </div>
+    <div class="card shadow-sm border bg-white rounded-4" style="border-color: #E2E8F0 !important;">
+      <div class="card-body p-4 d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden" style="width: 58px; height: 58px; background-color: #EBF3FC;">
+          {% if employee and employee.avatar_path %}
+            <img src="{{ employee.avatar_path }}" alt="{{ employee.full_name }}" class="w-100 h-100 object-fit-cover">
+          {% elif current_user and current_user.avatar_path %}
+            <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+          {% else %}
+            <i class="bi bi-person-fill" style="color: #072961; font-size: 30px;"></i>
+          {% endif %}
+        </div>
+        <div>
+          <h1 class="h4 fw-bold mb-1" style="color: #0A2540; letter-spacing: -0.2px;">Welcome, {{ employee.full_name }}</h1>
+          <div class="small d-flex flex-wrap align-items-center gap-2" style="color: #475569;">
+            <span><strong style="color: #1E293B;">Employee ID:</strong> {{ employee.employee_id or '–' }}</span>
+            <span style="color: #94A3B8;">&bull;</span>
+            <span><strong style="color: #1E293B;">Role:</strong> {{ employee.role_designation or 'Staff' }}</span>
+            <span style="color: #94A3B8;">&bull;</span>
+            <span><strong style="color: #1E293B;">Department:</strong> {{ employee.department or 'General Administration' }}</span>
+            <span style="color: #94A3B8;">&bull;</span>
+            <span><strong style="color: #1E293B;">Campus:</strong> {{ employee.campus or 'Township Campus, Lahore (Main Campus)' }}</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Summary stats -->
+  <!-- 4 Colored KPI Stat Cards -->
   <div class="col-12">
     <div class="row g-3">
+      <!-- Card 1: Department Total -->
       <div class="col-md-3">
-        <div class="card shadow-sm border-0 rounded-3 bg-white p-3 text-center">
-          <div class="text-muted small fw-semibold">Department Total</div>
-          <div class="stat-number text-dark">{{ stats.total }}</div>
+        <div class="card emp-stat-card border d-flex flex-row align-items-center justify-content-center gap-3 shadow-none"
+             style="background-color: #EDF5FF; border-color: #BFDBFE !important;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0">
+            <i class="bi bi-bank2" style="font-size: 2.3rem; color: #1565C0;"></i>
+          </div>
+          <div class="d-flex flex-column align-items-center text-center">
+            <div class="fw-bold mb-1" style="color: #334155; font-size: 0.88rem;">Department Total</div>
+            <div class="fw-bold" style="color: #0F172A; font-size: 1.95rem; line-height: 1;">{{ stats.total }}</div>
+          </div>
         </div>
       </div>
+
+      <!-- Card 2: Pending Triage -->
       <div class="col-md-3">
-        <div class="card shadow-sm border-0 rounded-3 bg-white p-3 text-center">
-          <div class="text-muted small fw-semibold">Pending Triage</div>
-          <div class="stat-number text-warning-emphasis">{{ stats.pending }}</div>
+        <div class="card emp-stat-card border d-flex flex-row align-items-center justify-content-center gap-3 shadow-none"
+             style="background-color: #FFFBEB; border-color: #FDE68A !important;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="18" fill="#F59E0B"/>
+              <path d="M20 11V20L25.5 23.5" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="d-flex flex-column align-items-center text-center">
+            <div class="fw-bold mb-1" style="color: #334155; font-size: 0.88rem;">Pending Triage</div>
+            <div class="fw-bold" style="color: #0F172A; font-size: 1.95rem; line-height: 1;">{{ stats.pending }}</div>
+          </div>
         </div>
       </div>
+
+      <!-- Card 3: In Progress -->
       <div class="col-md-3">
-        <div class="card shadow-sm border-0 rounded-3 bg-white p-3 text-center">
-          <div class="text-muted small fw-semibold">In Progress</div>
-          <div class="stat-number text-primary">{{ stats.in_progress }}</div>
+        <div class="card emp-stat-card border d-flex flex-row align-items-center justify-content-center gap-3 shadow-none"
+             style="background-color: #F0F9FF; border-color: #BAE6FD !important;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="5.5" r="2.3" fill="#0284C7"/>
+              <circle cx="27.5" cy="7.5" r="2.3" fill="#0284C7" fill-opacity="0.9"/>
+              <circle cx="32.5" cy="12.5" r="2.3" fill="#0284C7" fill-opacity="0.8"/>
+              <circle cx="34.5" cy="20" r="2.3" fill="#0284C7" fill-opacity="0.7"/>
+              <circle cx="32.5" cy="27.5" r="2.3" fill="#0284C7" fill-opacity="0.6"/>
+              <circle cx="27.5" cy="32.5" r="2.3" fill="#0284C7" fill-opacity="0.5"/>
+              <circle cx="20" cy="34.5" r="2.3" fill="#0284C7" fill-opacity="0.4"/>
+              <circle cx="12.5" cy="32.5" r="2.3" fill="#0284C7" fill-opacity="0.35"/>
+              <circle cx="7.5" cy="27.5" r="2.3" fill="#0284C7" fill-opacity="0.3"/>
+              <circle cx="5.5" cy="20" r="2.3" fill="#0284C7" fill-opacity="0.25"/>
+              <circle cx="7.5" cy="12.5" r="2.3" fill="#0284C7" fill-opacity="0.2"/>
+              <circle cx="12.5" cy="7.5" r="2.3" fill="#0284C7" fill-opacity="0.15"/>
+            </svg>
+          </div>
+          <div class="d-flex flex-column align-items-center text-center">
+            <div class="fw-bold mb-1" style="color: #334155; font-size: 0.88rem;">In Progress</div>
+            <div class="fw-bold" style="color: #0284C7; font-size: 1.95rem; line-height: 1;">{{ stats.in_progress }}</div>
+          </div>
         </div>
       </div>
+
+      <!-- Card 4: Resolved -->
       <div class="col-md-3">
-        <div class="card shadow-sm border-0 rounded-3 bg-white p-3 text-center">
-          <div class="text-muted small fw-semibold">Resolved</div>
-          <div class="stat-number text-success">{{ stats.resolved }}</div>
+        <div class="card emp-stat-card border d-flex flex-row align-items-center justify-content-center gap-3 shadow-none"
+             style="background-color: #F0FDF4; border-color: #BBF7D0 !important;">
+          <div class="d-flex align-items-center justify-content-center flex-shrink-0">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="18" fill="#16A34A"/>
+              <path d="M12.5 20.5L17.5 25.5L27.5 14.5" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="d-flex flex-column align-items-center text-center">
+            <div class="fw-bold mb-1" style="color: #334155; font-size: 0.88rem;">Resolved</div>
+            <div class="fw-bold" style="color: #16A34A; font-size: 1.95rem; line-height: 1;">{{ stats.resolved }}</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Complaints table -->
+  <!-- Complaints Table Card -->
   <div class="col-12">
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
-      <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-        <h2 class="h5 fw-bold mb-0"><i class="bi bi-inbox me-2 text-primary"></i>Complaints Assigned to {{ employee.department or 'Department' }}</h2>
-        <span class="badge bg-secondary">{{ complaints | length }} Total</span>
+    <div class="card shadow-sm border bg-white rounded-4 overflow-hidden" style="border-color: #E2E8F0 !important;">
+      <!-- Navy Header Banner -->
+      <div class="card-header border-0 py-3 px-4 d-flex justify-content-between align-items-center" style="background-color: #003B94;">
+        <div class="d-flex align-items-center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="me-2 flex-shrink-0">
+            <rect x="3" y="3" width="18" height="18" rx="3" fill="#3B82F6" fill-opacity="0.25" stroke="#93C5FD" stroke-width="2"/>
+            <rect x="8" y="1" width="8" height="4" rx="1.5" fill="#93C5FD"/>
+            <path d="M7 8H8.5M7 12H8.5M7 16H8.5" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+            <path d="M11 8H17M11 12H17M11 16H15" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <h2 class="h5 fw-bold mb-0 text-white" style="font-size: 1.05rem;">
+            Complaints Assigned to {{ employee.department or 'Department' }}
+          </h2>
+        </div>
+        <span class="badge rounded-pill px-3 py-1" style="background-color: #002B7A; color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.4); font-size: 0.85rem; font-weight: 600;">
+          {{ complaints | length }} Total
+        </span>
       </div>
+
       <div class="card-body p-0">
         {% if complaints %}
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-              <thead class="table-light text-muted small">
+              <thead style="background-color: #F1F6FD; border-bottom: 1px solid #DCE6F1;">
                 <tr>
-                  <th class="ps-4">Complaint #</th>
-                  <th>Student</th>
-                  <th>Title</th>
-                  <th>Category</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Submitted</th>
-                  <th class="text-end pe-4">Action</th>
+                  <th class="ps-4" style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Complaint #</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Student</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Title</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Category</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Priority</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Status</th>
+                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Submitted</th>
+                  <th class="text-end pe-4" style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {% for c in complaints %}
-                  <tr>
-                    <td class="ps-4 fw-semibold text-primary font-monospace">{{ c.complaint_number }}</td>
-                    <td>
-                      <div class="fw-bold">{{ c.student_name }}</div>
-                      <span class="text-muted small">{{ c.student_id or '–' }}</span>
+                  <tr style="border-bottom: 1px solid #F1F5F9;">
+                    <td class="ps-4 fw-bold" style="color: #004BCA; font-family: monospace, var(--bs-font-monospace); font-size: 0.92rem;">
+                      {{ c.complaint_number }}
                     </td>
                     <td>
-                      <div class="fw-semibold text-truncate" style="max-width: 260px;">{{ c.title }}</div>
+                      <div class="fw-bold" style="color: #0F172A; font-size: 0.93rem;">{{ c.student_name }}</div>
+                      <div class="text-muted small" style="font-size: 0.82rem;">{{ c.student_id or '–' }}</div>
+                    </td>
+                    <td>
+                      <div class="fw-semibold text-truncate" style="max-width: 280px; color: #1E293B; font-size: 0.92rem;">{{ c.title }}</div>
                     </td>
                     <td>
                       {% if c.analysis and c.analysis.category %}
-                        <span class="badge bg-light text-dark border">{{ c.analysis.category }}</span>
-                      {% else %}–{% endif %}
+                        <span class="badge rounded-pill px-3 py-1" style="background-color: #EDF2F7; color: #1E293B; border: 1px solid #CBD5E1; font-weight: 600; font-size: 0.78rem;">
+                          {{ c.analysis.category }}
+                        </span>
+                      {% else %}
+                        <span class="text-muted small">–</span>
+                      {% endif %}
                     </td>
                     <td>
-                      {% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% endif %}
+                      {% set p = (c.analysis.priority if c.analysis else '') | upper %}
+                      {% if p == 'CRITICAL' %}
+                        <span class="badge rounded-pill px-3 py-1 bg-danger text-white fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">CRITICAL</span>
+                      {% elif p == 'HIGH' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #EA580C; font-size: 0.75rem; letter-spacing: 0.5px;">HIGH</span>
+                      {% elif p == 'MEDIUM' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #00A3E0; font-size: 0.75rem; letter-spacing: 0.5px;">MEDIUM</span>
+                      {% elif p == 'LOW' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #64748B; font-size: 0.75rem; letter-spacing: 0.5px;">LOW</span>
+                      {% else %}
+                        <span class="badge rounded-pill px-2 py-1 bg-light text-muted border small">–</span>
+                      {% endif %}
                     </td>
-                    <td>{{ status_badge(c.status) }}</td>
-                    <td class="small text-muted">{{ c.created_at | dt }}</td>
+                    <td>
+                      {% set s = c.status | upper %}
+                      {% if s == 'ASSIGNED' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #00A3E0; font-size: 0.75rem; letter-spacing: 0.5px;">ASSIGNED</span>
+                      {% elif s == 'NEW' %}
+                        <span class="badge rounded-pill px-3 py-1 bg-primary text-white fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">NEW</span>
+                      {% elif s == 'IN_PROGRESS' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #0284C7; font-size: 0.75rem; letter-spacing: 0.5px;">IN PROGRESS</span>
+                      {% elif s == 'RESOLVED' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #16A34A; font-size: 0.75rem; letter-spacing: 0.5px;">RESOLVED</span>
+                      {% elif s == 'CLOSED' %}
+                        <span class="badge rounded-pill px-3 py-1 bg-dark text-white fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">CLOSED</span>
+                      {% elif s == 'UNDER_REVIEW' %}
+                        <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #F59E0B; font-size: 0.75rem; letter-spacing: 0.5px;">UNDER REVIEW</span>
+                      {% else %}
+                        {{ status_badge(c.status) }}
+                      {% endif %}
+                    </td>
+                    <td class="small" style="color: #475569; font-size: 0.88rem;">{{ c.created_at | dt }}</td>
                     <td class="text-end pe-4">
-                      <a class="btn btn-sm btn-outline-primary" href="/employee/complaints/{{ c.id }}">
+                      <a class="btn btn-sm emp-view-btn rounded-pill px-3 py-1" href="/employee/complaints/{{ c.id }}">
                         <i class="bi bi-eye me-1"></i>View
                       </a>
                     </td>
@@ -120,7 +243,7 @@
         {% else %}
           <div class="p-5 text-center text-muted">
             <i class="bi bi-check2-circle fs-1 d-block mb-3 text-success"></i>
-            <h5 class="fw-bold">No active complaints</h5>
+            <h5 class="fw-bold" style="color: #0F172A;">No active complaints</h5>
             <p class="small mb-0">There are currently no complaints routed to your department.</p>
           </div>
         {% endif %}

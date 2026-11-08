@@ -1361,9 +1361,9 @@ body.complaint-detail-page {
   margin-bottom: 2rem;
 }
 
-/* Dark Navy Header Banner */
+/* Administrative Requests & Application Header Banner (Navy-to-Royal Gradient) */
 .req-header-banner {
-  background-color: #0B192C !important;
+  background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important;
   color: #FFFFFF !important;
   padding: 1.5rem 2rem;
   display: flex;
@@ -1371,6 +1371,7 @@ body.complaint-detail-page {
   justify-content: space-between;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .req-header-left {
@@ -1384,9 +1385,9 @@ body.complaint-detail-page {
   height: 52px;
   min-width: 52px;
   border-radius: 12px;
-  background-color: #0F264A;
-  border: 1.5px solid #2563EB;
-  box-shadow: 0 0 14px rgba(37, 99, 235, 0.5);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(59, 130, 246, 0.85);
+  box-shadow: 0 0 14px rgba(37, 99, 235, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1394,7 +1395,7 @@ body.complaint-detail-page {
 
 .req-header-icon-box i {
   font-size: 24px;
-  color: #60A5FA;
+  color: #FFFFFF !important;
 }
 
 .req-header-title {
@@ -1406,7 +1407,7 @@ body.complaint-detail-page {
 }
 
 .req-header-subtitle {
-  color: #94A3B8 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
   font-size: 13.5px;
   margin-bottom: 0;
 }

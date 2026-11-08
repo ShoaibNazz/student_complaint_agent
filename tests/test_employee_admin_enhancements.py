@@ -29,13 +29,24 @@ def test_admin_dashboard_and_navbar(client: TestClient, db: Session):
     token = create_access_token({"sub": str(admin.id), "role": admin.role})
     client.cookies.set("complaint_session", token)
 
-    # 1. Admin dashboard should have "My Requests" and "Submit Request" buttons
+    # 1. Admin dashboard should have "My Requests" in navbar only, and "Submit Request" on page only
     resp = client.get("/admin/dashboard")
     assert resp.status_code == 200
     assert "/admin/requests" in resp.text
     assert "My Requests" in resp.text
     assert "Submit Request" in resp.text
     assert "Submit Complaint" not in resp.text
+
+    # Navbar check: has My Requests, does NOT have Submit Request
+    navbar_html = resp.text[resp.text.find("<nav"):resp.text.find("</nav>")]
+    assert "My Requests" in navbar_html
+    assert "/admin/requests/new" not in navbar_html
+
+    # Dashboard page check: has Submit Request button, does NOT have My Requests button
+    dashboard_actions = resp.text[resp.text.find("d-flex flex-wrap gap-2"):resp.text.find("row g-3 mb-4")]
+    assert "Submit Request" in dashboard_actions
+    assert "My Requests" not in dashboard_actions
+
     # And navbar should have Profile
     assert "/admin/profile" in resp.text
 
@@ -53,6 +64,15 @@ def test_admin_dashboard_and_navbar(client: TestClient, db: Session):
     resp = client.get("/admin/requests/new")
     assert resp.status_code == 200
     assert "Administrative Application" in resp.text
+    assert "Send Request To / Target Authority" in resp.text
+    assert "Vice Chancellor (VC) / Pro-VC Office" in resp.text
+
+    # 5. Admin Departments page works with modern design
+    resp = client.get("/admin/departments")
+    assert resp.status_code == 200
+    assert "Departments Overview" in resp.text
+    assert "Filter Department Distribution" in resp.text
+    assert "Total Departments:" in resp.text
 
 
 def test_employee_dashboard_and_navbar(client: TestClient, db: Session):
@@ -145,3 +165,54 @@ def test_employee_submit_and_view_my_complaints(client: TestClient, db: Session)
     assert c.complaint_number in resp.text
     assert "Test Projector Issue in Lab 3" in resp.text
     assert "Back to My Complaints" in resp.text
+
+
+def test_administrative_requests_and_departments_enhancements(client: TestClient, db: Session):
+    emp = db.query(User).filter(User.role == UserRole.EMPLOYEE.value).first()
+    if not emp:
+        emp = User(
+            full_name="Dr. Irtaza Sheikh",
+            email="irtaza.requests@ue.edu.pk",
+            password_hash=hash_password("password123"),
+            role=UserRole.EMPLOYEE.value,
+            employee_id="EMP-TEST-003",
+            department="Department of Information Sciences",
+            campus="Multan Campus",
+            role_designation="Assistant Professor",
+        )
+        db.add(emp)
+        db.commit()
+        db.refresh(emp)
+
+    token = create_access_token({"sub": str(emp.id), "role": emp.role})
+    client.cookies.set("complaint_session", token)
+
+    # 1. Employee Submit Request form has target recipient dropdown with recommended employee options
+    resp = client.get("/employee/requests/new")
+    assert resp.status_code == 200
+    assert "Send Request To / Target Authority" in resp.text
+    assert "Head of Department (HoD) / Chairperson" in resp.text
+    assert "Dean of Faculty" in resp.text
+    assert "Registrar Office" in resp.text
+    assert "Human Resources (HR) Department" in resp.text
+    assert "Campus Director / Campus Administrator" in resp.text
+    assert "Accounts / Finance Department" in resp.text
+    assert "Directorate of Student Affairs" in resp.text
+
+    # 2. Submit application with target recipient
+    target_auth = "Head of Department (HoD) / Chairperson – For departmental workload, internal schedules, and course assignments."
+    post_resp = client.post("/employee/requests/new", data={
+        "category": "Workload Change",
+        "target_authority": target_auth,
+        "title": "Semester Workload Adjustment Request",
+        "description": "Requesting course allocation revision according to departmental policy guidelines.",
+    }, follow_redirects=True)
+    assert post_resp.status_code == 200
+    assert "Semester Workload Adjustment Request" in post_resp.text
+    assert "Head of Department (HoD) / Chairperson" in post_resp.text
+
+    # 3. Request appears on /employee/requests
+    list_resp = client.get("/employee/requests")
+    assert list_resp.status_code == 200
+    assert "Semester Workload Adjustment Request" in list_resp.text
+    assert "Head of Department (HoD) / Chairperson" in list_resp.text

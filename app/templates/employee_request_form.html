@@ -13,13 +13,13 @@
       </div>
     {% endif %}
 
-    <!-- Submit Application Portal Card (Reference Image 2) -->
+    <!-- Submit Application Portal Card -->
     <div class="req-portal-card">
-      <!-- Dark Navy Header Banner -->
+      <!-- Gradient Header Banner matching reference -->
       <div class="req-header-banner">
         <div class="req-header-left">
           <div class="req-header-icon-box">
-            <i class="bi bi-file-earmark-plus"></i>
+            <i class="bi bi-file-earmark-text text-white"></i>
           </div>
           <div>
             <h1 class="req-header-title">Submit Application</h1>
@@ -61,21 +61,46 @@
             </div>
           </div>
 
-          <!-- Row 2: Application Category -->
-          <div class="mb-4">
-            <label class="req-label" for="reqCategory">
-              <i class="bi bi-grid-fill"></i> Application Category <span class="text-danger">*</span>
-            </label>
-            <select class="form-select req-select-box" id="reqCategory" name="category" required>
-              <option value="" disabled selected>Select Category</option>
-              <option value="Leave Application">Leave Application (Casual, Duty, Medical)</option>
-              <option value="Timetable Adjustment">Timetable / Lecture Adjustment</option>
-              <option value="Workload Change">Workload / Course Allocation Concern</option>
-              <option value="Promotion / Service Matter">Promotion / Service-Related Matter</option>
-              <option value="Resource Request">Resource / Lab / Equipment Requisition</option>
-              <option value="Administrative Assistance">Administrative Assistance / Verification</option>
-              <option value="Other Institutional Matter">Other Institutional Matter</option>
-            </select>
+          <!-- Row 2: Application Category & Target Recipient / Authority Dropdown -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="req-label" for="reqCategory">
+                <i class="bi bi-grid-fill"></i> Application Category <span class="text-danger">*</span>
+              </label>
+              <select class="form-select req-select-box" id="reqCategory" name="category" required>
+                <option value="" disabled selected>Select Category</option>
+                <option value="Leave Application">Leave Application (Casual, Duty, Medical)</option>
+                <option value="Timetable Adjustment">Timetable / Lecture Adjustment</option>
+                <option value="Workload Change">Workload / Course Allocation Concern</option>
+                <option value="Promotion / Service Matter">Promotion / Service-Related Matter</option>
+                <option value="Resource Request">Resource / Lab / Equipment Requisition</option>
+                <option value="Administrative Assistance">Administrative Assistance / Verification</option>
+                <option value="Other Institutional Matter">Other Institutional Matter</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="req-label" for="reqTargetAuthority">
+                <i class="bi bi-person-check-fill"></i> Send Request To / Target Authority <span class="text-danger">*</span>
+              </label>
+              <select class="form-select req-select-box" id="reqTargetAuthority" name="target_authority" required>
+                <option value="" disabled selected>Select Target Authority</option>
+                {% if current_user.role == 'ADMIN' %}
+                  <option value="Vice Chancellor (VC) / Pro-VC Office">Vice Chancellor (VC) / Pro-VC Office – For university-level policy approvals and high-level authorizations.</option>
+                  <option value="Campus Director">Campus Director – For campus-wide maintenance, infrastructure, and emergency resources.</option>
+                  <option value="Registrar Office">Registrar Office – For statutory approvals, legal notifications, and official gazettes.</option>
+                  <option value="Treasurer / Finance Office">Treasurer / Finance Office – For departmental budget allocations and procurement authorizations.</option>
+                  <option value="Estate / IT & Infrastructure Maintenance">Estate / IT & Infrastructure Maintenance – For hardware requisitions, server access, and building maintenance.</option>
+                {% else %}
+                  <option value="Head of Department (HoD) / Chairperson">Head of Department (HoD) / Chairperson – For departmental workload, internal schedules, and course assignments.</option>
+                  <option value="Dean of Faculty">Dean of Faculty – For academic leaves, conference allowances, and inter-departmental issues.</option>
+                  <option value="Registrar Office">Registrar Office – For service record verifications, contract extensions, and policy documentation.</option>
+                  <option value="Human Resources (HR) Department">Human Resources (HR) Department – For payroll inquiries, leave encashment, and personal file updates.</option>
+                  <option value="Campus Director / Campus Administrator">Campus Director / Campus Administrator – For campus-level operational facilities and institutional permissions.</option>
+                  <option value="Accounts / Finance Department">Accounts / Finance Department – For salary disbursements, travel allowances (TA/DA), and reimbursement claims.</option>
+                  <option value="Directorate of Student Affairs">Directorate of Student Affairs – For student-related administrative issues, mentoring tasks, and disciplinary escalations.</option>
+                {% endif %}
+              </select>
+            </div>
           </div>
 
           <!-- Row 3: Application Subject / Title -->

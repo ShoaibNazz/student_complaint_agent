@@ -26,6 +26,7 @@ class EmployeeRequest(Base):
     department: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     campus: Mapped[str] = mapped_column(String(120), index=True)
     category: Mapped[str] = mapped_column(String(80), index=True)
+    target_authority: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text)
     attachment_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

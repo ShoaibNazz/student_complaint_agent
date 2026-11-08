@@ -153,6 +153,16 @@ def _migrate_db(bind: Engine) -> None:
             except Exception:
                 pass
 
+        # 6. Employee Requests table migration
+        if "employee_requests" in tables:
+            req_columns = [c["name"] for c in inspector.get_columns("employee_requests")]
+            if "target_authority" not in req_columns:
+                try:
+                    conn.execute(text("ALTER TABLE employee_requests ADD COLUMN target_authority VARCHAR(160);"))
+                    conn.commit()
+                except Exception:
+                    pass
+
 
 def init_db(bind: Engine | None = None) -> None:
     from app import models  # noqa: F401  (registers tables)

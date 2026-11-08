@@ -1,69 +1,163 @@
 {% extends "base.html" %}
 {% block title %}Departments - Admin Portal{% endblock %}
 {% block content %}
+{% set total_depts = total_departments if total_departments is defined and total_departments is not none else (dept_stats|length) %}
+{% set is_paged = is_paginated if is_paginated is defined and is_paginated is not none else false %}
+{% set cur_page = current_page if current_page is defined and current_page is not none else 1 %}
+{% set tot_pages = total_pages if total_pages is defined and total_pages is not none else 1 %}
+{% set show_start = showing_start if showing_start is defined and showing_start is not none else (1 if total_depts > 0 else 0) %}
+{% set show_end = showing_end if showing_end is defined and showing_end is not none else total_depts %}
 <div class="row g-4">
+  <!-- Top Page Header -->
   <div class="col-12">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
-      <div>
-        <h1 class="h3 fw-bold mb-1"><i class="bi bi-building text-primary me-2"></i>University Departments</h1>
-        <p class="text-muted small mb-0">Active routing targets and department grievance distribution.</p>
+      <div class="d-flex align-items-center gap-3">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background-color: #EBF3FD; border: 1.5px solid #2563EB; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(37,99,235,0.15);">
+          <i class="bi bi-bank2 text-primary fs-4"></i>
+        </div>
+        <div>
+          <h1 class="h3 fw-bold mb-1" style="color: #0B192C;">University Departments</h1>
+          <p class="text-muted small mb-0">Active routing targets and department grievance distribution.</p>
+        </div>
       </div>
       <div>
-        <a class="btn btn-outline-secondary btn-sm" href="/admin/dashboard">&larr; Back to Dashboard</a>
+        <a class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold shadow-sm" href="/admin/dashboard" style="border-radius: 8px;">
+          <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+        </a>
       </div>
     </div>
   </div>
 
+  <!-- Filter Card -->
   <div class="col-12">
-    <form class="card card-body mb-3 shadow-sm border-0 rounded-3 bg-white" method="get" action="/admin/departments">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-9">
-          <label class="form-label small">Filter by Campus</label>
-          <select class="form-select" name="campus">
-            <option value="">All Campuses (Combined University View)</option>
-            {% for camp in campuses %}
-              <option value="{{ camp }}" {% if selected_campus == camp %}selected{% endif %}>{{ camp }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-3">
-          <button class="btn btn-primary w-100">Filter Department Distribution</button>
-        </div>
+    <div class="card shadow-sm border-0 rounded-3 bg-white" style="border: 1px solid #E2E8F0 !important;">
+      <div class="card-body p-3 p-md-4">
+        <form method="get" action="/admin/departments">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-funnel-fill text-primary"></i>
+            <label class="form-label fw-bold mb-0" style="color: #0B192C; font-size: 13.5px;">Filter by Campus:</label>
+          </div>
+          <div class="row g-2 align-items-center">
+            <div class="col-md-8 col-lg-9">
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted" style="border-color: #CBD5E1;">
+                  <i class="bi bi-sliders"></i>
+                </span>
+                <select class="form-select border-start-0" name="campus" style="border-color: #CBD5E1; font-size: 14px;">
+                  <option value="">All Campuses (Combined University View)</option>
+                  {% for camp in campuses %}
+                    <option value="{{ camp }}" {% if selected_campus == camp %}selected{% endif %}>{{ camp }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+              <button type="submit" class="btn w-100 fw-bold d-inline-flex align-items-center justify-content-center gap-2" style="background-color: #F59E0B; border: 1px solid #D97706; color: #1E293B; border-radius: 8px; padding: 0.6rem 1rem; box-shadow: 0 2px 8px rgba(245,158,11,0.25);">
+                <i class="bi bi-funnel-fill"></i> Filter Department Distribution
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
 
+  <!-- Departments Overview Card Layout -->
   <div class="col-12">
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
-      <div class="table-responsive">
+    <div class="card shadow-sm border rounded-3 bg-white overflow-hidden" style="border-color: #E2E8F0 !important;">
+      <!-- Navy-themed Table Header (#0a2540 / dark navy) -->
+      <div class="d-flex align-items-center justify-content-between px-4 py-3" style="background-color: #0a2540; color: #FFFFFF;">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-grid-fill fs-5 text-white"></i>
+          <span class="fw-bold fs-6 text-white" style="letter-spacing: 0.2px;">Departments Overview</span>
+        </div>
+      </div>
+
+      <!-- Modern Table Interface -->
+      <div class="table-responsive mb-0">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+          <thead style="background-color: #F8FAFC; border-bottom: 2px solid #E2E8F0;">
             <tr>
-              <th>Department Name</th>
-              <th>Campuses Served</th>
-              <th>Assigned Complaints</th>
-              <th>Pending Review</th>
-              <th>Resolved</th>
-              <th>Action</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; padding: 1rem 1.25rem;">Department Name</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; text-align: center;">Campuses Served</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; text-align: center;">Assigned Complaints</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; text-align: center;">Pending Review</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; text-align: center;">Resolved</th>
+              <th style="font-size: 13px; font-weight: 700; color: #0a2540; text-align: center;">Action</th>
             </tr>
           </thead>
           <tbody>
             {% for d in dept_stats %}
-              <tr>
-                <td class="fw-semibold text-primary"><i class="bi bi-building me-2 text-secondary"></i>{{ d.name }}</td>
-                <td><span class="badge bg-secondary-subtle text-secondary border">{{ d.campuses or 'All Campuses' }}</span></td>
-                <td><span class="badge bg-light text-dark border fs-6">{{ d.total }}</span></td>
-                <td><span class="badge bg-warning-subtle text-warning-emphasis border">{{ d.pending }}</span></td>
-                <td><span class="badge bg-success-subtle text-success border">{{ d.resolved }}</span></td>
-                <td>
-                  <a class="btn btn-sm btn-outline-primary" href="/admin?department={{ d.name }}{% if selected_campus %}&campus={{ selected_campus }}{% endif %}">
-                    <i class="bi bi-list-ul me-1"></i>View Complaints
+              <tr style="border-bottom: 1px solid #F1F5F9;">
+                <td style="padding: 0.9rem 1.25rem;">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bank2" style="color: #0a2540; font-size: 15px;"></i>
+                    <span class="fw-bold" style="color: #0B192C; font-size: 13.5px;">{{ d.name }}</span>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="badge rounded-pill fw-medium border px-3 py-1.5" style="background-color: #F1F5F9; color: #475569; font-size: 11.5px; border-color: #E2E8F0 !important;">{{ d.campuses or 'All Campuses' }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge rounded-pill fw-bold px-3 py-1.5" style="background-color: #E0F2FE; color: #0284C7; font-size: 12.5px; min-width: 32px;">{{ d.total }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge rounded-pill fw-bold px-3 py-1.5" style="background-color: #FEF3C7; color: #D97706; font-size: 12.5px; min-width: 32px;">{{ d.pending }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge rounded-pill fw-bold px-3 py-1.5" style="background-color: #DCFCE7; color: #16A34A; font-size: 12.5px; min-width: 32px;">{{ d.resolved }}</span>
+                </td>
+                <td class="text-center">
+                  <a class="btn btn-sm btn-outline-primary fw-semibold px-3 py-1" style="border-radius: 6px; font-size: 12.5px; border-color: #3B82F6; color: #2563EB;" href="/admin?department={{ d.name }}{% if selected_campus %}&campus={{ selected_campus }}{% endif %}">
+                    <i class="bi bi-list-ul me-1"></i> View Complaints
                   </a>
                 </td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
+      </div>
+
+      <!-- Card Footer with Total & Active Pagination -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between px-4 py-3" style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0;">
+        <div class="d-flex align-items-center gap-2" style="font-size: 13px;">
+          <i class="bi bi-info-circle-fill text-primary fs-6"></i>
+          <span class="fw-bold text-dark">Total Departments: {{ total_depts }}</span>
+          {% if tot_pages > 1 and is_paged %}
+            <span class="text-muted ms-1">| Showing {{ show_start }} to {{ show_end }} of {{ total_depts }} departments</span>
+            <a href="/admin/departments?{% if selected_campus %}campus={{ selected_campus }}&{% endif %}view=all" class="text-decoration-none ms-2 small fw-semibold text-primary">View All</a>
+          {% else %}
+            <span class="text-muted ms-1">| Showing all departments</span>
+            {% if total_depts > 15 %}
+              <a href="/admin/departments?{% if selected_campus %}campus={{ selected_campus }}&{% endif %}page=1" class="text-decoration-none ms-2 small fw-semibold text-primary">Paginated View</a>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% if tot_pages > 1 and is_paged %}
+          <nav aria-label="Departments Pagination">
+            <ul class="pagination pagination-sm mb-0 align-items-center gap-1">
+              <li class="page-item {% if cur_page <= 1 %}disabled{% endif %}">
+                <a class="page-link rounded px-2 py-1 text-muted border bg-white" href="/admin/departments?{% if selected_campus %}campus={{ selected_campus }}&{% endif %}page={{ cur_page - 1 }}" style="font-size: 11px;">
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+              </li>
+              {% for p in range(1, tot_pages + 1) %}
+                <li class="page-item {% if p == cur_page %}active{% endif %}">
+                  {% if p == cur_page %}
+                    <span class="page-link rounded px-2.5 py-1 text-white fw-bold border-0" style="background-color: #0a2540; font-size: 11px;">{{ p }}</span>
+                  {% else %}
+                    <a class="page-link rounded px-2.5 py-1 text-dark border bg-white" href="/admin/departments?{% if selected_campus %}campus={{ selected_campus }}&{% endif %}page={{ p }}" style="font-size: 11px;">{{ p }}</a>
+                  {% endif %}
+                </li>
+              {% endfor %}
+              <li class="page-item {% if cur_page >= tot_pages %}disabled{% endif %}">
+                <a class="page-link rounded px-2 py-1 text-muted border bg-white" href="/admin/departments?{% if selected_campus %}campus={{ selected_campus }}&{% endif %}page={{ cur_page + 1 }}" style="font-size: 11px;">
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -1,14 +1,70 @@
 {% extends "base.html" %}
 {% from "_macros.html" import priority_badge, status_badge %}
 {% block title %}My Complaints{% endblock %}
+
+{% block extra_head %}
+<style>
+  .student-complaints-thead {
+    background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important;
+  }
+
+  .student-complaints-thead tr {
+    background: transparent !important;
+  }
+
+  .student-complaints-thead th {
+    background: transparent !important;
+    --bs-table-bg: transparent !important;
+    box-shadow: none !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    border-bottom: none !important;
+    vertical-align: middle;
+  }
+
+  .student-complaints-thead th:hover,
+  .student-complaints-thead tr:hover th {
+    color: #FFFFFF !important;
+    background: transparent !important;
+  }
+
+  .btn-view-complaint {
+    border: 1.5px solid #0066CC !important;
+    color: #0066CC !important;
+    background-color: transparent !important;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s ease-in-out;
+  }
+
+  .btn-view-complaint:hover,
+  .btn-view-complaint:focus {
+    background-color: #0066CC !important;
+    color: #FFFFFF !important;
+    border-color: #0066CC !important;
+  }
+
+  .btn-view-complaint:hover i,
+  .btn-view-complaint:focus i {
+    color: #FFFFFF !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row g-4">
   <div class="col-12 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
     <div>
       <h1 class="h3 fw-bold mb-1">My Complaints</h1>
-      <p class="text-muted small mb-0">Track and review all grievances registered under your student ID ({{ student.student_id or '–' }})</p>
+      <p class="text-muted small mb-0">Track and review all grievances registered under your student ID ({{
+        student.student_id or '–' }})</p>
     </div>
-    <a class="btn" style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);" href="/student/complaints/new">
+    <a class="btn"
+      style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);"
+      href="/student/complaints/new">
       <i class="bi bi-plus-circle me-1"></i>Submit New Complaint
     </a>
   </div>
@@ -39,70 +95,76 @@
 
   <!-- Complaints table -->
   <div class="col-12">
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
+    <div class="card shadow-sm border rounded-4 bg-white overflow-hidden" style="border-color: #E2E8F0 !important;">
       <div class="card-body p-0">
         {% if complaints %}
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light text-muted small">
-                <tr>
-                  <th class="ps-4">Complaint #</th>
-                  <th>Title</th>
-                  <th>Category</th>
-                  <th>Submitted Date</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th class="text-end pe-4">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for c in complaints %}
-                  <tr>
-                    <td class="ps-4 fw-semibold text-primary font-monospace">{{ c.complaint_number }}</td>
-                    <td>
-                      <div class="fw-bold text-truncate" style="max-width: 320px;">
-                        {{ c.title }}
-                        {% if c.attachment_path %}
-                          <i class="bi bi-paperclip text-primary ms-1" title="Attached Image: {{ c.attachment_name or 'Image' }}"></i>
-                        {% endif %}
-                      </div>
-                      {% if c.subject %}<span class="text-muted small">Subject: {{ c.subject }}</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if c.analysis and c.analysis.category %}
-                        <span class="badge bg-light text-dark border">{{ c.analysis.category }}</span>
-                      {% else %}
-                        <span class="text-muted small">–</span>
-                      {% endif %}
-                    </td>
-                    <td class="small text-muted">{{ c.created_at | dt }}</td>
-                    <td>
-                      {% if c.analysis %}
-                        {{ priority_badge(c.analysis.priority) }}
-                      {% else %}
-                        <span class="badge bg-light text-dark border">–</span>
-                      {% endif %}
-                    </td>
-                    <td>{{ status_badge(c.status) }}</td>
-                    <td class="text-end pe-4">
-                      <a class="btn btn-sm btn-outline-primary" href="/student/complaints/{{ c.id }}">
-                        <i class="bi bi-eye me-1"></i>View
-                      </a>
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="student-complaints-thead">
+              <tr>
+                <th class="ps-4">Complaint #</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Submitted Date</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th class="text-end pe-4">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in complaints %}
+              <tr style="border-bottom: 1px solid #F1F5F9;">
+                <td class="ps-4 fw-bold text-primary font-monospace" style="font-size: 0.92rem;">{{ c.complaint_number
+                  }}</td>
+                <td>
+                  <div class="fw-bold text-truncate" style="max-width: 320px; color: #0F172A;">
+                    {{ c.title }}
+                    {% if c.attachment_path %}
+                    <i class="bi bi-paperclip text-primary ms-1"
+                      title="Attached Image: {{ c.attachment_name or 'Image' }}"></i>
+                    {% endif %}
+                  </div>
+                  {% if c.subject %}<span class="text-muted small">Subject: {{ c.subject }}</span>{% endif %}
+                </td>
+                <td>
+                  {% if c.analysis and c.analysis.category %}
+                  <span class="badge rounded-pill px-3 py-1"
+                    style="background-color: #EDF2F7; color: #1E293B; border: 1px solid #CBD5E1; font-weight: 600; font-size: 0.78rem;">
+                    {{ c.analysis.category }}
+                  </span>
+                  {% else %}
+                  <span class="text-muted small">–</span>
+                  {% endif %}
+                </td>
+                <td class="small" style="color: #475569;">{{ c.created_at | dt }}</td>
+                <td>
+                  {% if c.analysis %}
+                  {{ priority_badge(c.analysis.priority) }}
+                  {% else %}
+                  <span class="badge rounded-pill px-2 py-1 bg-light text-muted border small">–</span>
+                  {% endif %}
+                </td>
+                <td>{{ status_badge(c.status) }}</td>
+                <td class="text-end pe-4">
+                  <a class="btn btn-sm btn-view-complaint rounded-pill px-3 py-1"
+                    href="/student/complaints/{{ c.id }}">
+                    <i class="bi bi-eye me-1"></i>View
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
         {% else %}
-          <div class="p-5 text-center text-muted">
-            <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-50"></i>
-            <h5 class="fw-bold">No complaints found</h5>
-            <p class="small mb-3">You have not submitted any complaints under this account yet.</p>
-            <a class="btn btn-primary" href="/student/complaints/new">
-              <i class="bi bi-plus-circle me-1"></i>Submit a Complaint
-            </a>
-          </div>
+        <div class="p-5 text-center text-muted">
+          <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-50"></i>
+          <h5 class="fw-bold" style="color: #0F172A;">No complaints found</h5>
+          <p class="small mb-3">You have not submitted any complaints under this account yet.</p>
+          <a class="btn btn-primary rounded-pill px-4" href="/student/complaints/new">
+            <i class="bi bi-plus-circle me-1"></i>Submit a Complaint
+          </a>
+        </div>
         {% endif %}
       </div>
     </div>

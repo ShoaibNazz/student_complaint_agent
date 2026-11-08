@@ -1371,7 +1371,13 @@ def admin_users_page(
 
 
 @router.get("/admin/departments")
-def admin_departments_page(request: Request, campus: str = "", db: Session = Depends(get_db)):
+def admin_departments_page(
+    request: Request,
+    campus: str = "",
+    page: int = 1,
+    view: str = "",
+    db: Session = Depends(get_db)
+):
     admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
     if redirect:
         return redirect
@@ -1388,10 +1394,36 @@ def admin_departments_page(request: Request, campus: str = "", db: Session = Dep
         resolved = sum(1 for c in c_list if c.status in (ComplaintStatus.RESOLVED.value, ComplaintStatus.CLOSED.value))
         dept_stats.append({"name": d, "total": total, "pending": pending, "resolved": resolved, "campuses": "All Campuses"})
 
+    total_departments = len(dept_stats)
+    page_size = 15
+    is_paginated = view != "all"
+    if is_paginated:
+        total_pages = max(1, (total_departments + page_size - 1) // page_size)
+        current_page = max(1, min(page, total_pages))
+        start_idx = (current_page - 1) * page_size
+        end_idx = min(start_idx + page_size, total_departments)
+        display_stats = dept_stats[start_idx:end_idx]
+        showing_start = start_idx + 1 if total_departments > 0 else 0
+        showing_end = end_idx
+    else:
+        total_pages = 1
+        current_page = 1
+        display_stats = dept_stats
+        showing_start = 1 if total_departments > 0 else 0
+        showing_end = total_departments
+
     return templates.TemplateResponse(request, "admin_departments.html", {
         "current_user": admin,
         "admin": admin,
-        "dept_stats": dept_stats,
+        "dept_stats": display_stats,
+        "all_dept_stats": dept_stats,
+        "total_departments": total_departments,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "page_size": page_size,
+        "showing_start": showing_start,
+        "showing_end": showing_end,
+        "is_paginated": is_paginated,
         "campuses": svc.get_campus_names(),
         "selected_campus": campus,
     })
@@ -1822,6 +1854,7 @@ def employee_request_new_page(request: Request, db: Session = Depends(get_db)):
 def employee_request_new_submit(
     request: Request,
     category: str = Form(...),
+    target_authority: Optional[str] = Form(default=None),
     title: str = Form(...),
     description: str = Form(...),
     attachment: Optional[UploadFile] = File(default=None),
@@ -1835,6 +1868,7 @@ def employee_request_new_submit(
         att_path, att_name = request_service.save_request_attachment(attachment)
         payload = request_service.RequestCreatePayload(
             category=category,
+            target_authority=target_authority,
             title=title,
             description=description,
             attachment_path=att_path,
@@ -1897,6 +1931,7 @@ def admin_request_new_page(request: Request, db: Session = Depends(get_db)):
 def admin_request_new_submit(
     request: Request,
     category: str = Form(...),
+    target_authority: Optional[str] = Form(default=None),
     title: str = Form(...),
     description: str = Form(...),
     attachment: Optional[UploadFile] = File(default=None),
@@ -1910,6 +1945,7 @@ def admin_request_new_submit(
         att_path, att_name = request_service.save_request_attachment(attachment)
         payload = request_service.RequestCreatePayload(
             category=category,
+            target_authority=target_authority,
             title=title,
             description=description,
             attachment_path=att_path,

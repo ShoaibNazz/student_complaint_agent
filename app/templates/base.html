@@ -82,14 +82,11 @@
               href="/professor/profile">Profile</a></li>
           {% elif current_user.role == 'ADMIN' %}
           <li class="nav-item"><a
-              class="nav-link portal-nav-link {% if request.url.path in ('/admin/dashboard', '/admin') or request.url.path.startswith('/admin/complaints') %}active{% endif %}"
+              class="nav-link portal-nav-link {% if request.url.path.startswith('/admin/dashboard') or request.url.path == '/admin' or request.url.path.startswith('/admin/complaints') %}active{% endif %}"
               href="/admin/dashboard">Dashboard</a></li>
           <li class="nav-item"><a
-              class="nav-link portal-nav-link {% if request.url.path.startswith('/admin/requests') and not request.url.path.endswith('/new') %}active{% endif %}"
+              class="nav-link portal-nav-link {% if request.url.path.startswith('/admin/requests') %}active{% endif %}"
               href="/admin/requests">My Requests</a></li>
-          <li class="nav-item"><a
-              class="nav-link portal-nav-link {% if request.url.path == '/admin/requests/new' %}active{% endif %}"
-              href="/admin/requests/new">Submit Request</a></li>
           <li class="nav-item"><a
               class="nav-link portal-nav-link {% if request.url.path.startswith('/admin/users') %}active{% endif %}"
               href="/admin/users">Users</a></li>
