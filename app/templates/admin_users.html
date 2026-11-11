@@ -94,20 +94,24 @@
   <div class="col-12">
     <div class="card shadow-sm border-0" style="background: #ffffff; border-radius: 12px; border: 1px solid #E2E8F0 !important; overflow: hidden;">
       <!-- Summary Bar -->
-      <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div class="fw-bold" style="font-size: 0.96rem; color: #1E293B;">
-          Total Registered Users: <span style="color: #0B3D91;">{{ total_users_count }}</span>
+      <div class="card-header border-0 py-3 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3"
+           style="background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important; color: #FFFFFF;">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-people-fill text-white fs-5"></i>
+          <span class="fw-bold text-white" style="font-size: 0.98rem; letter-spacing: 0.2px;">
+            Total Registered Users: <span class="badge rounded-pill ms-1" style="background: rgba(255, 255, 255, 0.2); color: #FFFFFF; font-size: 0.88rem; font-weight: 700; padding: 4px 10px; border: 1px solid rgba(255, 255, 255, 0.35);">{{ total_users_count }}</span>
+          </span>
         </div>
         <div class="d-flex flex-wrap gap-2">
-          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #EFF6FF; color: #1D4ED8; font-weight: 600; font-size: 0.82rem; border: 1px solid #DBEAFE;">
+          <a href="/admin/users?tab=students{% if q %}&q={{ q }}{% endif %}" class="badge rounded-pill bg-white text-decoration-none d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" style="color: #1D4ED8; font-weight: 700; font-size: 0.82rem; border: 1px solid rgba(255, 255, 255, 0.8); transition: transform 0.15s ease;">
             Students <span class="badge rounded-circle bg-primary text-white" style="font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ student_count }}</span>
-          </span>
-          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #F0FDF4; color: #15803D; font-weight: 600; font-size: 0.82rem; border: 1px solid #DCFCE7;">
+          </a>
+          <a href="/admin/users?tab=employees{% if q %}&q={{ q }}{% endif %}" class="badge rounded-pill bg-white text-decoration-none d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" style="color: #15803D; font-weight: 700; font-size: 0.82rem; border: 1px solid rgba(255, 255, 255, 0.8); transition: transform 0.15s ease;">
             Employees <span class="badge rounded-circle text-white" style="background: #10B981; font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ employee_count }}</span>
-          </span>
-          <span class="badge rounded-pill d-inline-flex align-items-center gap-2 px-3 py-2" style="background: #FFFBEB; color: #B45309; font-weight: 600; font-size: 0.82rem; border: 1px solid #FEF3C7;">
+          </a>
+          <a href="/admin/users?tab=admins{% if q %}&q={{ q }}{% endif %}" class="badge rounded-pill bg-white text-decoration-none d-inline-flex align-items-center gap-2 px-3 py-2 shadow-sm" style="color: #B45309; font-weight: 700; font-size: 0.82rem; border: 1px solid rgba(255, 255, 255, 0.8); transition: transform 0.15s ease;">
             Admins <span class="badge rounded-circle text-white" style="background: #F59E0B; font-size: 0.72rem; min-width: 18px; padding: 2px 5px;">{{ admin_count }}</span>
-          </span>
+          </a>
         </div>
       </div>
 

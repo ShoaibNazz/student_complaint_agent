@@ -146,7 +146,7 @@
           <div class="small text-uppercase fw-semibold text-muted mb-1">Complaint Reference Number</div>
           <div class="h3 fw-bold font-monospace text-navy mb-2" id="complaintReceiptNumber">{{ submitted or '' }}</div>
           <div class="small text-muted">
-            Status: <span class="badge bg-primary">NEW</span>
+            Status: <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>Pending</span>
           </div>
         </div>
 
@@ -175,7 +175,15 @@
       <div id="complaintFormPanel" class="{% if submitted %}d-none{% endif %}">
         <!-- Header -->
         <div class="complaint-card-header">
-          <div class="complaint-header-icon" aria-hidden="true"></div>
+          <div class="complaint-header-icon overflow-hidden shadow-sm flex-shrink-0" aria-hidden="true">
+            {% if current_user and current_user.avatar_path %}
+              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% elif student and student.avatar_path %}
+              <img src="{{ student.avatar_path }}" alt="{{ student.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% else %}
+              <i class="bi bi-pencil-square fs-5" style="color: #1F2937;"></i>
+            {% endif %}
+          </div>
           <div>
             <h1 class="complaint-header-title">Submit Complaint</h1>
             <p class="complaint-header-subtitle">Please fill in the details below to submit your complaint.</p>

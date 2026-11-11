@@ -57,10 +57,25 @@
 {% block content %}
 <div class="row g-4">
   <div class="col-12 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
-    <div>
-      <h1 class="h3 fw-bold mb-1">My Complaints</h1>
-      <p class="text-muted small mb-0">Track and review all grievances registered under your student ID ({{
-        student.student_id or '–' }})</p>
+    <div class="d-flex align-items-center gap-3">
+      {% if student and student.avatar_path %}
+        <div class="rounded-circle overflow-hidden shadow-sm flex-shrink-0 border border-2 border-white" style="width: 52px; height: 52px;">
+          <img src="{{ student.avatar_path }}" alt="{{ student.full_name }}" class="w-100 h-100 object-fit-cover">
+        </div>
+      {% elif current_user and current_user.avatar_path %}
+        <div class="rounded-circle overflow-hidden shadow-sm flex-shrink-0 border border-2 border-white" style="width: 52px; height: 52px;">
+          <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+        </div>
+      {% else %}
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 52px; height: 52px; background-color: #EBF3FD; color: #0B3D91; font-size: 24px;">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+      {% endif %}
+      <div>
+        <h1 class="h3 fw-bold mb-1">My Complaints</h1>
+        <p class="text-muted small mb-0">Track and review all grievances registered under your student ID ({{
+          student.student_id or '–' }})</p>
+      </div>
     </div>
     <a class="btn"
       style="background-color: #F4C430; color: #1F2937; font-weight: 600; border-radius: 8px; padding: 0.55rem 1.4rem; border: none; box-shadow: 0 2px 6px rgba(244, 196, 48, 0.35);"

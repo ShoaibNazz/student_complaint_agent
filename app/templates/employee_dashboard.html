@@ -58,6 +58,7 @@
     </div>
   </div>
 
+  <!-- Summary stats -->
   <!-- 4 Colored KPI Stat Cards -->
   <div class="col-12">
     <div class="row g-3">
@@ -142,53 +143,62 @@
   <div class="col-12">
     <div class="card shadow-sm border bg-white rounded-4 overflow-hidden" style="border-color: #E2E8F0 !important;">
       <!-- Navy Header Banner -->
-      <div class="card-header border-0 py-3 px-4 d-flex justify-content-between align-items-center" style="background-color: #003B94;">
-        <div class="d-flex align-items-center">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="me-2 flex-shrink-0">
-            <rect x="3" y="3" width="18" height="18" rx="3" fill="#3B82F6" fill-opacity="0.25" stroke="#93C5FD" stroke-width="2"/>
-            <rect x="8" y="1" width="8" height="4" rx="1.5" fill="#93C5FD"/>
-            <path d="M7 8H8.5M7 12H8.5M7 16H8.5" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-            <path d="M11 8H17M11 12H17M11 16H15" stroke="#93C5FD" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <h2 class="h5 fw-bold mb-0 text-white" style="font-size: 1.05rem;">
-            Complaints Assigned to {{ employee.department or 'Department' }}
-          </h2>
+      <div class="card-header border-0 py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
+           style="background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25);">
+            <i class="bi bi-inbox-fill fs-5" style="color: #93C5FD;"></i>
+          </div>
+          <div class="d-flex flex-column text-start">
+            <h2 class="h5 fw-bold mb-0 text-white" style="font-size: 1.1rem; letter-spacing: -0.2px;">
+              Assigned Complaints
+            </h2>
+            <div class="small mt-1" style="color: #BAE6FD; font-size: 0.85rem; font-weight: 500;">
+              Complaints Assigned to {{ employee.department or 'Department of Information Sciences' }}
+            </div>
+          </div>
         </div>
-        <span class="badge rounded-pill px-3 py-1" style="background-color: #002B7A; color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.4); font-size: 0.85rem; font-weight: 600;">
-          {{ complaints | length }} Total
-        </span>
+        <div class="d-flex align-items-center">
+          <span class="badge rounded-pill px-3 py-1.5"
+                style="background: rgba(255, 255, 255, 0.15); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.35); font-size: 0.82rem; font-weight: 600;">
+            {{ complaints | length }} Total
+          </span>
+        </div>
       </div>
 
       <div class="card-body p-0">
         {% if complaints %}
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-              <thead style="background-color: #F1F6FD; border-bottom: 1px solid #DCE6F1;">
+              <thead class="table-light" style="background-color: #F8F9FA !important; border-bottom: 2px solid #E2E8F0;">
                 <tr>
-                  <th class="ps-4" style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Complaint #</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Student</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Title</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Category</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Priority</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Status</th>
-                  <th style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Submitted</th>
-                  <th class="text-end pe-4" style="color: #0A2540; font-weight: 700; font-size: 0.88rem; padding-top: 14px; padding-bottom: 14px;">Action</th>
+                  <th class="ps-4 text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Complaint #</th>
+                  <th class="text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Student</th>
+                  <th style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important; min-width: 200px;">Title</th>
+                  <th class="text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Category</th>
+                  <th class="text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Priority</th>
+                  <th class="text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Status</th>
+                  <th class="text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Date</th>
+                  <th class="text-end pe-4 text-nowrap" style="color: #0F172A; font-weight: 700; font-size: 0.88rem; padding: 13px 14px; background-color: #F8F9FA !important;">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {% for c in complaints %}
                   <tr style="border-bottom: 1px solid #F1F5F9;">
-                    <td class="ps-4 fw-bold" style="color: #004BCA; font-family: monospace, var(--bs-font-monospace); font-size: 0.92rem;">
+                    <td class="ps-4 fw-bold text-nowrap" style="color: #004BCA; font-family: monospace, var(--bs-font-monospace); font-size: 0.92rem;">
                       {{ c.complaint_number }}
                     </td>
-                    <td>
+                    <td class="text-nowrap">
                       <div class="fw-bold" style="color: #0F172A; font-size: 0.93rem;">{{ c.student_name }}</div>
                       <div class="text-muted small" style="font-size: 0.82rem;">{{ c.student_id or '–' }}</div>
                     </td>
                     <td>
-                      <div class="fw-semibold text-truncate" style="max-width: 280px; color: #1E293B; font-size: 0.92rem;">{{ c.title }}</div>
+                      <div class="fw-semibold" style="color: #1E293B; font-size: 0.92rem; max-width: 280px; word-break: break-word; line-height: 1.35;">
+                        {{ c.title }}
+                      </div>
                     </td>
-                    <td>
+                    <td class="text-nowrap">
                       {% if c.analysis and c.analysis.category %}
                         <span class="badge rounded-pill px-3 py-1" style="background-color: #EDF2F7; color: #1E293B; border: 1px solid #CBD5E1; font-weight: 600; font-size: 0.78rem;">
                           {{ c.analysis.category }}
@@ -197,7 +207,7 @@
                         <span class="text-muted small">–</span>
                       {% endif %}
                     </td>
-                    <td>
+                    <td class="text-nowrap">
                       {% set p = (c.analysis.priority if c.analysis else '') | upper %}
                       {% if p == 'CRITICAL' %}
                         <span class="badge rounded-pill px-3 py-1 bg-danger text-white fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">CRITICAL</span>
@@ -211,7 +221,7 @@
                         <span class="badge rounded-pill px-2 py-1 bg-light text-muted border small">–</span>
                       {% endif %}
                     </td>
-                    <td>
+                    <td class="text-nowrap">
                       {% set s = c.status | upper %}
                       {% if s == 'ASSIGNED' %}
                         <span class="badge rounded-pill px-3 py-1 text-white fw-bold" style="background-color: #00A3E0; font-size: 0.75rem; letter-spacing: 0.5px;">ASSIGNED</span>
@@ -229,8 +239,10 @@
                         {{ status_badge(c.status) }}
                       {% endif %}
                     </td>
-                    <td class="small" style="color: #475569; font-size: 0.88rem;">{{ c.created_at | dt }}</td>
-                    <td class="text-end pe-4">
+                    <td class="text-nowrap small" style="color: #475569; font-size: 0.88rem;">
+                      {{ c.created_at | dt }}
+                    </td>
+                    <td class="text-end pe-4 text-nowrap">
                       <a class="btn btn-sm emp-view-btn rounded-pill px-3 py-1" href="/employee/complaints/{{ c.id }}">
                         <i class="bi bi-eye me-1"></i>View
                       </a>

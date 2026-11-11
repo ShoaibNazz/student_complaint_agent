@@ -18,8 +18,12 @@
       <!-- Gradient Header Banner matching reference -->
       <div class="req-header-banner">
         <div class="req-header-left">
-          <div class="req-header-icon-box">
-            <i class="bi bi-file-earmark-text text-white"></i>
+          <div class="req-header-icon-box overflow-hidden">
+            {% if current_user and current_user.avatar_path %}
+              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% else %}
+              <i class="bi bi-file-earmark-text text-white"></i>
+            {% endif %}
           </div>
           <div>
             <h1 class="req-header-title">Submit Application</h1>
@@ -33,29 +37,36 @@
         <form method="post" action="{{ base_req_url }}/new" enctype="multipart/form-data">
           <!-- Row 1: Profile 3-column verification (Employee Name, Designation & Department, Assigned Campus) -->
           <div class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="req-label">
                 <i class="bi bi-briefcase-fill"></i> Employee Name <span class="text-danger">*</span>
               </label>
-              <div class="req-readonly-box">
-                {{ current_user.full_name }}
+              <div class="req-readonly-box d-flex align-items-center gap-2" title="{{ current_user.full_name }}">
+                {% if current_user and current_user.avatar_path %}
+                  <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="rounded-circle object-fit-cover flex-shrink-0 shadow-sm" style="width: 24px; height: 24px;">
+                {% endif %}
+                <span class="text-truncate">{{ current_user.full_name }}</span>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="req-label">
                 <i class="bi bi-building-fill"></i> Designation & Department <span class="text-danger">*</span>
               </label>
-              <div class="req-styled-dropdown-box">
-                <span>{{ current_user.role_designation or 'Staff' }} - {{ current_user.department or 'General' }}</span>
+              <div class="req-styled-dropdown-box" title="{{ current_user.role_designation or 'Staff' }} - {{ current_user.department or 'General' }}">
+                <span class="req-dropdown-text">
+                  <span class="fw-semibold text-dark">{{ current_user.role_designation or 'Staff' }}</span>
+                  <span class="text-muted mx-1">-</span>
+                  <span class="text-secondary">{{ current_user.department or 'General' }}</span>
+                </span>
                 <i class="bi bi-chevron-down text-muted"></i>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="req-label">
                 <i class="bi bi-geo-alt-fill"></i> Assigned Campus <span class="text-danger">*</span>
               </label>
-              <div class="req-styled-dropdown-box">
-                <span>{{ current_user.campus or 'Multan Campus' }}</span>
+              <div class="req-styled-dropdown-box" title="{{ current_user.campus or 'Multan Campus' }}">
+                <span class="req-dropdown-text">{{ current_user.campus or 'Multan Campus' }}</span>
                 <i class="bi bi-chevron-down text-muted"></i>
               </div>
             </div>

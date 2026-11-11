@@ -172,8 +172,18 @@ def create_complaint(
     targ_campus = payload.target_campus or orig_campus
     is_conf = getattr(payload, "is_confidential", False)
 
+    from app.models.campus import Campus
+    orig_rec = db.scalars(select(Campus).where(Campus.name == orig_campus)).first() if orig_campus else None
+    targ_rec = db.scalars(select(Campus).where(Campus.name == targ_campus)).first() if targ_campus else None
+    stu_prof_id = None
+    if user_id:
+        u_obj = db.get(User, user_id)
+        if u_obj and u_obj.student_profile:
+            stu_prof_id = u_obj.student_profile.id
+
     complaint = Complaint(
         user_id=user_id,
+        student_profile_id=stu_prof_id,
         complaint_number=f"TMP-{uuid.uuid4().hex}",
         student_name=student_name,
         student_id=student_id,
@@ -182,6 +192,8 @@ def create_complaint(
         class_or_program=payload.class_or_program,
         subject=payload.subject,
         account_type=account_type,
+        originating_campus_id=orig_rec.id if orig_rec else None,
+        target_campus_id=targ_rec.id if targ_rec else None,
         originating_campus=orig_campus,
         target_campus=targ_campus,
         attachment_path=payload.attachment_path,
@@ -409,6 +421,10 @@ def update_assignment(db: Session, c: Complaint, data: AssignmentUpdate, by: str
             notes=f"Assigned by {by}",
         )
         db.add(assign_rec)
+        if c.status in (ComplaintStatus.NEW.value, "PENDING"):
+            old_st = c.status
+            c.status = ComplaintStatus.ASSIGNED.value
+            add_history(db, c.id, "Status changed", old_st, c.status, by)
 
     db.commit()
     return c
@@ -627,10 +643,22 @@ def build_student_timeline(c: Complaint) -> list[StudentTimelineItem]:
 
 
 def get_employee_complaints(db: Session, user: User) -> list[Complaint]:
-    """Complaints assigned to the employee's department and campus."""
+    """Complaints officially assigned by an administrator to the employee's department and campus."""
     conds = [Complaint.is_deleted.is_(False)]
+    
+    # Only visible if admin has assigned the complaint to the employee's department or directly to the employee
+    from app.models.assignment import ComplaintAssignment
     if user.department:
-        conds.append(ComplaintAnalysis.assigned_department.ilike(f"%{user.department}%"))
+        assignment_cond = or_(
+            ComplaintAssignment.department_name.ilike(f"%{user.department}%"),
+            ComplaintAssignment.handler_id == user.id,
+        )
+    else:
+        assignment_cond = (ComplaintAssignment.handler_id == user.id)
+
+    conds.append(assignment_cond)
+    conds.append(ComplaintAssignment.status == "ACTIVE")
+
     if user.campus:
         conds.append(or_(
             Complaint.target_campus == user.campus,
@@ -639,6 +667,7 @@ def get_employee_complaints(db: Session, user: User) -> list[Complaint]:
         ))
     stmt = (
         select(Complaint)
+        .join(ComplaintAssignment, Complaint.id == ComplaintAssignment.complaint_id)
         .outerjoin(ComplaintAnalysis, Complaint.id == ComplaintAnalysis.complaint_id)
         .options(contains_eager(Complaint.analysis))
         .where(*conds)
@@ -650,12 +679,21 @@ def get_employee_complaints(db: Session, user: User) -> list[Complaint]:
 def get_employee_complaint(db: Session, complaint_id: int, user: User) -> Complaint:
     """Fetch complaint with department and campus scope enforcement (prevents IDOR)."""
     c = get_complaint(db, complaint_id)
-    if user.department and c.analysis and c.analysis.assigned_department:
-        if user.department.lower() not in c.analysis.assigned_department.lower():
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                "Forbidden: This complaint is assigned to another department.",
-            )
+    # Verify complaint has an active assignment to this employee or their department
+    is_assigned = False
+    for a in c.assignments:
+        if a.status == "ACTIVE":
+            if a.handler_id == user.id:
+                is_assigned = True
+                break
+            if user.department and a.department_name and user.department.lower() in a.department_name.lower():
+                is_assigned = True
+                break
+    if not is_assigned:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Forbidden: This complaint has not been assigned to your department by an Administrator.",
+        )
     if user.campus:
         campuses = [c.target_campus, c.originating_campus]
         if any(campuses) and user.campus not in campuses:

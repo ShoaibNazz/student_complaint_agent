@@ -11,8 +11,12 @@
       <!-- Gradient Header Banner matching reference -->
       <div class="req-header-banner">
         <div class="req-header-left">
-          <div class="req-header-icon-box">
-            <i class="bi bi-folder2 text-white"></i>
+          <div class="req-header-icon-box overflow-hidden">
+            {% if current_user and current_user.avatar_path %}
+              <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+            {% else %}
+              <i class="bi bi-folder2 text-white"></i>
+            {% endif %}
           </div>
           <div>
             <h1 class="req-header-title">My Administrative Requests</h1>

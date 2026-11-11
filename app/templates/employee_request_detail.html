@@ -1,11 +1,38 @@
 {% extends "base.html" %}
 {% block title %}{{ req.request_number }} - Application Details{% endblock %}
+
+{% block extra_head %}
+<style>
+  .card-header-navy {
+    background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important;
+    color: #FFFFFF !important;
+    transition: background-color 0.15s ease;
+  }
+  .card-header-navy h2,
+  .card-header-navy span {
+    color: #FFFFFF !important;
+  }
+  .card-header-navy i {
+    color: #93C5FD !important;
+  }
+  .card-header-navy:hover,
+  .card-header-navy:hover h2,
+  .card-header-navy:hover span {
+    color: #FFFFFF !important;
+  }
+  .card-header-navy:hover i {
+    color: #93C5FD !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+{% set base_req_url = '/admin/requests' if (current_user and current_user.role == 'ADMIN') else '/employee/requests' %}
 <div class="row g-4">
   <div class="col-12">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
       <div>
-        <a class="btn btn-outline-secondary btn-sm mb-2" href="/employee/requests">&larr; Back to My Requests</a>
+        <a class="btn btn-outline-secondary btn-sm mb-2" href="{{ base_req_url }}">&larr; Back to My Requests</a>
         <div class="d-flex align-items-center gap-2">
           <h1 class="h3 fw-bold mb-0 text-primary font-monospace">{{ req.request_number }}</h1>
           {% if req.status == 'APPROVED' %}
@@ -27,9 +54,10 @@
   </div>
 
   <div class="col-lg-7">
-    <div class="card shadow-sm border-0 rounded-3 bg-white mb-4">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h5 fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Application Particulars</h2>
+    <div class="card shadow-sm border rounded-4 bg-white mb-4 overflow-hidden" style="border-color: #E2E8F0 !important;">
+      <div class="card-header card-header-navy border-0 py-3 px-4 d-flex align-items-center">
+        <i class="bi bi-file-earmark-text me-2 fs-5"></i>
+        <h2 class="h5 fw-bold mb-0 text-white" style="font-size: 1.05rem; letter-spacing: -0.2px;">Application Particulars</h2>
       </div>
       <div class="card-body p-4">
         <h3 class="h6 fw-bold text-dark mb-2">{{ req.title }}</h3>
@@ -69,9 +97,10 @@
   </div>
 
   <div class="col-lg-5">
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
-      <div class="card-header bg-white py-3 border-bottom">
-        <h2 class="h5 fw-bold mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Approval Trail</h2>
+    <div class="card shadow-sm border rounded-4 bg-white sticky-top overflow-hidden" style="top: 20px; border-color: #E2E8F0 !important;">
+      <div class="card-header card-header-navy border-0 py-3 px-4 d-flex align-items-center">
+        <i class="bi bi-diagram-3 me-2 fs-5"></i>
+        <h2 class="h5 fw-bold mb-0 text-white" style="font-size: 1.05rem; letter-spacing: -0.2px;">Approval Trail</h2>
       </div>
       <div class="card-body p-4">
         {% if req.approvals and req.approvals | length > 0 %}

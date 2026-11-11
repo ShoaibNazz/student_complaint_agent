@@ -14,18 +14,31 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ResolutionFeedback(Base):
-    """Records student confirmation or dispute of complaint resolution."""
-    __tablename__ = "resolution_feedback"
+class ComplaintFeedback(Base):
+    """Records student confirmation or dispute of complaint resolution (1:1 with complaints)."""
+    __tablename__ = "complaint_feedback"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), unique=True, index=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    is_resolved: Mapped[bool] = mapped_column(Boolean, default=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    complaint_id: Mapped[int] = mapped_column(
+        ForeignKey("complaints.id", ondelete="CASCADE", onupdate="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    is_resolved: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     satisfaction_rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     feedback_remarks: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     reopened_review_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     complaint: Mapped["Complaint"] = relationship(back_populates="resolution_feedback")
-    student: Mapped["User"] = relationship()
+    student: Mapped["User"] = relationship(foreign_keys=[student_id])
+
+
+# Backwards compatibility alias
+ResolutionFeedback = ComplaintFeedback

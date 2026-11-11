@@ -14,28 +14,34 @@ if TYPE_CHECKING:
 
 
 class ComplaintAnalysis(Base):
+    """AI and algorithmic triage analysis for student complaints (1:1 with complaints)."""
     __tablename__ = "complaint_analyses"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    complaint_id: Mapped[int] = mapped_column(ForeignKey("complaints.id"), unique=True, index=True)
-    summary: Mapped[str] = mapped_column(Text)
-    category: Mapped[str] = mapped_column(String(80), index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    complaint_id: Mapped[int] = mapped_column(
+        ForeignKey("complaints.id", ondelete="CASCADE", onupdate="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
     subcategory: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
-    category_confidence: Mapped[float] = mapped_column(Float, default=0.0)
-    priority: Mapped[str] = mapped_column(String(10), index=True)
-    priority_score: Mapped[float] = mapped_column(Float, default=0.0)
+    category_confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    priority: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
+    priority_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     priority_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    assigned_department: Mapped[str] = mapped_column(String(120), index=True)
+    assigned_department: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
     routing_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
     human_review_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     suggested_action: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    draft_response: Mapped[str] = mapped_column(Text)  # editable by administrators
-    original_draft_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # AI version, kept for audit
-    response_approved: Mapped[bool] = mapped_column(Boolean, default=False)
+    draft_response: Mapped[str] = mapped_column(Text, nullable=False)
+    original_draft_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    response_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     tags: Mapped[list] = mapped_column(JSON, default=list)
     ai_model_used: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     analysis_error: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
-    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    analyzed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     complaint: Mapped["Complaint"] = relationship(back_populates="analysis")

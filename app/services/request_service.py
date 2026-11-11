@@ -67,12 +67,17 @@ def create_employee_request(
     payload: RequestCreatePayload,
 ) -> EmployeeRequest:
     """Create a staff administrative request with automatic employee identification."""
+    emp_prof_id = user.employee_profile.id if user.employee_profile else None
+    dept_id = user.employee_profile.department_id if user.employee_profile else None
     req = EmployeeRequest(
         request_number=f"TMP-{uuid.uuid4().hex}",
         user_id=user.id,
+        employee_profile_id=emp_prof_id,
         employee_name=user.full_name,
         employee_id=user.employee_id or user.professor_id or f"EMP-{user.id}",
+        department_id=dept_id,
         department=user.department or "General Administration",
+        campus_id=user.campus_id,
         campus=user.campus or "Main Campus",
         category=payload.category,
         target_authority=payload.target_authority,

@@ -12,6 +12,7 @@ class UserRole(str, Enum):
 
 class ComplaintStatus(str, Enum):
     NEW = "NEW"
+    PENDING = "PENDING"
     UNDER_REVIEW = "UNDER_REVIEW"
     ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
@@ -25,6 +26,7 @@ class ComplaintStatus(str, Enum):
 
 OPEN_STATUSES = (
     ComplaintStatus.NEW,
+    ComplaintStatus.PENDING,
     ComplaintStatus.UNDER_REVIEW,
     ComplaintStatus.ASSIGNED,
     ComplaintStatus.IN_PROGRESS,
@@ -35,7 +37,8 @@ OPEN_STATUSES = (
 FINISHED_STATUSES = (ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED, ComplaintStatus.REJECTED)
 
 VALID_STATUS_TRANSITIONS: dict[ComplaintStatus, set[ComplaintStatus]] = {
-    ComplaintStatus.NEW: {ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.REJECTED},
+    ComplaintStatus.NEW: {ComplaintStatus.PENDING, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.REJECTED},
+    ComplaintStatus.PENDING: {ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.REJECTED},
     ComplaintStatus.UNDER_REVIEW: {ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED, ComplaintStatus.REJECTED},
     ComplaintStatus.ASSIGNED: {ComplaintStatus.IN_PROGRESS, ComplaintStatus.UNDER_REVIEW, ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED},
     ComplaintStatus.IN_PROGRESS: {ComplaintStatus.WAITING_FOR_STUDENT, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION, ComplaintStatus.RESOLVED, ComplaintStatus.CLOSED, ComplaintStatus.UNDER_REVIEW},

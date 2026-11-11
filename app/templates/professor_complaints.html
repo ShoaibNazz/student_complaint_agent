@@ -1,6 +1,41 @@
 {% extends "base.html" %}
 {% from "_macros.html" import priority_badge, status_badge %}
 {% block title %}Academic Complaints - Professor Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+  .employee-complaints-thead {
+    background: linear-gradient(90deg, #001F54 0%, #002B7A 28%, #003F9E 65%, #034DAE 100%) !important;
+  }
+
+  .employee-complaints-thead tr {
+    background: transparent !important;
+  }
+
+  .employee-complaints-thead th {
+    background: transparent !important;
+    --bs-table-bg: transparent !important;
+    box-shadow: none !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    border-bottom: none !important;
+    vertical-align: middle;
+    letter-spacing: 0.2px;
+  }
+
+  .employee-complaints-thead th:hover,
+  .employee-complaints-thead tr:hover th {
+    color: #FFFFFF !important;
+    background: transparent !important;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row g-4">
   <div class="col-12">
@@ -51,32 +86,32 @@
       </div>
     </form>
 
-    <div class="card shadow-sm border-0 rounded-3 bg-white">
+    <div class="card shadow-sm border rounded-4 bg-white overflow-hidden" style="border-color: #E2E8F0 !important;">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+          <thead class="employee-complaints-thead">
             <tr>
-              <th>Complaint #</th>
+              <th class="ps-4">Complaint #</th>
               <th>Student</th>
               <th>Title</th>
               <th>Category</th>
               <th>Priority</th>
               <th>Status</th>
               <th>Date</th>
-              <th>Action</th>
+              <th class="text-end pe-4">Action</th>
             </tr>
           </thead>
           <tbody>
             {% for c in complaints %}
               <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}table-danger{% endif %}">
-                <td class="font-monospace fw-bold text-primary">{{ c.complaint_number }}</td>
+                <td class="ps-4 font-monospace fw-bold text-primary">{{ c.complaint_number }}</td>
                 <td>{% if c.is_confidential %}<span class="badge bg-secondary"><i class="bi bi-shield-lock-fill me-1"></i>[Confidential]</span>{% else %}{{ c.student_name }}{% endif %}</td>
                 <td><span class="fw-semibold">{{ c.title }}</span></td>
                 <td><span class="badge bg-light text-dark border">{{ c.analysis.category if c.analysis else '–' }}</span></td>
                 <td>{% if c.analysis %}{{ priority_badge(c.analysis.priority) }}{% endif %}</td>
                 <td>{{ status_badge(c.status) }}</td>
                 <td class="text-nowrap small text-muted">{{ c.created_at | dt }}</td>
-                <td>
+                <td class="text-end pe-4">
                   <a class="btn btn-sm btn-outline-primary" href="/professor/complaints/{{ c.id }}">
                     <i class="bi bi-eye me-1"></i>Review
                   </a>

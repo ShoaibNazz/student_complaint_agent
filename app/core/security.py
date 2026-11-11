@@ -98,43 +98,9 @@ def authenticate_user(db: Session, account_type: str, identifier: str, password:
     if not ident or not password:
         return None
 
-    if role_key == UserRole.STUDENT.value:
-        stmt = select(User).where(
-            User.role == UserRole.STUDENT.value,
-            User.is_active.is_(True),
-            or_(User.student_id.ilike(ident), User.email.ilike(ident)),
-        )
-    elif role_key == UserRole.EMPLOYEE.value:
-        stmt = select(User).where(
-            User.role.in_([UserRole.EMPLOYEE.value, UserRole.PROFESSOR.value]),
-            User.is_active.is_(True),
-            or_(User.employee_id.ilike(ident), User.professor_id.ilike(ident), User.email.ilike(ident)),
-        )
-    elif role_key == UserRole.PROFESSOR.value:
-        stmt = select(User).where(
-            User.role.in_([UserRole.PROFESSOR.value, UserRole.EMPLOYEE.value]),
-            User.is_active.is_(True),
-            or_(User.professor_id.ilike(ident), User.employee_id.ilike(ident), User.email.ilike(ident)),
-        )
-    elif role_key == UserRole.ADMIN.value:
-        admin_conds = [
-            User.admin_id.ilike(ident),
-            User.employee_id.ilike(ident),
-            User.email.ilike(ident),
-            User.full_name.ilike(ident),
-        ]
-        if ident.lower() in ("admin", "admin-001", "admin-1001"):
-            admin_conds.append(User.role == UserRole.ADMIN.value)
-        stmt = select(User).where(
-            User.role == UserRole.ADMIN.value,
-            User.is_active.is_(True),
-            or_(*admin_conds),
-        )
-    else:
-        return None
-
-    user = db.scalars(stmt).first()
-    if not user:
+    from app.services.user_service import get_user_by_identifier
+    user = get_user_by_identifier(db, role_key, ident)
+    if not user or not user.is_active:
         return None
 
     if verify_password(password, user.password_hash):
