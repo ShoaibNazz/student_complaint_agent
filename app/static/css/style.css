@@ -933,6 +933,19 @@ body.complaint-page-body {
   align-items: center;
 }
 
+.portal-header-red {
+  background-color: #FEE2E2 !important;
+  color: #7F1D1D !important;
+  font-weight: 700;
+  font-size: 1.05rem;
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+  border-bottom: 1px solid #FCA5A5 !important;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
 .portal-header-purple {
   background-color: #EDE9FE !important;
   color: #4C1D95 !important;

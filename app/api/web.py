@@ -1668,6 +1668,7 @@ def admin_save_complaint(
 
     c = svc.get_complaint(db, cid)
     try:
+        prev_status = c.status
         if c.analysis:
             svc.update_assignment(
                 db, c,
@@ -1686,7 +1687,11 @@ def admin_save_complaint(
                     ResponseUpdate(draft_response=draft_response, approved=bool(approved)),
                     admin.username,
                 )
-        if status:
+        if status and not (
+            prev_status in (ComplaintStatus.NEW.value, ComplaintStatus.PENDING.value)
+            and status == prev_status
+            and c.status == ComplaintStatus.ASSIGNED.value
+        ):
             svc.update_status(db, c, StatusUpdate(status=status), admin.username)
         svc.update_complaint(db, c, ComplaintUpdate(internal_notes=internal_notes.strip() or None), admin.username)
 

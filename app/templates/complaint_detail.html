@@ -17,9 +17,9 @@
     <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if p_badge == 'CRITICAL' %}#EF4444{% elif p_badge == 'HIGH' %}#F59E0B{% elif p_badge == 'LOW' %}#64748B{% else %}#3B82F6{% endif %}; font-size: 0.78rem;">
       {{ p_badge }}
     </span>
-    {% set s_badge = c.status or 'ASSIGNED' %}
-    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('NEW', 'PENDING') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
-      {{ s_badge }}
+    {% set s_badge = c.status or 'PENDING' %}
+    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('REOPENED', 'REJECTED') %}#EF4444{% elif s_badge in ('NEW', 'PENDING', 'RESOLVED_AWAITING_CONFIRMATION') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
+      {{ s_badge | replace('_', ' ') }}
     </span>
   </div>
 </div>
@@ -64,7 +64,7 @@
             <div class="col-8 text-primary text-break">{{ c.email or '–' }}</div>
 
             <div class="col-4 fw-bold text-dark">Phone:</div>
-            <div class="col-8 text-dark">{{ c.phone or '03001234567' }}</div>
+            <div class="col-8 text-dark">{{ c.phone or '–' }}</div>
 
             <div class="col-4 fw-bold text-dark">Class / Program:</div>
             <div class="col-8 text-primary fw-semibold">{{ c.class_or_program or '–' }}</div>
@@ -125,9 +125,6 @@
                 {% for h in handlers %}
                   <option value="{{ h.id }}" {% if current_handler_id == h.id %}selected{% endif %}>{{ h.full_name }} ({{ h.role_designation or h.role }})</option>
                 {% endfor %}
-                {% if not handlers %}
-                  <option value="" selected>Dr. Irtaza Sheikh (Assistant Pr...)</option>
-                {% endif %}
               </select>
             </div>
             <div class="col-md-6">
@@ -146,7 +143,7 @@
 
           <div class="mb-3">
             <label class="form-label small fw-bold text-dark mb-1">Draft response (edit before sending – never sent automatically)</label>
-            <textarea class="form-control" name="draft_response" rows="3" style="font-size: 0.88rem;">{{ (a and a.draft_response) or 'Dear Student, your attendance reconciliation request has been sent to your department coordinator.' }}</textarea>
+            <textarea class="form-control" name="draft_response" rows="3" style="font-size: 0.88rem;" placeholder="Enter official university response draft...">{{ (a and a.draft_response) or '' }}</textarea>
           </div>
 
           <div class="d-none">
@@ -244,22 +241,51 @@
       </div>
     </div>
 
-    <!-- 5. Student Resolution Feedback -->
-    <div class="card portal-card-modern flex-fill">
-      <div class="card-header portal-header-green">
-        <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
-        <span>5. Student Resolution Feedback: {% if c.resolution_feedback and not c.resolution_feedback.is_resolved %}Disputed / Reopened{% else %}Confirmed Resolved{% endif %}</span>
+    <!-- 5. Student Resolution Feedback (Shown only after student submits feedback) -->
+    {% if c.resolution_feedback %}
+      <div class="card portal-card-modern flex-fill">
+        {% if c.resolution_feedback.is_resolved %}
+          <div class="card-header portal-header-green">
+            <i class="bi bi-check-circle-fill text-success me-2 fs-5"></i>
+            <span>5. Student Resolution Feedback: Confirmed Resolved</span>
+          </div>
+          <div class="card-body p-4 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-sm" style="width: 54px; height: 54px; background-color: #22C55E;">
+              <i class="bi bi-check-lg" style="font-size: 32px;"></i>
+            </div>
+            <div class="flex-grow-1 small">
+              <div class="text-dark"><strong>Verified on:</strong> <span class="fw-semibold">{{ c.resolution_feedback.confirmed_at | dt }} UTC</span></div>
+              {% if c.resolution_feedback.feedback_remarks %}
+                <div class="text-muted mt-1">Student Remarks: "{{ c.resolution_feedback.feedback_remarks }}"</div>
+              {% else %}
+                <div class="text-muted mt-1">Student confirmed that the issue has been resolved satisfactorily.</div>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="card-header portal-header-red">
+            <i class="bi bi-exclamation-octagon-fill text-danger me-2 fs-5"></i>
+            <span>5. Student Resolution Feedback: Issue Not Resolved (Reopened)</span>
+          </div>
+          <div class="card-body p-4 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-sm" style="width: 54px; height: 54px; background-color: #EF4444;">
+              <i class="bi bi-arrow-repeat" style="font-size: 30px;"></i>
+            </div>
+            <div class="flex-grow-1 small">
+              <div class="mb-1">
+                <span class="badge bg-danger-subtle text-danger border border-danger">Not Resolved — Complaint Reopened</span>
+              </div>
+              <div class="text-dark"><strong>Reported on:</strong> <span class="fw-semibold">{{ c.resolution_feedback.confirmed_at | dt }} UTC</span></div>
+              {% if c.resolution_feedback.feedback_remarks %}
+                <div class="text-danger mt-1 fw-medium">Student Remarks: "{{ c.resolution_feedback.feedback_remarks }}"</div>
+              {% else %}
+                <div class="text-danger mt-1">Student reported that the issue is still not solved and requested further review.</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
       </div>
-      <div class="card-body p-4 d-flex align-items-center gap-3">
-        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-sm" style="width: 54px; height: 54px; background-color: #22C55E;">
-          <i class="bi bi-check-lg" style="font-size: 32px;"></i>
-        </div>
-        <div class="flex-grow-1 small">
-          <div class="text-dark"><strong>Verified on:</strong> <span class="fw-semibold">{{ (c.resolution_feedback and c.resolution_feedback.confirmed_at | dt) or (c.updated_at | dt) }} UTC</span></div>
-          <div class="text-muted mt-1">Student Remarks: "{{ (c.resolution_feedback and c.resolution_feedback.feedback_remarks) or 'My attendance register was checked and updated on the student portal. Thank you.' }}"</div>
-        </div>
-      </div>
-    </div>
+    {% endif %}
   </div>
 
   <!-- 6. AI Analysis -->
@@ -278,19 +304,20 @@
           <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
           <div class="col-md-2">
             <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Category</div>
-            <div class="small fw-semibold text-dark">{{ (a and a.category) or 'Attendance' }} /<br>{{ (a and a.subcategory) or 'Incorrect Record' }}</div>
+            <div class="small fw-semibold text-dark">{{ (a and a.category) or '–' }}{% if a and a.subcategory %} /<br>{{ a.subcategory }}{% endif %}</div>
           </div>
           <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
           <div class="col-md-2">
             <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Confidence</div>
+            {% set conf_pct = ((a and a.category_confidence) or 0) * 100 %}
             <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2">
               <div class="position-relative d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                 <svg viewBox="0 0 36 36" style="width: 40px; height: 40px; transform: rotate(-90deg);">
                   <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E2E8F0" stroke-width="3.5" />
-                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0D9488" stroke-width="3.5" stroke-dasharray="94, 100" stroke-linecap="round" />
+                  <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#0D9488" stroke-width="3.5" stroke-dasharray="{{ '%.0f' % conf_pct }}, 100" stroke-linecap="round" />
                 </svg>
               </div>
-              <span class="h4 fw-bold mb-0 text-dark">{{ '%.0f' % (((a and a.category_confidence) or 0.94) * 100) }}%</span>
+              <span class="h4 fw-bold mb-0 text-dark">{{ '%.0f' % conf_pct }}%</span>
             </div>
           </div>
           <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
@@ -301,7 +328,7 @@
           <div class="col-md-auto d-none d-md-block"><div class="vr" style="height: 60px; opacity: 0.15; width: 1.5px;"></div></div>
           <div class="col-md-2">
             <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Department</div>
-            <div class="small fw-semibold text-dark">{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</div>
+            <div class="small fw-semibold text-dark">{{ (a and a.assigned_department) or 'Unassigned' }}</div>
           </div>
         </div>
       </div>
@@ -345,18 +372,7 @@
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td class="ps-4 text-nowrap fw-semibold">{{ c.updated_at | dt if c.updated_at else '2026-10-15 10:00' }}</td>
-                  <td>Department assigned</td>
-                  <td>Under Review</td>
-                  <td>{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</td>
-                  <td class="fw-semibold">Dr. Muhammad Irtaza Sheikh</td>
-                </tr>
-                <tr>
-                  <td class="ps-4 text-nowrap fw-semibold">{{ c.created_at | dt if c.created_at else '2026-10-15 09:30' }}</td>
-                  <td>Complaint created</td>
-                  <td>{{ c.complaint_number }}</td>
-                  <td>-</td>
-                  <td class="fw-semibold">student</td>
+                  <td colspan="5" class="text-center text-muted py-3">No history events recorded yet.</td>
                 </tr>
               {% endif %}
             </tbody>
@@ -403,18 +419,7 @@
                 {% endfor %}
               {% else %}
                 <tr>
-                  <td class="ps-4 text-nowrap fw-semibold">{{ c.updated_at | dt if c.updated_at else '2026-10-15 10:00' }}</td>
-                  <td><span class="badge bg-light text-dark border">Department assigned</span></td>
-                  <td class="text-muted">Under Review</td>
-                  <td class="text-primary fw-semibold">{{ (a and a.assigned_department) or 'Department of Information Sciences' }}</td>
-                  <td class="fw-bold">Dr. Muhammad Irtaza Sheikh</td>
-                </tr>
-                <tr>
-                  <td class="ps-4 text-nowrap fw-semibold">{{ c.created_at | dt if c.created_at else '2026-10-15 09:30' }}</td>
-                  <td><span class="badge bg-light text-dark border">Complaint created</span></td>
-                  <td class="text-muted">{{ c.complaint_number }}</td>
-                  <td class="text-primary fw-semibold">–</td>
-                  <td class="fw-bold">student</td>
+                  <td colspan="5" class="text-center text-muted py-3">No history events recorded yet.</td>
                 </tr>
               {% endif %}
             </tbody>
