@@ -25,6 +25,7 @@ from app.services.duplicate_service import find_possible_duplicate
 from app.services.history_service import add_history
 from app.services.routing_service import get_routing_service
 from app.models.assignment import ComplaintAssignment
+from app.models.campus import DepartmentRecord
 from app.models.feedback import ResolutionFeedback
 from app.models.forwarding import ComplaintForwarding
 from app.services.notification_service import NotificationService
@@ -411,14 +412,25 @@ def update_assignment(db: Session, c: Complaint, data: AssignmentUpdate, by: str
             handler_user = db.get(User, h_id)
             if handler_user:
                 h_name = handler_user.full_name
+
+        dept_rec = db.scalars(select(DepartmentRecord).where(DepartmentRecord.name == dept_name)).first()
+        dept_id = dept_rec.id if dept_rec else None
+
+        # Supersede any previous active assignments for this complaint
+        for prev_asg in c.assignments:
+            if getattr(prev_asg, "status", None) == "ACTIVE":
+                prev_asg.status = "SUPERSEDED"
+
         assign_rec = ComplaintAssignment(
             complaint_id=c.id,
+            department_id=dept_id,
             department_name=dept_name,
             handler_id=h_id,
             handler_name=h_name,
             assigned_by_name=by,
             assigned_at=utcnow(),
             notes=f"Assigned by {by}",
+            status="ACTIVE",
         )
         db.add(assign_rec)
         if c.status in (ComplaintStatus.NEW.value, "PENDING"):
@@ -861,14 +873,135 @@ def forward_complaint(
     return fwd
 
 
+DEPT_ROLE_MAP: dict[str, list[str]] = {
+    "it department": ["it officer", "directorate of it officer", "it", "information technology"],
+    "library department": ["librarian", "library officer", "library"],
+    "accounts department": ["accounts officer", "treasurer / accounts officer", "accountant", "finance", "treasurer"],
+    "examination department": ["controller of examinations", "examination officer", "examination", "exam"],
+    "transport department": ["transport officer", "transport"],
+    "hostel administration": ["hostel warden", "warden", "hostel"],
+    "security / student affairs": ["security officer", "security", "safeguarding"],
+    "directorate of student affairs": ["directorate of student affairs officer", "student affairs"],
+    "student affairs": ["directorate of student affairs officer", "student affairs"],
+    "student affairs / administration": ["directorate of student affairs officer", "student affairs", "administration"],
+    "student affairs / designated safeguarding officer": ["directorate of student affairs officer", "safeguarding", "student affairs"],
+    "administration office": ["registrar / administrative officer", "assistant registrar", "administrator", "admin", "principal / campus director", "director of division"],
+    "administration / maintenance": ["assistant registrar", "maintenance", "administration"],
+    "academic administration": ["registrar / administrative officer", "dean", "director of division", "academic"],
+    "academic department": ["dean", "head of department (hod)", "director of division", "academic"],
+    "quality enhancement cell (qec)": ["qec", "quality"],
+    "office of research, innovation & commercialization (oric)": ["oric", "research"],
+    "health & medical center": ["doctor", "physician", "medical", "health"],
+    "admissions department": ["admissions", "admission"],
+}
+
+
+def user_matches_department(u: User, dept_name: str) -> bool:
+    """Check if an employee, professor, or admin matches a department by department or designation."""
+    if not dept_name:
+        return False
+    d_clean = dept_name.strip().lower()
+    u_dept = (u.department or "").strip().lower()
+    u_desig = (u.role_designation or "").strip().lower()
+    u_role = (u.role or "").strip().lower()
+
+    # 1. Exact or substring department match
+    if u_dept and (u_dept == d_clean or d_clean in u_dept or u_dept in d_clean):
+        return True
+
+    # 2. Functional roles mapped to department keywords
+    for dept_key, keywords in DEPT_ROLE_MAP.items():
+        if dept_key in d_clean or d_clean in dept_key:
+            if any(kw in u_desig or (u_dept and kw in u_dept) for kw in keywords):
+                return True
+            if dept_key == "administration office" and u_role == "admin":
+                return True
+
+    return False
+
+
+def get_all_department_names(db: Optional[Session] = None) -> list[str]:
+    """Retrieve complete, sorted list of official departments."""
+    routing = get_routing_service()
+    depts = set(routing.department_names)
+    if db:
+        try:
+            records = db.scalars(select(DepartmentRecord.name)).all()
+            for r in records:
+                if r and r.strip():
+                    depts.add(r.strip())
+        except Exception as exc:
+            logger.debug("Could not query departments table: %s", exc)
+    return sorted(list(depts))
+
+
 def get_department_handlers(db: Session, department_name: str, campus: Optional[str] = None) -> list[User]:
-    """Retrieve authorized employees and professors eligible to handle complaints in a department."""
-    conds = [
-        User.is_active.is_(True),
-        User.role.in_(["EMPLOYEE", "PROFESSOR", "ADMIN"]),
-        User.department.ilike(department_name.strip()),
+    """Retrieve authorized employees, professors, and staff eligible to handle complaints in a department."""
+    if not department_name or not department_name.strip():
+        return []
+
+    stmt = (
+        select(User)
+        .where(
+            User.is_active.is_(True),
+            User.role.in_(["EMPLOYEE", "PROFESSOR", "ADMIN"]),
+        )
+        .order_by(User.full_name.asc())
+    )
+    all_staff = list(db.scalars(stmt).all())
+
+    # Campus matching: match same campus or staff with campus=None
+    if campus and campus.lower() not in ("all", "all campuses"):
+        campus_clean = campus.strip().lower()
+        campus_staff = [u for u in all_staff if not u.campus or u.campus.strip().lower() == campus_clean]
+    else:
+        campus_staff = all_staff
+
+    matched = [u for u in campus_staff if user_matches_department(u, department_name)]
+
+    # Fallback to matching staff across campuses if none registered at this campus
+    if not matched and campus_staff != all_staff:
+        matched = [u for u in all_staff if user_matches_department(u, department_name)]
+
+    return matched
+
+
+def get_all_department_handlers_map(db: Session, campus: Optional[str] = None) -> dict[str, list[dict]]:
+    """Return a mapping of department names to list of handler dicts."""
+    depts = get_all_department_names(db)
+    
+    stmt = (
+        select(User)
+        .where(
+            User.is_active.is_(True),
+            User.role.in_(["EMPLOYEE", "PROFESSOR", "ADMIN"]),
+        )
+        .order_by(User.full_name.asc())
+    )
+    all_staff = list(db.scalars(stmt).all())
+
+    result: dict[str, list[dict]] = {}
+    for d in depts:
+        handlers = get_department_handlers(db, d, campus)
+        result[d] = [
+            {
+                "id": u.id,
+                "name": u.full_name,
+                "role": u.role_designation or u.role,
+                "campus": u.campus or "All Campuses",
+                "department": u.department or "",
+            }
+            for u in handlers
+        ]
+
+    result["__all__"] = [
+        {
+            "id": u.id,
+            "name": u.full_name,
+            "role": u.role_designation or u.role,
+            "campus": u.campus or "All Campuses",
+            "department": u.department or "",
+        }
+        for u in all_staff
     ]
-    if campus:
-        conds.append(or_(User.campus == campus, User.campus.is_(None)))
-    stmt = select(User).where(*conds).order_by(User.full_name.asc())
-    return list(db.scalars(stmt).all())
+    return result

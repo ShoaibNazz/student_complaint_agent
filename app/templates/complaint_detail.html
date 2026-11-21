@@ -91,13 +91,13 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Category</label>
-              <select class="form-select form-select-sm" name="category">
-                {% for n in categories.names %}<option {% if a and a.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+              <select class="form-select form-select-sm" name="category" id="adminCategorySelect">
+                {% for n in categories.names %}<option value="{{ n }}" {% if a and a.category == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Subcategory</label>
-              <select class="form-select form-select-sm" name="subcategory">
+              <select class="form-select form-select-sm" name="subcategory" id="adminSubcategorySelect">
                 {% set subcats = categories.subcategory_names(a.category) if a and a.category else [] %}
                 {% if a and a.subcategory and a.subcategory not in subcats %}
                   <option value="{{ a.subcategory }}" selected>{{ a.subcategory }}</option>
@@ -113,14 +113,18 @@
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Department</label>
-              <select class="form-select form-select-sm" name="department">
-                {% if a and a.assigned_department not in departments %}<option selected>{{ a.assigned_department }}</option>{% endif %}
-                {% for d in departments %}<option {% if a and a.assigned_department == d %}selected{% endif %}>{{ d }}</option>{% endfor %}
+              <select class="form-select form-select-sm" name="department" id="adminDepartmentSelect">
+                {% if a and a.assigned_department and a.assigned_department not in departments %}
+                  <option value="{{ a.assigned_department }}" selected>{{ a.assigned_department }}</option>
+                {% endif %}
+                {% for d in departments %}
+                  <option value="{{ d }}" {% if a and a.assigned_department == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Authorized Department Handler</label>
-              <select class="form-select form-select-sm" name="handler_id">
+              <select class="form-select form-select-sm" name="handler_id" id="adminHandlerSelect">
                 <option value="">Select Authorized Handler</option>
                 {% for h in handlers %}
                   <option value="{{ h.id }}" {% if current_handler_id == h.id %}selected{% endif %}>{{ h.full_name }} ({{ h.role_designation or h.role }})</option>
@@ -130,13 +134,13 @@
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Priority</label>
               <select class="form-select form-select-sm" name="priority">
-                {% for p in priorities %}<option {% if a and a.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                {% for p in priorities %}<option value="{{ p }}" {% if a and a.priority == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label small fw-bold text-dark mb-1">Status</label>
               <select class="form-select form-select-sm" name="status">
-                {% for s in statuses %}<option {% if c.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                {% for s in statuses %}<option value="{{ s }}" {% if c.status == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
               </select>
             </div>
           </div>
@@ -453,8 +457,15 @@
 {% endblock %}
 
 {% block scripts %}
+<script id="deptHandlersData" type="application/json">
+  {{ (all_dept_handlers or {}) | tojson }}
+</script>
+<script id="categorySubcategoriesData" type="application/json">
+  {{ (category_subcategories or {}) | tojson }}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Modal for view full history
   const btn = document.getElementById('viewAllHistoryBtn');
   if (btn) {
     btn.addEventListener('click', function(e) {
@@ -464,6 +475,119 @@ document.addEventListener('DOMContentLoaded', function() {
         inst.show();
       }
     });
+  }
+
+  // Category and Subcategory dynamic update
+  const catSelect = document.getElementById('adminCategorySelect');
+  const subcatSelect = document.getElementById('adminSubcategorySelect');
+  const catSubcatEl = document.getElementById('categorySubcategoriesData');
+  let catSubcatMap = {};
+  if (catSubcatEl) {
+    try { catSubcatMap = JSON.parse(catSubcatEl.textContent); } catch(e) {}
+  }
+
+  if (catSelect && subcatSelect) {
+    catSelect.addEventListener('change', function() {
+      const selectedCat = this.value;
+      const subcats = catSubcatMap[selectedCat] || [];
+      const prevSubcat = subcatSelect.value;
+      subcatSelect.innerHTML = '';
+      if (subcats.length > 0) {
+        subcats.forEach(function(s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          if (s === prevSubcat) opt.selected = true;
+          subcatSelect.appendChild(opt);
+        });
+      } else {
+        const opt1 = document.createElement('option');
+        opt1.value = 'General';
+        opt1.textContent = 'General';
+        subcatSelect.appendChild(opt1);
+      }
+    });
+  }
+
+  // Department and Authorized Department Handler dynamic update
+  const deptSelect = document.getElementById('adminDepartmentSelect');
+  const handlerSelect = document.getElementById('adminHandlerSelect');
+  const handlersDataEl = document.getElementById('deptHandlersData');
+  const currentHandlerId = {{ (current_handler_id or '') | tojson }};
+
+  let deptHandlersMap = {};
+  if (handlersDataEl) {
+    try { deptHandlersMap = JSON.parse(handlersDataEl.textContent); } catch(e) {}
+  }
+
+  function updateHandlerOptions(deptName, preferredHandlerId) {
+    if (!handlerSelect) return;
+    const targetId = preferredHandlerId !== undefined ? preferredHandlerId : handlerSelect.value;
+    handlerSelect.innerHTML = '';
+
+    const handlers = (deptName && deptHandlersMap[deptName]) ? deptHandlersMap[deptName] : [];
+
+    if (handlers && handlers.length > 0) {
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = '';
+      defaultOpt.textContent = 'Select Authorized Handler';
+      handlerSelect.appendChild(defaultOpt);
+
+      let matched = false;
+      handlers.forEach(function(h) {
+        const opt = document.createElement('option');
+        opt.value = h.id;
+        opt.textContent = h.name + ' (' + (h.role || 'Staff') + ')';
+        if (targetId && String(targetId) === String(h.id)) {
+          opt.selected = true;
+          matched = true;
+        }
+        handlerSelect.appendChild(opt);
+      });
+
+      // If current assigned handler is from another department, preserve option with clear label
+      if (targetId && !matched && currentHandlerId && String(targetId) === String(currentHandlerId)) {
+        const allStaff = deptHandlersMap['__all__'] || [];
+        const prevH = allStaff.find(function(x) { return String(x.id) === String(targetId); });
+        if (prevH) {
+          const opt = document.createElement('option');
+          opt.value = prevH.id;
+          opt.textContent = prevH.name + ' (' + prevH.role + ') [Currently Assigned]';
+          opt.selected = true;
+          handlerSelect.appendChild(opt);
+        }
+      }
+    } else {
+      const noOpt = document.createElement('option');
+      noOpt.value = '';
+      noOpt.textContent = 'No handlers registered for ' + (deptName || 'this department');
+      handlerSelect.appendChild(noOpt);
+
+      // Allow fallback selection from all available campus staff / admins
+      const allStaff = deptHandlersMap['__all__'] || [];
+      if (allStaff.length > 0) {
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = 'Other Available Staff / Admins';
+        allStaff.forEach(function(h) {
+          const opt = document.createElement('option');
+          opt.value = h.id;
+          opt.textContent = h.name + ' (' + (h.role || 'Staff') + ')';
+          if (targetId && String(targetId) === String(h.id)) {
+            opt.selected = true;
+          }
+          optGroup.appendChild(opt);
+        });
+        handlerSelect.appendChild(optGroup);
+      }
+    }
+  }
+
+  if (deptSelect) {
+    deptSelect.addEventListener('change', function() {
+      updateHandlerOptions(this.value);
+    });
+    // Initialize options on load to guarantee sync
+    updateHandlerOptions(deptSelect.value, currentHandlerId);
   }
 });
 </script>

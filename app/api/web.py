@@ -31,10 +31,10 @@ templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
 templates.env.filters["dt"] = lambda v: v.strftime("%Y-%m-%d %H:%M") if v else ""
 
 
-def _admin_ctx() -> dict:
+def _admin_ctx(db: Optional[Session] = None) -> dict:
     return {
         "categories": get_catalog(),
-        "departments": get_routing_service().department_names,
+        "departments": svc.get_all_department_names(db),
         "priorities": [p.value for p in Priority],
         "statuses": [s.value for s in ComplaintStatus],
     }
@@ -1615,13 +1615,21 @@ def _admin_detail(request, db, cid, admin, errors=None, saved=False, code=200):
     complaint = svc.get_complaint(db, cid)
     dept_name = complaint.analysis.assigned_department if complaint.analysis else ""
     handlers = svc.get_department_handlers(db, dept_name, admin.campus)
+    all_dept_handlers = svc.get_all_department_handlers_map(db, admin.campus)
     auths_data = load_json_config("escalation_authorities")
     authorities = auths_data.get("authorities", []) if isinstance(auths_data, dict) else []
 
     # Get active handler ID if any
     current_handler_id = None
     if complaint.assignments:
-        current_handler_id = complaint.assignments[-1].handler_id
+        active_asgs = [asn for asn in complaint.assignments if getattr(asn, "status", None) == "ACTIVE"]
+        if active_asgs:
+            current_handler_id = active_asgs[-1].handler_id
+        else:
+            current_handler_id = complaint.assignments[-1].handler_id
+
+    catalog = get_catalog()
+    category_subcategories = {cat: catalog.subcategory_names(cat) for cat in catalog.names}
 
     return templates.TemplateResponse(request, "complaint_detail.html", {
         "current_user": admin,
@@ -1631,12 +1639,41 @@ def _admin_detail(request, db, cid, admin, errors=None, saved=False, code=200):
         "saved": saved,
         "admin": admin,
         "handlers": handlers,
+        "all_dept_handlers": all_dept_handlers,
+        "category_subcategories": category_subcategories,
         "authorities": authorities,
         "current_handler_id": current_handler_id,
         "duplicate": db.get(type(complaint), complaint.duplicate_of_id) if complaint.duplicate_of_id else None,
         "threshold": get_settings().low_confidence_threshold,
-        **_admin_ctx(),
+        **_admin_ctx(db),
     }, status_code=code)
+
+
+@router.get("/admin/api/handlers")
+def admin_api_handlers(
+    request: Request,
+    department: str = "",
+    campus: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = _get_web_user(request, db)
+    if not admin or admin.role != UserRole.ADMIN.value:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
+    target_campus = campus or admin.campus
+    handlers = svc.get_department_handlers(db, department, target_campus)
+    return {
+        "department": department,
+        "campus": target_campus,
+        "handlers": [
+            {
+                "id": h.id,
+                "name": h.full_name,
+                "role": h.role_designation or h.role,
+                "campus": h.campus,
+            }
+            for h in handlers
+        ],
+    }
 
 
 @router.get("/admin/complaints/{cid}")
@@ -1656,7 +1693,7 @@ def admin_save_complaint(
     department: str = Form(""),
     priority: str = Form(""),
     status: str = Form(""),
-    handler_id: Optional[int] = Form(None),
+    handler_id: Optional[str] = Form(None),
     draft_response: str = Form(""),
     approved: str = Form(""),
     internal_notes: str = Form(""),
@@ -1665,6 +1702,10 @@ def admin_save_complaint(
     admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
     if redirect:
         return redirect
+
+    clean_handler_id: Optional[int] = None
+    if handler_id and str(handler_id).strip().isdigit():
+        clean_handler_id = int(str(handler_id).strip())
 
     c = svc.get_complaint(db, cid)
     try:
@@ -1676,7 +1717,7 @@ def admin_save_complaint(
                     category=category or None,
                     subcategory=subcategory or None,
                     department=department or None,
-                    handler_id=handler_id,
+                    handler_id=clean_handler_id,
                     priority=Priority.parse(priority),
                 ),
                 admin.username,
