@@ -34,10 +34,10 @@
 
     <!-- Actions: Print Dossier & WhatsApp Share (Feature 3) -->
     <div class="d-flex align-items-center gap-2 no-print">
-      <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
-        <i class="bi bi-printer"></i> Print Official Dossier
+      <button type="button" onclick="window.print()" class="btn-dossier-print">
+        <i class="bi bi-printer-fill"></i> Print Official Dossier
       </button>
-      <a href="https://api.whatsapp.com/send?text={{ ('*University of Education Complaint Dossier*%0A*Complaint #:* ' ~ c.complaint_number ~ '%0A*Campus:* ' ~ (c.originating_campus or c.target_campus or 'UE') ~ '%0A*Category:* ' ~ (a.category if a else 'General') ~ '%0A*Priority:* ' ~ (a.priority if a else 'MEDIUM') ~ '%0A*Status:* ' ~ (c.status | replace('_', ' ')) ~ '%0A*Student:* ' ~ ('[Confidential]' if c.is_confidential else c.student_name)) | urlencode }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+      <a href="https://api.whatsapp.com/send?text={{ ('*University of Education Complaint Dossier*%0A*Complaint #:* ' ~ c.complaint_number ~ '%0A*Campus:* ' ~ (c.originating_campus or c.target_campus or 'UE') ~ '%0A*Category:* ' ~ (a.category if a else 'General') ~ '%0A*Priority:* ' ~ (a.priority if a else 'MEDIUM') ~ '%0A*Status:* ' ~ (c.status | replace('_', ' ')) ~ '%0A*Student:* ' ~ ('[Confidential]' if c.is_confidential else c.student_name)) | urlencode }}" target="_blank" rel="noopener" class="btn-whatsapp-share">
         <i class="bi bi-whatsapp"></i> Share on WhatsApp
       </a>
     </div>

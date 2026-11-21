@@ -1948,5 +1948,97 @@ body.complaint-detail-page {
   display: none;
 }
 
+/* ==========================================================================
+   Enterprise Colorable Action Buttons (Excel, Dossier Print & WhatsApp)
+   ========================================================================== */
+.btn-excel-export {
+  background: linear-gradient(135deg, #107C41 0%, #16A34A 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.38rem 0.95rem !important;
+  font-size: 0.82rem !important;
+  box-shadow: 0 2px 6px rgba(16, 124, 65, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-excel-export:hover {
+  background: linear-gradient(135deg, #0B6334 0%, #15803D 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(16, 124, 65, 0.38) !important;
+}
+
+.btn-dossier-print {
+  background: linear-gradient(135deg, #002B7A 0%, #0B45A0 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.38rem 0.95rem !important;
+  font-size: 0.82rem !important;
+  box-shadow: 0 2px 6px rgba(11, 69, 160, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-dossier-print:hover {
+  background: linear-gradient(135deg, #001F54 0%, #083780 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(11, 69, 160, 0.38) !important;
+}
+
+.btn-whatsapp-share {
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.38rem 0.95rem !important;
+  font-size: 0.82rem !important;
+  box-shadow: 0 2px 6px rgba(37, 211, 102, 0.32) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-whatsapp-share:hover {
+  background: linear-gradient(135deg, #1EBE5D 0%, #0D6E63 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(37, 211, 102, 0.42) !important;
+}
+
+.btn-health-json {
+  background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.38rem 0.95rem !important;
+  font-size: 0.82rem !important;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.28) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.btn-health-json:hover {
+  background: linear-gradient(135deg, #4F46E5 0%, #4338CA 100%) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.38) !important;
+}
+
+
 
 

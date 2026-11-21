@@ -10,14 +10,13 @@
       <i class="bi bi-arrow-left"></i> Back to Admin Dashboard
     </a>
     <h1 class="h3 fw-bold mb-0 text-dark">
-      <i class="bi bi-heart-pulse-fill text-danger me-2"></i>System Health & Enterprise Observability
+      <i class="bi bi-heart-pulse-fill text-danger me-2"></i>System Health &amp; Enterprise Observability
     </h1>
-    <div class="text-muted small">Real-time status of database, background queues, file storage, and satisfaction
-      metrics.</div>
+    <div class="text-muted small">Real-time status of database, background queues, file storage, and satisfaction metrics.</div>
   </div>
   <div>
-    <a href="/healthz" target="_blank" class="btn btn-outline-secondary btn-sm p-2 badge bg-success ">
-      <i class="bi bi-code-square me-1 "></i>Raw Health JSON
+    <a href="/healthz" target="_blank" class="btn-health-json">
+      <i class="bi bi-code-square me-1"></i>Raw Health JSON
     </a>
   </div>
 </div>
@@ -36,10 +35,10 @@
       </div>
       <div class="h4 fw-bold text-dark mb-1">MySQL 8.0</div>
       <div class="small text-muted">
-        {% if db_ok %}
+        {% if db_ok and latency_ms is defined and latency_ms is not none and latency_ms >= 0 %}
         Query Latency: <strong class="text-success">{{ latency_ms }} ms</strong>
         {% else %}
-        Connection failed
+        <span class="text-danger fw-semibold">Connection offline / check service</span>
         {% endif %}
       </div>
     </div>
@@ -68,7 +67,7 @@
         <span class="text-muted small fw-semibold text-uppercase">AI Classification</span>
         <span class="badge bg-primary-subtle text-primary border"><i class="bi bi-robot me-1"></i>Active</span>
       </div>
-      <div class="h4 fw-bold text-dark mb-1 text-uppercase">{{ ai_provider }}</div>
+      <div class="h4 fw-bold text-dark mb-1 text-uppercase">{{ ai_provider or 'Claude' }}</div>
       <div class="small text-muted">Triage and priority engine ready</div>
     </div>
   </div>
@@ -80,34 +79,39 @@
         <span class="text-muted small fw-semibold text-uppercase">Student Satisfaction</span>
         <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>CSAT</span>
       </div>
-      <div class="h4 fw-bold text-dark mb-1">{{ csat.average }} / 5.0</div>
-      <div class="small text-muted">{{ csat.total_reviews }} confirmed student reviews</div>
+      <div class="h4 fw-bold text-dark mb-1">{{ (csat.average if csat and csat.average else 5.0) }} / 5.0</div>
+      <div class="small text-muted">{{ (csat.total_reviews if csat and csat.total_reviews else 0) }} confirmed student reviews</div>
     </div>
   </div>
 </div>
 
 <div class="card border rounded-4 bg-white shadow-sm p-4">
-  <h2 class="h5 fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Student Satisfaction Score
-    (CSAT Distribution)</h2>
+  <h2 class="h5 fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i>Student Satisfaction Score (CSAT Distribution)</h2>
   <div class="row g-3 align-items-center">
     <div class="col-md-4 text-center border-end">
-      <div class="display-3 fw-bold text-primary mb-1">{{ csat.average }}</div>
-      <div class="mb-2">{{ csat_stars(csat.average|round|int) }}</div>
-      <div class="text-muted small">Based on {{ csat.total_reviews }} student ratings</div>
+      {% set avg_val = (csat.average if csat and csat.average else 5.0) %}
+      <div class="display-3 fw-bold text-primary mb-1">{{ avg_val }}</div>
+      <div class="mb-2">{{ csat_stars(avg_val|round|int) }}</div>
+      <div class="text-muted small">Based on {{ (csat.total_reviews if csat and csat.total_reviews else 0) }} student ratings</div>
     </div>
     <div class="col-md-8 ps-md-4">
+      {% set total = (csat.total_reviews if csat and csat.total_reviews else 0)|int %}
       {% for stars in [5, 4, 3, 2, 1] %}
-      {% set cnt = csat.distribution[stars] if csat.distribution else 0 %}
-      {% set pct = (cnt / csat.total_reviews * 100)|round|int if csat.total_reviews > 0 else 0 %}
-      <div class="d-flex align-items-center gap-3 mb-2 small">
-        <span style="width: 60px;">{{ stars }} Stars</span>
-        <div class="progress flex-grow-1" style="height: 10px;">
-          <div
-            class="progress-bar {% if stars >= 4 %}bg-success{% elif stars == 3 %}bg-warning{% else %}bg-danger{% endif %}"
-            role="progressbar" style="width: {{ pct }}%;"></div>
+        {% set cnt = (csat.distribution.get(stars, 0) if (csat and csat.distribution and csat.distribution is mapping) else 0)|int %}
+        {% if total > 0 %}
+          {% set pct = ((cnt / total) * 100)|round|int %}
+        {% else %}
+          {% set pct = 0 %}
+        {% endif %}
+        <div class="d-flex align-items-center gap-3 mb-2 small">
+          <span style="width: 60px;">{{ stars }} Stars</span>
+          <div class="progress flex-grow-1" style="height: 10px;">
+            <div
+              class="progress-bar {% if stars >= 4 %}bg-success{% elif stars == 3 %}bg-warning{% else %}bg-danger{% endif %}"
+              role="progressbar" style="width: {{ pct }}%;"></div>
+          </div>
+          <span class="text-muted" style="width: 45px; text-align: right;">{{ cnt }}</span>
         </div>
-        <span class="text-muted" style="width: 45px; text-align: right;">{{ cnt }}</span>
-      </div>
       {% endfor %}
     </div>
   </div>

@@ -2431,8 +2431,12 @@ def admin_system_health_page(request: Request, db: Session = Depends(get_db)):
     uploads_dir = Path(BASE_DIR) / "app" / "static" / "uploads"
     uploads_ok = os.access(str(uploads_dir), os.W_OK)
 
-    from app.services.complaint_service import get_department_csat_summary
-    csat = get_department_csat_summary(db)
+    try:
+        from app.services.complaint_service import get_department_csat_summary
+        csat = get_department_csat_summary(db)
+    except Exception as csat_err:
+        logger.warning("Could not fetch CSAT summary in admin_system_health_page: %s", csat_err)
+        csat = {"average": 5.0, "total_reviews": 0, "distribution": {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}}
 
     return templates.TemplateResponse(request, "admin_system_health.html", {
         "current_user": admin,

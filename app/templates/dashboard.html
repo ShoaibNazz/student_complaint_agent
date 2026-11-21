@@ -124,9 +124,8 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-1">
   <span class="text-muted small">Showing {{ complaints|length }} record(s)</span>
   <a href="/admin/complaints/export?q={{ f.q or '' }}&campus={{ f.campus or '' }}&priority={{ f.priority or '' }}&category={{ f.category or '' }}&status={{ f.status or '' }}"
-    class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 shadow-sm "
-    style="font-size: 0.78rem;">
-    <i class="bi bi-file-earmark-spreadsheet"></i> Export to Excel / CSV
+    class="btn-excel-export">
+    <i class="bi bi-file-earmark-excel-fill"></i> Export to Excel / CSV
   </a>
 </div>
 
