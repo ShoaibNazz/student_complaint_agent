@@ -8,6 +8,7 @@ class UserRole(str, Enum):
     EMPLOYEE = "EMPLOYEE"
     PROFESSOR = "PROFESSOR"
     ADMIN = "ADMIN"
+    HIGHER_AUTHORITY = "HIGHER_AUTHORITY"
 
 
 class ComplaintStatus(str, Enum):

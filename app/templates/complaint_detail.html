@@ -1,26 +1,46 @@
 {% extends "base.html" %}
-{% from "_macros.html" import priority_badge, status_badge %}
+{% from "_macros.html" import priority_badge, status_badge, sla_badge, csat_stars %}
 {% block title %}{{ c.complaint_number }} - Admin Review{% endblock %}
 {% block body_class %}complaint-detail-page{% endblock %}
 {% block content %}
 
+<!-- Printable Official Header (Shown Only When Printed) -->
+<div class="print-only-header">
+  <h2 style="font-size: 16pt; font-weight: bold; margin-bottom: 2px;">UNIVERSITY OF EDUCATION, LAHORE</h2>
+  <h4 style="font-size: 13pt; margin-bottom: 4px; color: #0B3D91;">OFFICIAL COMPLAINT &amp; RESOLUTION DOSSIER</h4>
+  <div style="font-size: 10pt; color: #555;">Complaint Reference: {{ c.complaint_number }} | Campus: {{ c.originating_campus or c.target_campus or 'Lahore' }}</div>
+</div>
+
 <!-- Top bar with Back to dashboard and complaint title with badges -->
 <div class="d-flex flex-column gap-2 mb-3">
-  <div>
+  <div class="no-print">
     <a href="/admin/dashboard" class="text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1" style="color: #0B45A0;">
       <i class="bi bi-arrow-left"></i> Back to dashboard
     </a>
   </div>
-  <div class="d-flex flex-wrap align-items-center gap-3">
-    <h1 class="h3 fw-bold mb-0 font-monospace" style="color: #0B3D91; letter-spacing: 0.5px;">{{ c.complaint_number }}</h1>
-    {% set p_badge = (a and a.priority) or 'MEDIUM' %}
-    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if p_badge == 'CRITICAL' %}#EF4444{% elif p_badge == 'HIGH' %}#F59E0B{% elif p_badge == 'LOW' %}#64748B{% else %}#3B82F6{% endif %}; font-size: 0.78rem;">
-      {{ p_badge }}
-    </span>
-    {% set s_badge = c.status or 'PENDING' %}
-    <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('REOPENED', 'REJECTED') %}#EF4444{% elif s_badge in ('NEW', 'PENDING', 'RESOLVED_AWAITING_CONFIRMATION') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
-      {{ s_badge | replace('_', ' ') }}
-    </span>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <h1 class="h3 fw-bold mb-0 font-monospace" style="color: #0B3D91; letter-spacing: 0.5px;">{{ c.complaint_number }}</h1>
+      {% set p_badge = (a and a.priority) or 'MEDIUM' %}
+      <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if p_badge == 'CRITICAL' %}#EF4444{% elif p_badge == 'HIGH' %}#F59E0B{% elif p_badge == 'LOW' %}#64748B{% else %}#3B82F6{% endif %}; font-size: 0.78rem;">
+        {{ p_badge }}
+      </span>
+      {% set s_badge = c.status or 'PENDING' %}
+      <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('REOPENED', 'REJECTED') %}#EF4444{% elif s_badge in ('NEW', 'PENDING', 'RESOLVED_AWAITING_CONFIRMATION') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
+        {{ s_badge | replace('_', ' ') }}
+      </span>
+      {{ sla_badge(c, a) }}
+    </div>
+
+    <!-- Actions: Print Dossier & WhatsApp Share (Feature 3) -->
+    <div class="d-flex align-items-center gap-2 no-print">
+      <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+        <i class="bi bi-printer"></i> Print Official Dossier
+      </button>
+      <a href="https://api.whatsapp.com/send?text={{ ('*University of Education Complaint Dossier*%0A*Complaint #:* ' ~ c.complaint_number ~ '%0A*Campus:* ' ~ (c.originating_campus or c.target_campus or 'UE') ~ '%0A*Category:* ' ~ (a.category if a else 'General') ~ '%0A*Priority:* ' ~ (a.priority if a else 'MEDIUM') ~ '%0A*Status:* ' ~ (c.status | replace('_', ' ')) ~ '%0A*Student:* ' ~ ('[Confidential]' if c.is_confidential else c.student_name)) | urlencode }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+        <i class="bi bi-whatsapp"></i> Share on WhatsApp
+      </a>
+    </div>
   </div>
 </div>
 
@@ -259,6 +279,13 @@
             </div>
             <div class="flex-grow-1 small">
               <div class="text-dark"><strong>Verified on:</strong> <span class="fw-semibold">{{ c.resolution_feedback.confirmed_at | dt }} UTC</span></div>
+              {% if c.resolution_feedback.satisfaction_rating %}
+                <div class="mt-1 d-flex align-items-center gap-1">
+                  <strong>Student CSAT:</strong>
+                  {{ csat_stars(c.resolution_feedback.satisfaction_rating) }}
+                  <span class="badge bg-warning-subtle text-dark border border-warning-subtle ms-1">({{ c.resolution_feedback.satisfaction_rating }}/5 Stars)</span>
+                </div>
+              {% endif %}
               {% if c.resolution_feedback.feedback_remarks %}
                 <div class="text-muted mt-1">Student Remarks: "{{ c.resolution_feedback.feedback_remarks }}"</div>
               {% else %}
@@ -335,6 +362,59 @@
             <div class="small fw-semibold text-dark">{{ (a and a.assigned_department) or 'Unassigned' }}</div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Tier Clarifications & Collaboration Stream -->
+  <div class="col-12">
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-blue d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-chat-square-dots-fill me-2 fs-5"></i>
+          <span>Multi-Tier Clarifications &amp; Collaboration Stream</span>
+        </div>
+        <span class="badge bg-white text-primary border">{{ (c.clarifications or [])|length }} messages</span>
+      </div>
+      <div class="card-body p-4">
+        {% if c.is_confidential %}
+          <div class="alert alert-warning border-start border-4 border-warning mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock-fill text-warning fs-4 flex-shrink-0"></i>
+            <div class="small">
+              <strong>Confidential Complaint — Student ID Protected:</strong> Direct messaging with the student is permanently disabled to safeguard student anonymity.
+              <span class="text-muted d-block mt-1">Internal collaboration between Administration, Employee handlers, and Higher Authorities remains active below.</span>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="clarification-stream mb-3" style="max-height: 280px; overflow-y: auto;">
+          {% if c.clarifications and c.clarifications|length > 0 %}
+            {% for m in c.clarifications %}
+              <div class="p-3 rounded-3 mb-2 small {% if m.sender_role in ('Admin', 'Super Administrator') %}bg-light border-start border-3 border-primary ms-3{% elif m.sender_role in ('Student',) %}bg-info-subtle border-start border-3 border-info me-3{% else %}bg-primary-subtle border-start border-3 border-secondary ms-2{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-dark">{{ m.sender_name }} <span class="badge bg-secondary-subtle text-secondary ms-1">{{ m.sender_role }}</span></span>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ m.created_at | dt }}</span>
+                </div>
+                <div class="text-dark">{{ m.message }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4 text-muted small">
+              <i class="bi bi-chat-left-dots d-block fs-3 opacity-50 mb-1"></i>
+              No messages or collaboration notes on this complaint yet.
+            </div>
+          {% endif %}
+        </div>
+
+        <form method="post" action="/complaints/{{ c.id }}/clarify">
+          <input type="hidden" name="return_to" value="/admin/complaints/{{ c.id }}">
+          <div class="mb-2">
+            <textarea class="form-control form-control-sm" name="message" rows="2" placeholder="{% if c.is_confidential %}Send internal collaboration note to assigned Employee or Higher Authority...{% else %}Send message / clarification to Student or Staff handler...{% endif %}" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm fw-semibold px-3">
+            <i class="bi bi-send-fill me-1"></i>{% if c.is_confidential %}Send Internal Note{% else %}Send Clarification / Message{% endif %}
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -591,4 +671,22 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+
+<!-- Printable Official Signature Block (Shown Only When Printed) -->
+<div class="print-signature-block">
+  <div class="row pt-5" style="border-top: 1px dashed #94A3B8;">
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Dealing Officer / Desk</div>
+      <div class="small text-muted">Signature &amp; Date</div>
+    </div>
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Head of Department / Director</div>
+      <div class="small text-muted">Signature &amp; Official Seal</div>
+    </div>
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Competent Authority</div>
+      <div class="small text-muted">Confirmation &amp; Record</div>
+    </div>
+  </div>
+</div>
 {% endblock %}

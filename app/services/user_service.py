@@ -12,7 +12,7 @@ from app.core.security import hash_password
 from app.models.campus import Campus, DepartmentRecord
 from app.models.complaint import Complaint
 from app.models.enums import UserRole
-from app.models.user import Admin, Employee, Student, UniversityDirectory, User
+from app.models.user import Admin, Employee, HigherAuthorityProfile, Student, UniversityDirectory, User
 from app.schemas.user import UserCreate, UserRegisterRequest
 
 logger = logging.getLogger("complaint_agent.users")
@@ -95,6 +95,15 @@ def get_user_by_identifier(db: Session, role: str, identifier: str) -> Optional[
         if ident.lower() in ("admin", "admin-001", "admin-1001"):
             admin_conds.append(User.role == UserRole.ADMIN.value)
         stmt = stmt.where(or_(*admin_conds))
+    elif role_key == UserRole.HIGHER_AUTHORITY.value:
+        stmt = stmt.outerjoin(HigherAuthorityProfile, User.id == HigherAuthorityProfile.user_id).where(
+            or_(
+                HigherAuthorityProfile.authority_id.ilike(ident),
+                HigherAuthorityProfile.authority_name.ilike(ident),
+                User.email.ilike(ident),
+                User.full_name.ilike(ident),
+            )
+        )
     else:
         return None
     return db.scalars(stmt).first()
@@ -236,6 +245,15 @@ def create_user(db: Session, data: UserCreate) -> User:
             permission_level="SUPER_ADMIN",
         )
         db.add(adm)
+    elif role_str == UserRole.HIGHER_AUTHORITY.value:
+        auth_name = (data.authority_name or data.department or "Higher Authority").strip()
+        auth = HigherAuthorityProfile(
+            user_id=user.id,
+            authority_id=(data.authority_id or data.employee_id or (f"AUTH-{user.id:04d}" if user.id else "AUTH-001")).strip(),
+            authority_name=auth_name,
+            designation=(data.role_designation or auth_name).strip(),
+        )
+        db.add(auth)
 
     db.commit()
     db.refresh(user)
@@ -249,12 +267,12 @@ def register_user(db: Session, data: UserRegisterRequest, strict_mode: bool = Tr
 
     role_key = data.account_type.strip().upper()
     if strict_mode:
-        valid_account_types = (UserRole.STUDENT.value, UserRole.EMPLOYEE.value, UserRole.PROFESSOR.value, UserRole.ADMIN.value)
+        valid_account_types = (UserRole.STUDENT.value, UserRole.EMPLOYEE.value, UserRole.PROFESSOR.value, UserRole.ADMIN.value, UserRole.HIGHER_AUTHORITY.value)
     else:
-        valid_account_types = (UserRole.STUDENT.value, UserRole.EMPLOYEE.value, UserRole.ADMIN.value)
+        valid_account_types = (UserRole.STUDENT.value, UserRole.EMPLOYEE.value, UserRole.ADMIN.value, UserRole.HIGHER_AUTHORITY.value)
 
     if role_key not in valid_account_types:
-        raise ValueError("Please select a valid account type (Student, Employee, or Admin).")
+        raise ValueError("Please select a valid account type (Student, Employee, Admin, or Higher Authority).")
 
     if not data.full_name or not data.full_name.strip():
         raise ValueError("Please enter your full name.")
@@ -272,6 +290,9 @@ def register_user(db: Session, data: UserRegisterRequest, strict_mode: bool = Tr
             raise ValueError("Invalid Professor ID. Expected format: PROF-XXXX (e.g. PROF-1001)")
         elif role_key == UserRole.ADMIN.value and not ident.upper().startswith("ADMIN-") and ident.upper() != "ADMIN":
             raise ValueError("Invalid Admin ID. Expected format: ADMIN-XXXX (e.g. ADMIN-1001)")
+        elif role_key == UserRole.HIGHER_AUTHORITY.value:
+            if len(ident) < 2:
+                raise ValueError("Please enter a valid Authority ID (e.g. AUTH-1001).")
 
     email_str = str(data.email).strip().lower()
     if not email_str or "@" not in email_str or "." not in email_str.split("@")[-1]:
@@ -320,6 +341,15 @@ def register_user(db: Session, data: UserRegisterRequest, strict_mode: bool = Tr
         final_role_designation = "Admin"
         final_program = None
         final_department = (data.department or "").strip() if (strict_mode and data.department) else None
+
+    elif role_key == UserRole.HIGHER_AUTHORITY.value:
+        effective_role = UserRole.HIGHER_AUTHORITY.value
+        auth_name = (data.authority_name or data.department or "").strip()
+        if not auth_name:
+            raise ValueError("Please select your Designated Higher Authority / Office.")
+        final_role_designation = auth_name
+        final_department = auth_name
+        final_program = None
 
     from app.services.complaint_service import get_campus_names
     valid_campuses = get_campus_names()
@@ -448,6 +478,19 @@ def register_user(db: Session, data: UserRegisterRequest, strict_mode: bool = Tr
         else:
             user.admin_profile.admin_id = ident
             user.admin_profile.designation = final_role_designation or "System Administrator"
+    elif effective_role == UserRole.HIGHER_AUTHORITY.value:
+        if not user.authority_profile:
+            user.authority_profile = HigherAuthorityProfile(
+                user_id=user.id,
+                authority_id=ident,
+                authority_name=final_department or "Higher Authority",
+                designation=final_role_designation or "Higher Authority",
+            )
+            db.add(user.authority_profile)
+        else:
+            user.authority_profile.authority_id = ident
+            user.authority_profile.authority_name = final_department or "Higher Authority"
+            user.authority_profile.designation = final_role_designation or "Higher Authority"
 
     db.commit()
     db.refresh(user)
@@ -686,6 +729,21 @@ def update_user_profile(
             db.add(user.admin_profile)
         else:
             user.admin_profile.admin_id = ident_clean
+    elif role_key == UserRole.HIGHER_AUTHORITY.value:
+        if not user.authority_profile:
+            user.authority_profile = HigherAuthorityProfile(
+                user_id=user.id,
+                authority_id=ident_clean,
+                authority_name=department.strip() if department and department.strip() else (user.department or "Higher Authority"),
+                designation=role_designation.strip() if role_designation and role_designation.strip() else "Higher Authority",
+            )
+            db.add(user.authority_profile)
+        else:
+            user.authority_profile.authority_id = ident_clean
+            if department is not None and department.strip():
+                user.authority_profile.authority_name = department.strip()
+            if role_designation is not None and role_designation.strip():
+                user.authority_profile.designation = role_designation.strip()
 
     new_pw = (new_password or "").strip()
     conf_pw = (confirm_password or "").strip()

@@ -9,13 +9,13 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.orm import Session, contains_eager, selectinload
 
 from app.core.config import Settings, get_settings
 from app.core.exceptions import ComplaintNotFound, ComplaintValidationError
 from app.models.analysis import ComplaintAnalysis
 from app.models.complaint import Complaint
-from app.models.enums import FINISHED_STATUSES, OPEN_STATUSES, AnalysisStatus, ComplaintStatus, Priority
+from app.models.enums import FINISHED_STATUSES, OPEN_STATUSES, AnalysisStatus, ComplaintStatus, Priority, UserRole
 from app.models.user import User
 from app.schemas.complaint import (AssignmentUpdate, ComplaintCreate, ComplaintUpdate, DashboardStats,
                                    ResponseUpdate, StatusUpdate, StudentDashboardStats, StudentTimelineItem)
@@ -26,7 +26,8 @@ from app.services.history_service import add_history
 from app.services.routing_service import get_routing_service
 from app.models.assignment import ComplaintAssignment
 from app.models.campus import DepartmentRecord
-from app.models.feedback import ResolutionFeedback
+from app.models.clarification import ComplaintClarification
+from app.models.feedback import ComplaintFeedback, ResolutionFeedback
 from app.models.forwarding import ComplaintForwarding
 from app.services.notification_service import NotificationService
 from app.utils.text import assess_text_quality, truncate
@@ -786,7 +787,11 @@ def record_resolution_feedback(
 ) -> ResolutionFeedback:
     """Record student confirmation or dispute regarding complaint resolution."""
     c = get_complaint(db, complaint_id)
-    is_owner = (c.user_id == user.id) or (user.student_id and c.student_id == user.student_id)
+    is_owner = (
+        (c.user_id == user.id)
+        or (user.student_id and c.student_id == user.student_id)
+        or (c.email and user.email and c.email.strip().lower() == user.email.strip().lower())
+    )
     if not is_owner:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
@@ -813,7 +818,26 @@ def record_resolution_feedback(
 
     if is_resolved:
         c.status = ComplaintStatus.CLOSED.value
-        add_history(db, c.id, "Student confirmed resolution (Closed)", ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION.value, feedback_remarks or "Resolved", user.full_name)
+        rating_info = f" (CSAT Rating: {satisfaction_rating}/5 stars)" if satisfaction_rating else ""
+        add_history(db, c.id, f"Student confirmed resolution{rating_info} (Closed)", ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION.value, feedback_remarks or "Resolved", user.full_name)
+        # Notify admin of satisfied resolution
+        try:
+            from app.services.notification_service import NotificationService
+            from app.models.enums import UserRole
+            campus_admin = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+            if campus_admin:
+                NotificationService.create_in_app_notification(
+                    db,
+                    recipient_user_id=campus_admin.id,
+                    recipient_email=campus_admin.email,
+                    recipient_name=campus_admin.full_name,
+                    subject=f"Resolution Confirmed: Complaint #{c.complaint_number}",
+                    body_preview=f"Student rated {satisfaction_rating or 5}/5 stars. Feedback: \"{(feedback_remarks or 'Issue resolved satisfactorily')[:120]}\"",
+                    link=f"/admin/complaints/{c.id}",
+                    notification_type="RESOLUTION_CONFIRMED",
+                )
+        except Exception as n_err:
+            logger.warning("Could not dispatch confirmation notification: %s", n_err)
     else:
         c.status = ComplaintStatus.REOPENED.value
         fb.reopened_review_status = "PENDING_ADMIN_REVIEW"
@@ -870,6 +894,31 @@ def forward_complaint(
     db.commit()
     db.refresh(fwd)
     logger.info("Complaint %s forwarded to %s", c.complaint_number, receiving_authority)
+
+    # Feature 4: In-App notification dispatched to Higher Authority users
+    try:
+        from app.models.notification import Notification
+        from app.models.enums import DeliveryStatus
+        from app.models.user import UserRole
+        auth_users = db.query(User).filter(User.role == UserRole.HIGHER_AUTHORITY.value).all()
+        for au in auth_users:
+            db.add(Notification(
+                recipient_user_id=au.id,
+                recipient_email=au.email,
+                recipient_name=au.full_name or "Higher Authority",
+                related_complaint_id=c.id,
+                notification_type="FORWARDED_TO_AUTHORITY",
+                subject=f"New Escalation: Complaint #{c.complaint_number}",
+                body_preview=f"Forwarded by {admin_user.full_name} ({sender_authority}) to {receiving_authority}. Reason: {forwarding_reason[:120]}",
+                link=f"/authority/complaints/{c.id}",
+                delivery_status=DeliveryStatus.SENT.value,
+                sent_at=utcnow(),
+                created_at=utcnow(),
+            ))
+        db.commit()
+    except Exception as exc:
+        logger.warning("Could not dispatch authority forwarding notification: %s", exc)
+
     return fwd
 
 
@@ -1005,3 +1054,485 @@ def get_all_department_handlers_map(db: Session, campus: Optional[str] = None) -
         for u in all_staff
     ]
     return result
+
+
+def get_escalation_authorities() -> list[dict[str, Any]]:
+    """Load authorized higher authorities from config."""
+    from app.core.config import load_json_config
+    data = load_json_config("escalation_authorities")
+    if isinstance(data, dict):
+        return data.get("authorities", [])
+    return []
+
+
+def get_authority_forwarded_complaints(
+    db: Session,
+    authority_name: Optional[str] = None,
+    campus: Optional[str] = None,
+    status: Optional[str] = None,
+    priority: Optional[str] = None,
+    q: Optional[str] = None,
+) -> list[Complaint]:
+    """Retrieve complaints forwarded to a designated higher authority with multi-campus filtering."""
+    stmt = (
+        select(Complaint)
+        .join(ComplaintForwarding, Complaint.id == ComplaintForwarding.complaint_id)
+        .where(Complaint.is_deleted.is_(False))
+    )
+
+    if authority_name and authority_name.strip() and authority_name.strip().lower() != "all":
+        auth_clean = authority_name.strip().lower()
+        keywords = [k for k in auth_clean.replace("office", "").replace("secretariat", "").replace("directorate", "").split() if len(k) > 2]
+        auth_conds = [
+            ComplaintForwarding.receiving_authority.ilike(f"%{auth_clean}%"),
+            ComplaintForwarding.receiving_authority.ilike(f"{auth_clean}"),
+        ]
+        for kw in keywords:
+            auth_conds.append(ComplaintForwarding.receiving_authority.ilike(f"%{kw}%"))
+        stmt = stmt.where(or_(*auth_conds))
+
+    if campus and campus.strip() and campus.strip().lower() not in ("all", "all campuses"):
+        cmp_clean = campus.strip()
+        cmp_prefix = cmp_clean.split(",")[0].strip()
+        stmt = stmt.where(
+            or_(
+                Complaint.originating_campus.ilike(f"%{cmp_prefix}%"),
+                Complaint.target_campus.ilike(f"%{cmp_prefix}%"),
+                ComplaintForwarding.sender_authority.ilike(f"%{cmp_prefix}%"),
+            )
+        )
+
+    if status and status.strip() and status.strip().lower() not in ("all", "any"):
+        st_clean = status.strip().upper()
+        if st_clean == "PENDING":
+            stmt = stmt.where(
+                or_(
+                    Complaint.status.in_([ComplaintStatus.NEW.value, ComplaintStatus.PENDING.value]),
+                    ComplaintForwarding.response_status == "PENDING",
+                )
+            )
+        elif st_clean == "RESOLVED":
+            stmt = stmt.where(
+                or_(
+                    Complaint.status.in_([ComplaintStatus.RESOLVED.value, ComplaintStatus.CLOSED.value, ComplaintStatus.RESOLVED_AWAITING_CONFIRMATION.value]),
+                    ComplaintForwarding.response_status == "RESOLVED",
+                )
+            )
+        elif st_clean == "IN_PROGRESS":
+            stmt = stmt.where(
+                or_(
+                    Complaint.status.in_([ComplaintStatus.IN_PROGRESS.value, ComplaintStatus.ASSIGNED.value, ComplaintStatus.UNDER_REVIEW.value]),
+                    ComplaintForwarding.response_status == "IN_PROGRESS",
+                )
+            )
+        elif st_clean == "FORWARDED":
+            stmt = stmt.where(ComplaintForwarding.id.is_not(None))
+        else:
+            stmt = stmt.where(Complaint.status.ilike(st_clean))
+
+    if priority and priority.strip() and priority.strip().lower() not in ("all", "any"):
+        p_clean = priority.strip().upper()
+        stmt = stmt.where(
+            or_(
+                ComplaintForwarding.priority.ilike(p_clean),
+                Complaint.analysis.has(ComplaintAnalysis.priority == p_clean),
+            )
+        )
+
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Complaint.complaint_number.ilike(term),
+                Complaint.student_name.ilike(term),
+                Complaint.title.ilike(term),
+                Complaint.complaint_text.ilike(term),
+                ComplaintForwarding.forwarding_reason.ilike(term),
+            )
+        )
+
+    stmt = stmt.options(selectinload(Complaint.forwardings), selectinload(Complaint.analysis))
+    stmt = stmt.order_by(Complaint.id.desc()).distinct()
+    complaints = list(db.scalars(stmt).all())
+
+    from app.utils.time import utcnow
+    def _latest_fwd_date(comp: Complaint):
+        dates = [f.forwarded_at for f in comp.forwardings if f.forwarded_at]
+        return max(dates) if dates else (comp.created_at or utcnow())
+
+    complaints.sort(key=_latest_fwd_date, reverse=True)
+    return complaints
+
+
+def get_authority_campus_breakdown(
+    db: Session,
+    authority_name: Optional[str] = None,
+) -> tuple[list[dict[str, Any]], Optional[dict[str, Any]], dict[str, int]]:
+    """Generate campus-wise complaint metrics and identify top forwarding campus."""
+    all_complaints = get_authority_forwarded_complaints(db, authority_name=authority_name)
+    campuses = get_campus_names()
+
+    campus_stats: list[dict[str, Any]] = []
+    overall_counts = {"total": 0, "pending": 0, "in_progress": 0, "resolved": 0, "forwarded": 0}
+
+    for camp in campuses:
+        camp_short = camp.split(",")[0].strip()
+        matched = [
+            c for c in all_complaints
+            if (c.originating_campus and camp_short.lower() in c.originating_campus.lower())
+            or (c.target_campus and camp_short.lower() in c.target_campus.lower())
+            or any(f.sender_authority and camp_short.lower() in f.sender_authority.lower() for f in c.forwardings)
+        ]
+        
+        c_total = len(matched)
+        c_pending = sum(1 for c in matched if c.status in ("NEW", "PENDING") or any(f.response_status == "PENDING" for f in c.forwardings))
+        c_resolved = sum(1 for c in matched if c.status in ("RESOLVED", "CLOSED", "RESOLVED_AWAITING_CONFIRMATION"))
+        c_in_progress = sum(1 for c in matched if c.status in ("IN_PROGRESS", "ASSIGNED", "UNDER_REVIEW"))
+        c_forwarded = sum(1 for c in matched if len(c.forwardings) > 1)
+
+        campus_stats.append({
+            "campus": camp,
+            "campus_short": camp_short,
+            "total": c_total,
+            "pending": c_pending,
+            "in_progress": c_in_progress,
+            "resolved": c_resolved,
+            "forwarded": c_forwarded,
+        })
+
+    overall_counts["total"] = len(all_complaints)
+    overall_counts["pending"] = sum(1 for c in all_complaints if c.status in ("NEW", "PENDING") or any(f.response_status == "PENDING" for f in c.forwardings))
+    overall_counts["resolved"] = sum(1 for c in all_complaints if c.status in ("RESOLVED", "CLOSED", "RESOLVED_AWAITING_CONFIRMATION"))
+    overall_counts["in_progress"] = sum(1 for c in all_complaints if c.status in ("IN_PROGRESS", "ASSIGNED", "UNDER_REVIEW"))
+    overall_counts["forwarded"] = sum(1 for c in all_complaints if len(c.forwardings) > 1)
+
+    sorted_campuses = sorted(campus_stats, key=lambda x: x["total"], reverse=True)
+    top_campus = sorted_campuses[0] if (sorted_campuses and sorted_campuses[0]["total"] > 0) else None
+
+    return campus_stats, top_campus, overall_counts
+
+
+def update_authority_complaint(
+    db: Session,
+    complaint_id: int,
+    authority_user: User,
+    new_status: str,
+    remarks: Optional[str] = None,
+) -> Complaint:
+    """Update complaint status and record authority remarks reflected in student and admin tracking."""
+    c = get_complaint(db, complaint_id)
+    c.status = new_status
+    authority_title = authority_user.authority_name or authority_user.role_designation or "Higher Authority"
+
+    if c.forwardings:
+        matching_fwd = None
+        for f in reversed(c.forwardings):
+            if not matching_fwd:
+                matching_fwd = f
+            if authority_user.authority_name and authority_user.authority_name.lower() in f.receiving_authority.lower():
+                matching_fwd = f
+                break
+        if matching_fwd:
+            matching_fwd.response_status = new_status
+            if remarks:
+                matching_fwd.response_remarks = remarks.strip()
+            matching_fwd.responded_at = utcnow()
+
+    if remarks:
+        existing_notes = c.internal_notes or ""
+        note_entry = f"[{utcnow().strftime('%Y-%m-%d %H:%M')}] {authority_title} ({authority_user.full_name}): {remarks.strip()}"
+        c.internal_notes = f"{existing_notes}\n{note_entry}".strip()
+
+    action_text = f"Status updated to {new_status} by {authority_title}"
+    if new_status == ComplaintStatus.RESOLVED.value:
+        action_text = f"Complaint resolved by {authority_title}"
+
+    add_history(
+        db,
+        c.id,
+        action_text,
+        authority_title,
+        authority_title,
+        authority_user.full_name,
+    )
+    db.commit()
+    db.refresh(c)
+    logger.info("Complaint %s updated to %s by %s", c.complaint_number, new_status, authority_title)
+    return c
+
+
+def forward_authority_complaint_to_another(
+    db: Session,
+    complaint_id: int,
+    from_authority_user: User,
+    receiving_authority: str,
+    forwarding_reason: str,
+    admin_remarks: Optional[str] = None,
+) -> ComplaintForwarding:
+    """Higher authority escalates or redirects a complaint to another university authority."""
+    c = get_complaint(db, complaint_id)
+    sender_title = from_authority_user.authority_name or from_authority_user.role_designation or "Higher Authority"
+    category = c.analysis.category if c.analysis else "General"
+    priority = c.analysis.priority if c.analysis else "MEDIUM"
+
+    fwd = ComplaintForwarding(
+        complaint_id=c.id,
+        forwarded_by_id=from_authority_user.id,
+        forwarded_by_name=from_authority_user.full_name,
+        sender_authority=sender_title,
+        receiving_authority=receiving_authority,
+        forwarding_reason=forwarding_reason,
+        admin_remarks=admin_remarks,
+        category=category,
+        priority=priority,
+        forwarded_at=utcnow(),
+        response_status="PENDING",
+    )
+    db.add(fwd)
+    c.status = ComplaintStatus.IN_PROGRESS.value
+
+    add_history(
+        db,
+        c.id,
+        f"Complaint re-escalated from {sender_title} to {receiving_authority}",
+        sender_title,
+        receiving_authority,
+        from_authority_user.full_name,
+    )
+    db.commit()
+    db.refresh(fwd)
+    logger.info("Complaint %s re-escalated from %s to %s", c.complaint_number, sender_title, receiving_authority)
+    return fwd
+
+
+def compute_sla_info(c: Complaint, a: Optional[ComplaintAnalysis] = None) -> dict:
+    """Calculate SLA deadlines, breach status, and remaining hours based on priority."""
+    now = utcnow()
+    priority = (a and a.priority) or "MEDIUM"
+    sla_map = {"CRITICAL": 12, "HIGH": 24, "MEDIUM": 48, "LOW": 72}
+    total_hours = sla_map.get(priority, 48)
+
+    created = c.created_at or now
+    elapsed_hours = max(0.0, (now - created).total_seconds() / 3600.0)
+    remaining_hours = total_hours - elapsed_hours
+
+    is_resolved = c.status in (ComplaintStatus.RESOLVED.value, ComplaintStatus.CLOSED.value)
+    is_breached = remaining_hours < 0 and not is_resolved
+
+    badge_text = "SLA Met" if is_resolved else (f"Breached by {int(abs(remaining_hours))}h" if is_breached else f"{int(remaining_hours)}h left")
+    badge_class = "bg-success" if is_resolved else ("bg-danger" if is_breached else ("bg-warning text-dark" if remaining_hours <= 12 else "bg-primary-subtle text-primary border"))
+
+    return {
+        "priority": priority,
+        "total_hours": total_hours,
+        "elapsed_hours": round(elapsed_hours, 1),
+        "remaining_hours": round(remaining_hours, 1),
+        "is_breached": is_breached,
+        "is_resolved": is_resolved,
+        "badge_class": badge_class,
+        "badge_text": badge_text,
+    }
+
+
+def export_complaints_csv(complaints: list[Complaint]) -> str:
+    """Format complaints as an RFC 4180 CSV spreadsheet string."""
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "Complaint ID",
+        "Title",
+        "Student Name",
+        "Student ID",
+        "Confidential",
+        "Campus",
+        "Category",
+        "Priority",
+        "Status",
+        "Assigned Department",
+        "SLA Status",
+        "Created At",
+        "Updated At",
+    ])
+    for c in complaints:
+        sla = compute_sla_info(c, c.analysis)
+        cat = c.analysis.category if c.analysis else "General"
+        prio = c.analysis.priority if c.analysis else "MEDIUM"
+        dept = c.analysis.assigned_department if c.analysis else "Unassigned"
+        s_name = "[Confidential]" if c.is_confidential else c.student_name
+        s_code = "[Hidden]" if c.is_confidential else (c.student_id_code or "")
+        writer.writerow([
+            c.complaint_number,
+            c.title,
+            s_name,
+            s_code,
+            "Yes" if c.is_confidential else "No",
+            c.originating_campus or c.target_campus or "",
+            cat,
+            prio,
+            c.status,
+            dept,
+            sla["badge_text"],
+            c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "",
+            c.updated_at.strftime("%Y-%m-%d %H:%M") if c.updated_at else "",
+        ])
+    return output.getvalue()
+
+
+def add_complaint_clarification(
+    db: Session,
+    complaint_id: int,
+    sender_user: User,
+    message: str,
+) -> ComplaintClarification:
+    """Send two-way message between student and staff. Strictly blocks confidential complaints."""
+    c = get_complaint(db, complaint_id)
+    if c.is_confidential and sender_user.role == UserRole.STUDENT.value:
+        raise ValueError("Two-way communication is disabled for confidential complaints to protect student identity.")
+
+    if not message or not message.strip():
+        raise ValueError("Message cannot be empty.")
+
+    sender_title = sender_user.role_designation or sender_user.role
+    if sender_user.role == UserRole.HIGHER_AUTHORITY.value:
+        sender_title = sender_user.authority_name or "Higher Authority"
+
+    clarif = ComplaintClarification(
+        complaint_id=c.id,
+        sender_id=sender_user.id,
+        sender_name=sender_user.full_name,
+        sender_role=sender_title,
+        message=message.strip(),
+        created_at=utcnow(),
+    )
+    db.add(clarif)
+
+    # Log to status history
+    add_history(
+        db,
+        c.id,
+        f"Clarification message from {sender_title} ({sender_user.full_name})",
+        None,
+        None,
+        sender_user.full_name,
+    )
+    db.commit()
+    db.refresh(clarif)
+
+    # Dispatch in-app notifications
+    try:
+        from app.services.notification_service import NotificationService
+        if sender_user.role == UserRole.STUDENT.value:
+            admin_u = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+            if admin_u:
+                NotificationService.create_in_app_notification(
+                    db,
+                    recipient_user_id=admin_u.id,
+                    recipient_email=admin_u.email,
+                    recipient_name=admin_u.full_name,
+                    subject=f"Clarification from Student: Complaint #{c.complaint_number}",
+                    body_preview=f"{sender_user.full_name}: {message[:120]}",
+                    link=f"/admin/complaints/{c.id}",
+                    notification_type="CLARIFICATION",
+                )
+        elif sender_user.role == UserRole.EMPLOYEE.value:
+            admin_u = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+            if admin_u:
+                NotificationService.create_in_app_notification(
+                    db,
+                    recipient_user_id=admin_u.id,
+                    recipient_email=admin_u.email,
+                    recipient_name=admin_u.full_name,
+                    subject=f"Staff Collaboration Note: Complaint #{c.complaint_number}",
+                    body_preview=f"{sender_user.full_name} ({sender_title}): {message[:120]}",
+                    link=f"/admin/complaints/{c.id}",
+                    notification_type="CLARIFICATION",
+                )
+        elif sender_user.role == UserRole.HIGHER_AUTHORITY.value:
+            admin_u = db.query(User).filter(User.role == UserRole.ADMIN.value).first()
+            if admin_u:
+                NotificationService.create_in_app_notification(
+                    db,
+                    recipient_user_id=admin_u.id,
+                    recipient_email=admin_u.email,
+                    recipient_name=admin_u.full_name,
+                    subject=f"Authority Direct Note: Complaint #{c.complaint_number}",
+                    body_preview=f"{sender_title}: {message[:120]}",
+                    link=f"/admin/complaints/{c.id}",
+                    notification_type="CLARIFICATION",
+                )
+        elif sender_user.role == UserRole.ADMIN.value:
+            if not c.is_confidential:
+                stu = None
+                if c.user_id:
+                    stu = db.get(User, c.user_id)
+                if not stu and c.email:
+                    stu = db.query(User).filter(User.email == c.email).first()
+                if stu:
+                    NotificationService.create_in_app_notification(
+                        db,
+                        recipient_user_id=stu.id,
+                        recipient_email=stu.email,
+                        recipient_name=stu.full_name,
+                        subject=f"Message from Admin: Complaint #{c.complaint_number}",
+                        body_preview=f"Administration: {message[:120]}",
+                        link=f"/student/complaints/{c.id}",
+                        notification_type="CLARIFICATION",
+                    )
+    except Exception as notif_exc:
+        logger.warning("Could not dispatch clarification notification: %s", notif_exc)
+
+    return clarif
+
+
+def submit_complaint_feedback(
+    db: Session,
+    complaint_id: int,
+    student_user: User,
+    rating: int,
+    remarks: Optional[str] = None,
+) -> ComplaintFeedback:
+    """Submit post-resolution student satisfaction rating (CSAT: 1-5 stars) and close case."""
+    c = get_complaint(db, complaint_id)
+
+    fb = db.query(ComplaintFeedback).filter(ComplaintFeedback.complaint_id == c.id).first()
+    if not fb:
+        fb = ComplaintFeedback(
+            complaint_id=c.id,
+            student_id=student_user.id,
+            is_resolved=True,
+            satisfaction_rating=rating,
+            feedback_remarks=remarks.strip() if remarks else None,
+            confirmed_at=utcnow(),
+        )
+        db.add(fb)
+    else:
+        fb.satisfaction_rating = rating
+        fb.feedback_remarks = remarks.strip() if remarks else None
+        fb.confirmed_at = utcnow()
+
+    c.status = ComplaintStatus.CLOSED.value
+    add_history(
+        db,
+        c.id,
+        f"Student submitted satisfaction rating: {rating}/5 stars - Resolution confirmed and closed.",
+        c.status,
+        ComplaintStatus.CLOSED.value,
+        student_user.full_name,
+    )
+    db.commit()
+    db.refresh(fb)
+    return fb
+
+
+def get_department_csat_summary(db: Session) -> dict:
+    """Compute overall CSAT rating and breakdown across complaints."""
+    fbs = db.query(ComplaintFeedback).filter(ComplaintFeedback.satisfaction_rating.isnot(None)).all()
+    if not fbs:
+        return {"average": 5.0, "total_reviews": 0, "distribution": {5: 0, 4: 0, 3: 0, 2: 0, 1: 0}}
+    ratings = [f.satisfaction_rating for f in fbs if f.satisfaction_rating]
+    avg = round(sum(ratings) / len(ratings), 1) if ratings else 5.0
+    dist = {i: ratings.count(i) for i in range(1, 6)}
+    return {"average": avg, "total_reviews": len(ratings), "distribution": dist}
+

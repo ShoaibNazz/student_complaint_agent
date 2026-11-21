@@ -52,12 +52,15 @@ class NotificationService:
         )
 
         notif = EmailNotification(
+            recipient_user_id=complaint.user_id,
             recipient_email=recipient_email or "no-email-provided@portal",
             recipient_name=recipient_name,
             related_complaint_id=complaint.id,
             notification_type=NotificationType.COMPLAINT_ASSIGNED.value,
             subject=subject,
             body_preview=body[:500],
+            link=f"/student/complaints/{complaint.id}",
+            is_read=False,
             delivery_status=DeliveryStatus.QUEUED.value,
             created_at=utcnow(),
         )
@@ -115,12 +118,15 @@ class NotificationService:
         )
 
         notif = EmailNotification(
+            recipient_user_id=complaint.user_id,
             recipient_email=recipient_email or "no-email@portal",
             recipient_name=recipient_name,
             related_complaint_id=complaint.id,
             notification_type=NotificationType.RESOLUTION_AWAITING_CONFIRMATION.value,
             subject=subject,
             body_preview=body[:500],
+            link=f"/student/complaints/{complaint.id}",
+            is_read=False,
             delivery_status=DeliveryStatus.SENT.value,
             sent_at=utcnow(),
         )
@@ -161,18 +167,54 @@ class NotificationService:
         )
 
         notif = EmailNotification(
+            recipient_user_id=campus_admin.id if campus_admin else None,
             recipient_email=recipient_email,
             recipient_name="Campus Administrator",
             related_complaint_id=complaint.id,
             notification_type=NotificationType.COMPLAINT_REOPENED.value,
             subject=subject,
             body_preview=body[:500],
+            link=f"/admin/complaints/{complaint.id}",
+            is_read=False,
             delivery_status=DeliveryStatus.SENT.value,
             sent_at=utcnow(),
         )
         db.add(notif)
         db.commit()
         logger.info("Administrator notified regarding unresolved complaint %s to %s", complaint.complaint_number, recipient_email)
+        return notif
+
+    @staticmethod
+    def create_in_app_notification(
+        db: Session,
+        recipient_email: str,
+        recipient_name: str,
+        subject: str,
+        body_preview: str,
+        notification_type: str = "GENERAL",
+        recipient_user_id: Optional[int] = None,
+        related_complaint_id: Optional[int] = None,
+        related_request_id: Optional[int] = None,
+        link: Optional[str] = None,
+    ) -> EmailNotification:
+        """Helper to create and dispatch an in-app dropdown notification."""
+        notif = EmailNotification(
+            recipient_user_id=recipient_user_id,
+            recipient_email=recipient_email or "no-email@portal",
+            recipient_name=recipient_name or "User",
+            related_complaint_id=related_complaint_id,
+            related_request_id=related_request_id,
+            notification_type=notification_type,
+            subject=subject,
+            body_preview=body_preview[:500],
+            link=link,
+            is_read=False,
+            delivery_status=DeliveryStatus.SENT.value,
+            sent_at=utcnow(),
+            created_at=utcnow(),
+        )
+        db.add(notif)
+        db.commit()
         return notif
 
     @staticmethod

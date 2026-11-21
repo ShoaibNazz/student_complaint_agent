@@ -2,6 +2,7 @@ from app.models.analysis import ComplaintAnalysis
 from app.models.assignment import ComplaintAssignment
 from app.models.audit import AuditLog
 from app.models.campus import Campus, DepartmentRecord, department_campuses
+from app.models.clarification import ComplaintClarification
 from app.models.complaint import Complaint
 from app.models.enums import (
     AnalysisStatus,
@@ -21,7 +22,7 @@ from app.models.forwarding import ComplaintForwarding
 from app.models.history import ComplaintHistory, ComplaintStatusHistory
 from app.models.notification import EmailNotification, Notification
 from app.models.request import EmployeeRequest, RequestApproval
-from app.models.user import Admin, Employee, Student, UniversityDirectory, User
+from app.models.user import Admin, Employee, HigherAuthorityProfile, Student, UniversityDirectory, User
 
 __all__ = [
     "Campus",
@@ -33,6 +34,7 @@ __all__ = [
     "ComplaintHistory",
     "ComplaintAssignment",
     "ComplaintForwarding",
+    "ComplaintClarification",
     "ComplaintFeedback",
     "ResolutionFeedback",
     "EmployeeRequest",
@@ -51,6 +53,7 @@ __all__ = [
     "Student",
     "Employee",
     "Admin",
+    "HigherAuthorityProfile",
     "UniversityDirectory",
     "UserRole",
     "VALID_STATUS_TRANSITIONS",

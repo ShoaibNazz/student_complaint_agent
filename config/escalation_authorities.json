@@ -25,6 +25,12 @@
       "description": "Handles student welfare, harassment inquiries, hostel disputes, and disciplinary matters."
     },
     {
+      "id": "pro_vc",
+      "name": "Pro-Vice Chancellor Office",
+      "scope": "Executive Level",
+      "description": "Executive academic and administrative authority assisting the Vice Chancellor."
+    },
+    {
       "id": "treasurer",
       "name": "Treasurer / Fee Section",
       "scope": "University Level",

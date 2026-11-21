@@ -29,6 +29,7 @@ from app.services.routing_service import get_routing_service
 router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
 templates.env.filters["dt"] = lambda v: v.strftime("%Y-%m-%d %H:%M") if v else ""
+templates.env.globals["compute_sla_info"] = svc.compute_sla_info
 
 
 def _admin_ctx(db: Optional[Session] = None) -> dict:
@@ -66,6 +67,9 @@ def _require_web_role(request: Request, db: Session, expected_role: str) -> tupl
         return None, RedirectResponse(f"/login?next={request.url.path}", status_code=303)
 
     if user.role != expected_role:
+        # Allow Admin to view Higher Authority pages if needed
+        if expected_role == UserRole.HIGHER_AUTHORITY.value and user.role == UserRole.ADMIN.value:
+            return user, None
         if user.role == UserRole.STUDENT.value:
             return None, RedirectResponse("/student/dashboard", status_code=303)
         elif user.role == UserRole.EMPLOYEE.value:
@@ -74,6 +78,8 @@ def _require_web_role(request: Request, db: Session, expected_role: str) -> tupl
             return None, RedirectResponse("/professor/dashboard", status_code=303)
         elif user.role == UserRole.ADMIN.value:
             return None, RedirectResponse("/admin/dashboard", status_code=303)
+        elif user.role == UserRole.HIGHER_AUTHORITY.value:
+            return None, RedirectResponse("/authority/dashboard", status_code=303)
 
     return user, None
 
@@ -91,11 +97,13 @@ def home(request: Request, db: Session = Depends(get_db)):
             return RedirectResponse("/professor/dashboard", status_code=303)
         elif user.role == UserRole.ADMIN.value:
             return RedirectResponse("/admin/dashboard", status_code=303)
+        elif user.role == UserRole.HIGHER_AUTHORITY.value:
+            return RedirectResponse("/authority/dashboard", status_code=303)
     return RedirectResponse("/login", status_code=303)
 
 
 def _auth_ctx(**overrides) -> dict:
-    from app.services.complaint_service import get_campus_names
+    from app.services.complaint_service import get_campus_names, get_escalation_authorities
     from app.services.user_service import DEGREE_PROGRAMS, EMPLOYEE_ROLES
     ctx = {
         "current_user": None,
@@ -110,6 +118,7 @@ def _auth_ctx(**overrides) -> dict:
         "departments": get_routing_service().department_names,
         "degree_programs": DEGREE_PROGRAMS,
         "employee_roles": EMPLOYEE_ROLES,
+        "higher_authorities": get_escalation_authorities(),
     }
     ctx.update(overrides)
     return ctx
@@ -146,6 +155,8 @@ def login_page(request: Request, db: Session = Depends(get_db)):
             return RedirectResponse("/professor/dashboard", status_code=303)
         elif user.role == UserRole.ADMIN.value:
             return RedirectResponse("/admin/dashboard", status_code=303)
+        elif user.role == UserRole.HIGHER_AUTHORITY.value:
+            return RedirectResponse("/authority/dashboard", status_code=303)
 
     return templates.TemplateResponse(request, "login.html", _auth_ctx(active_tab="login"))
 
@@ -162,6 +173,8 @@ def register_page(request: Request, db: Session = Depends(get_db)):
             return RedirectResponse("/professor/dashboard", status_code=303)
         elif user.role == UserRole.ADMIN.value:
             return RedirectResponse("/admin/dashboard", status_code=303)
+        elif user.role == UserRole.HIGHER_AUTHORITY.value:
+            return RedirectResponse("/authority/dashboard", status_code=303)
 
     return templates.TemplateResponse(request, "login.html", _auth_ctx(active_tab="register"))
 
@@ -267,6 +280,8 @@ def handle_login(
         target_url = "/professor/dashboard"
     elif user.role == UserRole.ADMIN.value:
         target_url = "/admin/dashboard"
+    elif user.role == UserRole.HIGHER_AUTHORITY.value:
+        target_url = "/authority/dashboard"
 
     resp = RedirectResponse(target_url, status_code=303)
     resp.set_cookie(
@@ -291,6 +306,7 @@ def handle_register(
     password: str = Form(""),
     confirm_password: str = Form(""),
     department: str = Form(""),
+    authority_name: str = Form(""),
     program: str = Form(""),
     admin_code: str = Form(""),
     db: Session = Depends(get_db),
@@ -304,6 +320,7 @@ def handle_register(
 
     clean_role_designation = (role_designation or "").strip()
     clean_department = (department or "").strip()
+    clean_authority = (authority_name or "").strip()
     clean_program = (program or "").strip()
     clean_campus = (campus or "").strip()
 
@@ -316,6 +333,11 @@ def handle_register(
         clean_department = ""
     elif acc_upper == UserRole.EMPLOYEE.value:
         clean_program = ""
+    elif acc_upper == UserRole.HIGHER_AUTHORITY.value:
+        clean_auth_target = clean_authority or clean_department
+        clean_role_designation = clean_auth_target or "Higher Authority"
+        clean_department = clean_auth_target
+        clean_program = ""
 
     confirm_pwd = (confirm_password or "").strip()
 
@@ -327,6 +349,7 @@ def handle_register(
         campus=clean_campus,
         role_designation=clean_role_designation,
         department=clean_department,
+        authority_name=clean_department,
         program=clean_program,
         admin_code=admin_code,
     )
@@ -397,6 +420,7 @@ def handle_register(
             password=password,
             confirm_password=confirm_pwd,
             campus=clean_campus,
+            authority_name=clean_department or None,
             department=clean_department or None,
             program=clean_program or None,
             role_designation=clean_role_designation or None,
@@ -1526,6 +1550,8 @@ def global_profile_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/professor/profile", status_code=303)
     elif user.role == UserRole.ADMIN.value:
         return RedirectResponse("/admin/profile", status_code=303)
+    elif user.role == UserRole.HIGHER_AUTHORITY.value:
+        return RedirectResponse("/authority/profile", status_code=303)
     return RedirectResponse("/", status_code=303)
 
 
@@ -1534,6 +1560,7 @@ def global_profile_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/employee/profile")
 @router.post("/professor/profile")
 @router.post("/admin/profile")
+@router.post("/authority/profile")
 def profile_update_submit(
     request: Request,
     full_name: str = Form(""),
@@ -1559,6 +1586,8 @@ def profile_update_submit(
         profile_path = "/employee/profile"
     elif user.role == UserRole.PROFESSOR.value:
         profile_path = "/professor/profile"
+    elif user.role == UserRole.HIGHER_AUTHORITY.value:
+        profile_path = "/authority/profile"
     else:
         profile_path = "/admin/profile"
 
@@ -1674,6 +1703,42 @@ def admin_api_handlers(
             for h in handlers
         ],
     }
+
+
+@router.get("/admin/complaints/export")
+def export_admin_complaints(
+    request: Request,
+    campus: str = "",
+    status: str = "",
+    priority: str = "",
+    category: str = "",
+    q: str = "",
+    db: Session = Depends(get_db),
+):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    from app.services.complaint_service import export_complaints_csv
+    try:
+        f = svc.ComplaintFilters(
+            q=q or None,
+            priority=Priority.parse(priority) if priority else None,
+            category=category or None,
+            campus=campus or None,
+            status=status or None,
+            sort="priority",
+            limit=5000,
+        )
+        items, _ = svc.list_complaints(db, f)
+    except Exception:
+        items = []
+    csv_data = export_complaints_csv(items)
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ue_admin_complaints.csv"},
+    )
 
 
 @router.get("/admin/complaints/{cid}")
@@ -1824,7 +1889,7 @@ def student_feedback_submit(
     request: Request,
     is_resolved: str = Form("1"),
     remarks: str = Form(""),
-    rating: Optional[int] = Form(None),
+    rating: Optional[int] = Form(5),
     db: Session = Depends(get_db),
 ):
     student, redirect = _require_web_role(request, db, UserRole.STUDENT.value)
@@ -1832,15 +1897,16 @@ def student_feedback_submit(
         return redirect
 
     resolved_bool = is_resolved in ("1", "true", "True", "yes")
+    final_rating = rating if (resolved_bool and rating and 1 <= rating <= 5) else (5 if resolved_bool else None)
     svc.record_resolution_feedback(
         db,
         complaint_id=cid,
         user=student,
         is_resolved=resolved_bool,
         feedback_remarks=remarks,
-        satisfaction_rating=rating,
+        satisfaction_rating=final_rating,
     )
-    return RedirectResponse(f"/student/complaints/{cid}", status_code=303)
+    return RedirectResponse(f"/student/complaints/{cid}?saved=1", status_code=303)
 
 
 # ---------------- Module 5: Admin Forwarding Endpoint ----------------
@@ -2019,3 +2085,362 @@ def admin_request_detail_page(rid: int, request: Request, db: Session = Depends(
         "employee": admin,
         "req": req,
     })
+
+
+# =====================================================================
+# Higher Authority Module Routes
+# =====================================================================
+@router.get("/authority")
+@router.get("/authority/dashboard")
+def authority_dashboard(
+    request: Request,
+    campus: str = "",
+    status: str = "",
+    priority: str = "",
+    q: str = "",
+    db: Session = Depends(get_db),
+):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    from app.services.complaint_service import (
+        get_authority_forwarded_complaints,
+        get_authority_campus_breakdown,
+        get_campus_names,
+        get_escalation_authorities,
+    )
+
+    auth_name = getattr(user, "authority_name", None) or getattr(user, "department", None)
+    if not auth_name and getattr(user, "role", "") == UserRole.HIGHER_AUTHORITY.value:
+        auth_name = getattr(user, "role_designation", None)
+    if getattr(user, "role", "") == UserRole.ADMIN.value and not getattr(user, "authority_name", None):
+        auth_name = None
+
+    try:
+        complaints = get_authority_forwarded_complaints(
+            db=db,
+            authority_name=auth_name,
+            campus=campus,
+            status=status,
+            priority=priority,
+            q=q,
+        )
+    except Exception as e:
+        logger.error("Error loading forwarded complaints: %s", e)
+        complaints = []
+
+    try:
+        campus_stats, top_campus, overall_counts = get_authority_campus_breakdown(
+            db=db,
+            authority_name=auth_name,
+        )
+    except Exception as e:
+        logger.error("Error generating campus breakdown: %s", e)
+        campus_stats, top_campus, overall_counts = [], None, {"total": len(complaints), "pending": 0, "in_progress": 0, "resolved": 0, "forwarded": 0}
+
+    all_campuses = get_campus_names()
+    authorities = get_escalation_authorities()
+
+    return templates.TemplateResponse(
+        request,
+        "authority_dashboard.html",
+        {
+            "current_user": user,
+            "authority_user": user,
+            "designated_authority": auth_name or "All Authorities (Admin View)",
+            "complaints": complaints,
+            "campus_stats": campus_stats,
+            "top_campus": top_campus,
+            "counts": overall_counts,
+            "campuses": all_campuses,
+            "authorities": authorities,
+            "filters": {
+                "campus": campus,
+                "status": status,
+                "priority": priority,
+                "q": q,
+            },
+            "total": len(complaints),
+        },
+    )
+
+
+@router.get("/authority/complaints/export")
+def export_authority_complaints(
+    request: Request,
+    campus: str = "",
+    status: str = "",
+    priority: str = "",
+    q: str = "",
+    db: Session = Depends(get_db),
+):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    from app.services.complaint_service import get_authority_forwarded_complaints, export_complaints_csv
+    auth_name = getattr(user, "authority_name", None) or getattr(user, "department", None)
+    items = get_authority_forwarded_complaints(
+        db=db,
+        authority_name=auth_name,
+        campus=campus,
+        status=status,
+        priority=priority,
+        q=q,
+    )
+    csv_data = export_complaints_csv(items)
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ue_authority_complaints.csv"},
+    )
+
+
+@router.get("/authority/complaints/{cid}")
+def authority_complaint_detail(
+    cid: int,
+    request: Request,
+    saved: int = 0,
+    forwarded: int = 0,
+    db: Session = Depends(get_db),
+):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    complaint = svc.get_complaint(db, cid)
+    from app.services.complaint_service import get_escalation_authorities
+    all_authorities = get_escalation_authorities()
+    user_auth = getattr(user, "authority_name", None) or getattr(user, "department", None) or ""
+    other_authorities = [a for a in all_authorities if a.get("name", "").lower() != str(user_auth).lower()]
+
+    return templates.TemplateResponse(
+        request,
+        "authority_complaint_detail.html",
+        {
+            "current_user": user,
+            "authority_user": user,
+            "c": complaint,
+            "a": complaint.analysis,
+            "saved": bool(saved),
+            "forwarded": bool(forwarded),
+            "authorities": other_authorities,
+        },
+    )
+
+
+@router.post("/authority/complaints/{cid}/update")
+def authority_complaint_update(
+    cid: int,
+    request: Request,
+    status: str = Form(...),
+    remarks: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    from app.services.complaint_service import update_authority_complaint
+    update_authority_complaint(
+        db=db,
+        complaint_id=cid,
+        authority_user=user,
+        new_status=status.strip(),
+        remarks=remarks.strip() or None,
+    )
+    return RedirectResponse(f"/authority/complaints/{cid}?saved=1", status_code=303)
+
+
+@router.post("/authority/complaints/{cid}/forward")
+def authority_complaint_reforward(
+    cid: int,
+    request: Request,
+    receiving_authority: str = Form(...),
+    forwarding_reason: str = Form(...),
+    admin_remarks: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    from app.services.complaint_service import forward_authority_complaint_to_another
+    forward_authority_complaint_to_another(
+        db=db,
+        complaint_id=cid,
+        from_authority_user=user,
+        receiving_authority=receiving_authority.strip(),
+        forwarding_reason=forwarding_reason.strip(),
+        admin_remarks=admin_remarks.strip() or None,
+    )
+    return RedirectResponse(f"/authority/complaints/{cid}?forwarded=1", status_code=303)
+
+
+@router.get("/authority/profile")
+def authority_profile_page(request: Request, saved: int = 0, edit: int = 0, db: Session = Depends(get_db)):
+    user, redirect = _require_web_role(request, db, UserRole.HIGHER_AUTHORITY.value)
+    if redirect:
+        return redirect
+
+    auth_name = user.authority_name or user.department
+    from app.services.complaint_service import get_authority_campus_breakdown
+    _, _, counts = get_authority_campus_breakdown(db, authority_name=auth_name)
+
+    stats = {
+        "total": counts["total"],
+        "resolved": counts["resolved"],
+        "in_progress": counts["in_progress"],
+        "pending": counts["pending"],
+        "under_review": counts["forwarded"],
+    }
+    return templates.TemplateResponse(request, "profile.html", _profile_ctx(
+        user,
+        stats=stats,
+        saved=bool(saved),
+        edit_mode=bool(edit),
+    ))
+
+
+# =====================================================================
+# Enterprise Upgrades: Notifications, CSAT, Messaging & Health
+# =====================================================================
+
+@router.get("/api/notifications/my")
+def get_my_notifications(request: Request, db: Session = Depends(get_db)):
+    user = _get_web_user(request, db)
+    if not user:
+        return JSONResponse({"count": 0, "notifications": []})
+
+    from app.models.notification import Notification
+    notifs = (
+        db.query(Notification)
+        .filter(or_(Notification.recipient_user_id == user.id, Notification.recipient_email == user.email))
+        .order_by(Notification.id.desc())
+        .limit(10)
+        .all()
+    )
+    unread_count = sum(1 for n in notifs if not getattr(n, "is_read", False))
+    return JSONResponse({
+        "count": unread_count,
+        "notifications": [
+            {
+                "id": n.id,
+                "type": n.notification_type,
+                "subject": n.subject,
+                "body": n.body_preview,
+                "link": getattr(n, "link", None) or (f"/student/complaints/{n.related_complaint_id}" if n.related_complaint_id else "#"),
+                "is_read": bool(getattr(n, "is_read", False)),
+                "time": n.created_at.strftime("%d %b %H:%M") if n.created_at else "",
+            }
+            for n in notifs
+        ],
+    })
+
+
+@router.post("/api/notifications/{nid}/read")
+def mark_notification_read(nid: int, request: Request, db: Session = Depends(get_db)):
+    user = _get_web_user(request, db)
+    if not user:
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+
+    from app.models.notification import Notification
+    n = db.get(Notification, nid)
+    if n and (n.recipient_user_id == user.id or n.recipient_email == user.email):
+        n.is_read = True
+        db.commit()
+    return JSONResponse({"status": "ok"})
+
+
+
+@router.post("/complaints/{cid}/clarify")
+def handle_post_clarification(
+    cid: int,
+    request: Request,
+    message: str = Form(""),
+    return_to: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = _get_web_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+
+    from app.services.complaint_service import add_complaint_clarification, get_complaint
+    c = get_complaint(db, cid)
+    if c.is_confidential and user.role == UserRole.STUDENT.value:
+        return HTMLResponse(
+            status_code=403,
+            content="<div style='font-family:sans-serif;padding:2rem;text-align:center;'><h3>Privacy Protected</h3><p>Two-way communication is disabled for confidential complaints to protect student identity.</p><a href='javascript:history.back()'>&larr; Go Back</a></div>",
+        )
+
+    try:
+        add_complaint_clarification(db, complaint_id=cid, sender_user=user, message=message)
+    except ValueError as exc:
+        logger.warning("Clarification validation error: %s", exc)
+
+    dest = return_to or f"/student/complaints/{cid}"
+    return RedirectResponse(f"{dest}?msg_sent=1", status_code=303)
+
+
+@router.get("/healthz")
+def system_health_check(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    import time
+    start = time.perf_counter()
+    try:
+        db.execute(text("SELECT 1"))
+        db_healthy = True
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+    except Exception:
+        db_healthy = False
+        latency_ms = None
+
+    import os
+    uploads_dir = Path(BASE_DIR) / "app" / "static" / "uploads"
+    uploads_writable = os.access(str(uploads_dir), os.W_OK)
+
+    s = get_settings()
+    return JSONResponse({
+        "status": "healthy" if (db_healthy and uploads_writable) else "degraded",
+        "database": {"connected": db_healthy, "latency_ms": latency_ms, "engine": "MySQL"},
+        "file_storage": {"uploads_writable": uploads_writable, "path": str(uploads_dir)},
+        "ai_engine": {"provider": s.ai_provider, "active": True},
+        "portal_version": "2.1.0-enterprise",
+    })
+
+
+@router.get("/admin/system-health")
+def admin_system_health_page(request: Request, db: Session = Depends(get_db)):
+    admin, redirect = _require_web_role(request, db, UserRole.ADMIN.value)
+    if redirect:
+        return redirect
+
+    from sqlalchemy import text
+    import time
+    start = time.perf_counter()
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+    except Exception:
+        db_ok = False
+        latency_ms = -1
+
+    import os
+    uploads_dir = Path(BASE_DIR) / "app" / "static" / "uploads"
+    uploads_ok = os.access(str(uploads_dir), os.W_OK)
+
+    from app.services.complaint_service import get_department_csat_summary
+    csat = get_department_csat_summary(db)
+
+    return templates.TemplateResponse(request, "admin_system_health.html", {
+        "current_user": admin,
+        "admin": admin,
+        "db_ok": db_ok,
+        "latency_ms": latency_ms,
+        "uploads_ok": uploads_ok,
+        "ai_provider": get_settings().ai_provider,
+        "csat": csat,
+    })
+

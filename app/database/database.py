@@ -33,9 +33,23 @@ def make_engine(url: str) -> Engine:
 engine = make_engine(get_settings().database_url)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
+_tables_initialized = False
+
+
+def ensure_tables_exist(bind: Engine | None = None) -> None:
+    """Safely ensure all database tables exist on demand."""
+    global _tables_initialized
+    if not _tables_initialized:
+        try:
+            init_db(bind or engine)
+            _tables_initialized = True
+        except Exception:
+            pass
+
 
 def get_db() -> Iterator[Session]:
     """Dependency for obtaining a database session."""
+    ensure_tables_exist()
     db = SessionLocal()
     try:
         yield db

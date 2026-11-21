@@ -16,22 +16,38 @@ from app.schemas.complaint import ComplaintCreate, StatusUpdate
 from app.services import complaint_service as svc
 from app.services.notification_service import NotificationService
 from app.core.security import hash_password
+from app.models.campus import Campus
+
+
+def _get_or_create_campus(db: Session, name: str, code: str = None) -> Campus:
+    c = db.scalar(select(Campus).where(Campus.name == name))
+    if not c:
+        c = Campus(name=name, code=code or name[:3].upper())
+        db.add(c)
+        db.flush()
+    return c
 
 
 @pytest.fixture
 def registered_student(db: Session) -> User:
     user = db.scalar(select(User).where(User.email == "enhancement.student@ue.edu.pk"))
     if not user:
+        c = _get_or_create_campus(db, "Multan Campus", "MLT")
         user = User(
             full_name="Fatima Zahra",
             email="enhancement.student@ue.edu.pk",
             password_hash=hash_password("Pass123!"),
             role=UserRole.STUDENT.value,
             student_id="STU-ENH-101",
-            campus="Multan Campus",
+            campus_id=c.id,
             program="BS Computer Science",
         )
         db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif not user.campus_id:
+        c = _get_or_create_campus(db, "Multan Campus", "MLT")
+        user.campus_id = c.id
         db.commit()
         db.refresh(user)
     return user
@@ -41,16 +57,22 @@ def registered_student(db: Session) -> User:
 def second_student(db: Session) -> User:
     user = db.scalar(select(User).where(User.email == "second.student@ue.edu.pk"))
     if not user:
+        c = _get_or_create_campus(db, "Faisalabad Campus", "FSD")
         user = User(
             full_name="Bilal Tariq",
             email="second.student@ue.edu.pk",
             password_hash=hash_password("Pass123!"),
             role=UserRole.STUDENT.value,
             student_id="STU-ENH-102",
-            campus="Faisalabad Campus",
+            campus_id=c.id,
             program="BS Software Engineering",
         )
         db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif not user.campus_id:
+        c = _get_or_create_campus(db, "Faisalabad Campus", "FSD")
+        user.campus_id = c.id
         db.commit()
         db.refresh(user)
     return user
@@ -60,16 +82,22 @@ def second_student(db: Session) -> User:
 def dept_employee(db: Session) -> User:
     user = db.scalar(select(User).where(User.email == "dept.emp@ue.edu.pk"))
     if not user:
+        c = _get_or_create_campus(db, "Multan Campus", "MLT")
         user = User(
             full_name="Mr. Kamran Officer",
             email="dept.emp@ue.edu.pk",
             password_hash=hash_password("Pass123!"),
             role=UserRole.EMPLOYEE.value,
             employee_id="EMP-ENH-201",
-            campus="Multan Campus",
+            campus_id=c.id,
             department="IT Department",
         )
         db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif not user.campus_id:
+        c = _get_or_create_campus(db, "Multan Campus", "MLT")
+        user.campus_id = c.id
         db.commit()
         db.refresh(user)
     return user
@@ -79,15 +107,21 @@ def dept_employee(db: Session) -> User:
 def central_admin(db: Session) -> User:
     user = db.scalar(select(User).where(User.email == "central.admin@ue.edu.pk"))
     if not user:
+        c = _get_or_create_campus(db, "Township Campus, Lahore (Main Campus)", "LHR")
         user = User(
             full_name="Admin Chief",
             email="central.admin@ue.edu.pk",
             password_hash=hash_password("Pass123!"),
             role=UserRole.ADMIN.value,
             admin_id="ADM-ENH-901",
-            campus="Township Campus, Lahore (Main Campus)",
+            campus_id=c.id,
         )
         db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif not user.campus_id:
+        c = _get_or_create_campus(db, "Township Campus, Lahore (Main Campus)", "LHR")
+        user.campus_id = c.id
         db.commit()
         db.refresh(user)
     return user

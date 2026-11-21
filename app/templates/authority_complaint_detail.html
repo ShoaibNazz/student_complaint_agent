@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge, sla_badge, csat_stars %}
+{% block title %}{{ c.complaint_number }} - Higher Authority Review{% endblock %}
+{% block body_class %}complaint-detail-page{% endblock %}
+{% block content %}
+
+<!-- Printable Official Header (Shown Only When Printed) -->
+<div class="print-only-header">
+  <h2 style="font-size: 16pt; font-weight: bold; margin-bottom: 2px;">UNIVERSITY OF EDUCATION, LAHORE</h2>
+  <h4 style="font-size: 13pt; margin-bottom: 4px; color: #0B3D91;">HIGHER AUTHORITY COMPLAINT DOSSIER</h4>
+  <div style="font-size: 10pt; color: #555;">Complaint Reference: {{ c.complaint_number }} | Campus: {{ c.originating_campus or c.target_campus or 'Lahore' }}</div>
+</div>
+
+<!-- Top bar with Back to dashboard and complaint title with badges -->
+<div class="d-flex flex-column gap-2 mb-3">
+  <div class="no-print">
+    <a href="/authority/dashboard" class="text-decoration-none fw-semibold small d-inline-flex align-items-center gap-1" style="color: #0B45A0;">
+      <i class="bi bi-arrow-left"></i> Back to Higher Authority Dashboard
+    </a>
+  </div>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <h1 class="h3 fw-bold mb-0 font-monospace" style="color: #0B3D91; letter-spacing: 0.5px;">{{ c.complaint_number }}</h1>
+      {% set p_badge = (a and a.priority) or 'MEDIUM' %}
+      <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if p_badge == 'CRITICAL' %}#EF4444{% elif p_badge == 'HIGH' %}#F59E0B{% elif p_badge == 'LOW' %}#64748B{% else %}#3B82F6{% endif %}; font-size: 0.78rem;">
+        {{ p_badge }}
+      </span>
+      {% set s_badge = c.status or 'PENDING' %}
+      <span class="badge rounded-pill text-uppercase px-3 py-2 fw-bold" style="background-color: {% if s_badge in ('RESOLVED', 'CLOSED') %}#10B981{% elif s_badge in ('REOPENED', 'REJECTED') %}#EF4444{% elif s_badge in ('NEW', 'PENDING', 'RESOLVED_AWAITING_CONFIRMATION') %}#F59E0B{% elif s_badge == 'ASSIGNED' %}#10B981{% else %}#2563EB{% endif %}; font-size: 0.78rem;">
+        {{ s_badge | replace('_', ' ') }}
+      </span>
+      {{ sla_badge(c, a) }}
+    </div>
+
+    <!-- Actions: Print Dossier & WhatsApp Share (Feature 3) -->
+    <div class="d-flex align-items-center gap-2 no-print">
+      <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+        <i class="bi bi-printer"></i> Print Official Dossier
+      </button>
+      <a href="https://api.whatsapp.com/send?text={{ ('*University of Education Complaint Dossier*%0A*Complaint #:* ' ~ c.complaint_number ~ '%0A*Campus:* ' ~ (c.originating_campus or c.target_campus or 'UE') ~ '%0A*Category:* ' ~ (a.category if a else 'General') ~ '%0A*Priority:* ' ~ (a.priority if a else 'MEDIUM') ~ '%0A*Status:* ' ~ (c.status | replace('_', ' ')) ~ '%0A*Student:* ' ~ ('[Confidential]' if c.is_confidential else c.student_name)) | urlencode }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+        <i class="bi bi-whatsapp"></i> Share on WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Flash alerts if saved or forwarded -->
+{% if saved %}
+  <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>Status and resolution remarks updated successfully.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+{% endif %}
+{% if forwarded %}
+  <div class="alert alert-info alert-dismissible fade show rounded-3 mb-4 shadow-sm" role="alert">
+    <i class="bi bi-arrow-right-circle-fill me-2"></i>Complaint successfully forwarded to the designated authority.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <!-- 1. Student Information Card -->
+  <div class="col-lg-6">
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-person-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>1. Student Information</span>
+      </div>
+      <div class="card-body p-4 d-flex flex-column flex-sm-row align-items-center gap-4">
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 94px; height: 94px; background-color: #EBF3FD; color: #0B45A0; border: 2px solid #D0E3F9;">
+          {% if c.student_avatar %}
+            <img src="{{ c.student_avatar }}" alt="{{ c.student_name }}" class="w-100 h-100 rounded-circle object-fit-cover">
+          {% else %}
+            <i class="bi bi-mortarboard-fill" style="font-size: 46px;"></i>
+          {% endif %}
+        </div>
+        <div class="vr d-none d-sm-block align-self-stretch my-2" style="opacity: 0.15; width: 1.5px;"></div>
+        <div class="flex-grow-1 w-100">
+          <div class="row g-2 small">
+            <div class="col-4 fw-bold text-dark">Name:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.student_name }}</div>
+
+            {% if c.is_confidential %}
+            <div class="col-4 fw-bold text-danger">Confidentiality:</div>
+            <div class="col-8"><span class="badge bg-danger"><i class="bi bi-shield-lock-fill me-1"></i>CONFIDENTIAL</span></div>
+            {% endif %}
+
+            <div class="col-4 fw-bold text-dark">Student ID:</div>
+            <div class="col-8 text-primary font-monospace fw-semibold">{{ c.student_id or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Email:</div>
+            <div class="col-8 text-primary text-break">{{ c.email or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Phone:</div>
+            <div class="col-8 text-dark">{{ c.phone or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Class / Program:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.class_or_program or '–' }}</div>
+
+            <div class="col-4 fw-bold text-dark">Campus:</div>
+            <div class="col-8 text-primary fw-semibold">{{ c.target_campus or c.originating_campus or '–' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Escalation & Forwarding Particulars Card -->
+  <div class="col-lg-6">
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-signpost-split-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>2. Escalation &amp; Forwarding Particulars</span>
+      </div>
+      <div class="card-body p-4">
+        {% set latest_fwd = c.forwardings[-1] if (c.forwardings and c.forwardings|length > 0) else None %}
+        {% if latest_fwd %}
+          <div class="p-3 rounded-3 bg-light border mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge text-bg-primary px-2.5 py-1">
+                {{ latest_fwd.sender_authority }} &rarr; {{ latest_fwd.receiving_authority }}
+              </span>
+              <span class="text-muted small">
+                <i class="bi bi-calendar-event me-1"></i>{{ latest_fwd.forwarded_at | dt }}
+              </span>
+            </div>
+            <div class="mb-2">
+              <span class="fw-bold small text-dark">Forwarded By:</span>
+              <span class="small text-primary fw-semibold ms-1">{{ latest_fwd.forwarded_by_name }}</span>
+            </div>
+            <div class="mb-2">
+              <span class="fw-bold small text-dark">Forwarding Reason:</span>
+              <div class="small text-dark mt-1 p-2 bg-white rounded border">{{ latest_fwd.forwarding_reason }}</div>
+            </div>
+            {% if latest_fwd.admin_remarks %}
+              <div>
+                <span class="fw-bold small text-dark">Administrative Remarks:</span>
+                <div class="small text-muted mt-1 p-2 bg-white rounded border">{{ latest_fwd.admin_remarks }}</div>
+              </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="text-muted small py-3">No direct forwarding record found.</div>
+        {% endif %}
+
+        <div class="row g-2 small">
+          <div class="col-5 fw-bold text-dark">Current Category:</div>
+          <div class="col-7 text-primary fw-semibold">{{ (a and a.category) or 'General' }}</div>
+          <div class="col-5 fw-bold text-dark">Assigned Office:</div>
+          <div class="col-7 text-dark">{{ (latest_fwd and latest_fwd.receiving_authority) or (authority_user.authority_name) or 'Higher Authority' }}</div>
+          <div class="col-5 fw-bold text-dark">Forwarding Status:</div>
+          <div class="col-7">
+            <span class="badge {% if latest_fwd and latest_fwd.response_status == 'RESOLVED' %}bg-success{% elif latest_fwd and latest_fwd.response_status == 'IN_PROGRESS' %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+              {{ (latest_fwd and latest_fwd.response_status) or 'PENDING' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- 3. Original Complaint Content & Attached Evidence -->
+  <div class="col-lg-6">
+    <div class="card portal-card-modern h-100">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-file-earmark-text-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>3. Original Complaint &amp; Attached Evidence</span>
+      </div>
+      <div class="card-body p-4 d-flex flex-column justify-content-between">
+        <div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Subject / Title</label>
+            <div class="p-2.5 bg-light rounded border text-dark fw-semibold" style="font-size: 0.95rem;">
+              {{ c.title }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Complaint Description</label>
+            <div class="p-3 bg-light rounded border text-dark" style="white-space: pre-wrap; font-size: 0.88rem; line-height: 1.5; min-height: 140px;">
+              {{ c.complaint_text }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence Attachment Preview / Download -->
+        <div class="pt-3 border-top">
+          <label class="form-label small fw-bold text-dark mb-2">Attached Documents / Proof</label>
+          {% if c.attachment_path %}
+            <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border bg-white shadow-sm">
+              <div class="d-flex align-items-center gap-2 text-truncate">
+                <i class="bi bi-paperclip text-primary fs-5"></i>
+                <div>
+                  <div class="fw-semibold text-dark small text-truncate" style="max-width: 260px;">
+                    {{ c.attachment_name or 'Complaint Attachment' }}
+                  </div>
+                  <div class="text-muted" style="font-size: 11px;">Attached by Student</div>
+                </div>
+              </div>
+              <a href="{{ c.attachment_path }}" target="_blank" download class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-download me-1"></i> Download
+              </a>
+            </div>
+            {% set ext = c.attachment_path.split('.')[-1].lower() if '.' in c.attachment_path else '' %}
+            {% if ext in ['png', 'jpg', 'jpeg', 'webp', 'gif'] %}
+              <div class="mt-3 text-center p-2 bg-light rounded border">
+                <img src="{{ c.attachment_path }}" alt="Attachment preview" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: contain;">
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="text-muted small p-3 bg-light rounded text-center">
+              <i class="bi bi-info-circle me-1"></i> No image or file was attached with this complaint.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Higher Authority Management & Resolution Center -->
+  <div class="col-lg-6 d-flex flex-column gap-4">
+    {% if c.resolution_feedback %}
+      <div class="card portal-card-modern">
+        <div class="card-header {% if c.resolution_feedback.is_resolved %}portal-header-green{% else %}portal-header-red{% endif %}">
+          <i class="bi {% if c.resolution_feedback.is_resolved %}bi-check-circle-fill text-success{% else %}bi-exclamation-octagon-fill text-danger{% endif %} me-2 fs-5"></i>
+          <span>Student Resolution Feedback {% if c.resolution_feedback.is_resolved %}(Confirmed Resolved){% else %}(Disputed / Reopened){% endif %}</span>
+        </div>
+        <div class="card-body p-3 small">
+          <div class="text-dark"><strong>Verified on:</strong> <span class="fw-semibold">{{ c.resolution_feedback.confirmed_at | dt }} UTC</span></div>
+          {% if c.resolution_feedback.is_resolved and c.resolution_feedback.satisfaction_rating %}
+            <div class="mt-1 d-flex align-items-center gap-1">
+              <strong>Student CSAT:</strong>
+              {{ csat_stars(c.resolution_feedback.satisfaction_rating) }}
+              <span class="badge bg-warning-subtle text-dark border border-warning-subtle ms-1">({{ c.resolution_feedback.satisfaction_rating }}/5 Stars)</span>
+            </div>
+          {% endif %}
+          {% if c.resolution_feedback.feedback_remarks %}
+            <div class="text-muted mt-2 bg-light p-2 rounded">"{{ c.resolution_feedback.feedback_remarks }}"</div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Action Form 1: Update Status & Resolution Remarks -->
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-check2-circle" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>4. Status &amp; Resolution Actions</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/authority/complaints/{{ c.id }}/update">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Update Status <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" name="status" required>
+              <option value="IN_PROGRESS" {% if c.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+              <option value="RESOLVED" {% if c.status in ('RESOLVED', 'CLOSED') %}selected{% endif %}>Resolved (Issue Addressed)</option>
+              <option value="WAITING_FOR_STUDENT" {% if c.status == 'WAITING_FOR_STUDENT' %}selected{% endif %}>Waiting for Student Response</option>
+              <option value="UNDER_REVIEW" {% if c.status == 'UNDER_REVIEW' %}selected{% endif %}>Under Review</option>
+              <option value="REJECTED" {% if c.status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Official Authority Remarks / Resolution Comments</label>
+            <textarea class="form-control" name="remarks" rows="3" style="font-size: 0.88rem;" placeholder="Add official findings, instructions, or resolution notes..."></textarea>
+            <div class="form-text" style="font-size: 11px;">These remarks will be logged to the tracking timeline and visible to portal administrators and students.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-gold-pill px-4 fw-semibold">
+              <i class="bi bi-save me-1"></i> Save Status &amp; Remarks
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Action Form 2: Re-Escalate / Forward to Another Higher Authority -->
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-blue">
+        <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+          <i class="bi bi-arrow-up-right-square-fill" style="color: #0B45A0; font-size: 15px;"></i>
+        </div>
+        <span>5. Re-Escalate / Forward to Another Authority</span>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" action="/authority/complaints/{{ c.id }}/forward">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Escalate to Higher Authority <span class="text-danger">*</span></label>
+            <select class="form-select form-select-sm" name="receiving_authority" required>
+              <option value="" disabled selected>Select Authorized Higher Authority</option>
+              {% for auth in authorities %}
+                <option value="{{ auth.name }}">{{ auth.name }} ({{ auth.scope }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Reason for Re-Escalation <span class="text-danger">*</span></label>
+            <textarea class="form-control form-control-sm" name="forwarding_reason" rows="2" placeholder="Explain why this matter requires escalation to another office..." required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-dark mb-1">Internal Notes (Optional)</label>
+            <input type="text" class="form-control form-control-sm" name="admin_remarks" placeholder="Optional notes for receiving office...">
+          </div>
+
+          <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-4 fw-semibold">
+            <i class="bi bi-send-fill me-1"></i> Forward to Authority
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Higher Authority <-> Admin Collaboration Notes Card -->
+    <div class="card portal-card-modern">
+      <div class="card-header portal-header-blue d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+            <i class="bi bi-chat-left-dots-fill" style="color: #0B45A0; font-size: 14px;"></i>
+          </div>
+          <span>Direct Collaboration with Campus Admin</span>
+        </div>
+        <span class="badge bg-white text-primary border">{{ (c.clarifications or [])|length }} notes</span>
+      </div>
+      <div class="card-body p-3">
+        <div class="clarification-stream mb-3" style="max-height: 200px; overflow-y: auto;">
+          {% if c.clarifications and c.clarifications|length > 0 %}
+            {% for m in c.clarifications %}
+              <div class="p-2 rounded-3 mb-2 small {% if m.sender_role in ('Higher Authority', current_user.authority_name) %}bg-primary-subtle border-start border-3 border-primary ms-2{% else %}bg-light border-start border-3 border-secondary me-2{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-dark" style="font-size: 0.78rem;">{{ m.sender_name }} <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">{{ m.sender_role }}</span></span>
+                  <span class="text-muted" style="font-size: 0.72rem;">{{ m.created_at | dt }}</span>
+                </div>
+                <div class="text-dark">{{ m.message }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted small text-center py-3">
+              <i class="bi bi-chat-square-text d-block fs-4 opacity-50 mb-1"></i>
+              No collaboration notes exchanged with Campus Admin yet.
+            </div>
+          {% endif %}
+        </div>
+
+        <form method="post" action="/complaints/{{ c.id }}/clarify">
+          <input type="hidden" name="return_to" value="/authority/complaints/{{ c.id }}">
+          <div class="mb-2">
+            <textarea class="form-control form-control-sm" name="message" rows="2" placeholder="Send directive or inquiry to Campus Administrator..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100 fw-semibold">
+            <i class="bi bi-send-fill me-1"></i>Send Directive to Admin
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Forwarding Trail & Complete History -->
+<div class="card portal-card-modern mb-4">
+  <div class="card-header portal-header-blue">
+    <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 26px; height: 26px;">
+      <i class="bi bi-diagram-3-fill" style="color: #0B45A0; font-size: 15px;"></i>
+    </div>
+    <span>6. Escalation Trail &amp; Status Audit History</span>
+  </div>
+  <div class="card-body p-4">
+    {% if c.forwardings %}
+      <div class="mb-4">
+        <h6 class="fw-bold text-dark small text-uppercase mb-3">Forwarding Trail</h6>
+        <div class="list-group list-group-flush border rounded">
+          {% for f in c.forwardings | reverse %}
+            <div class="list-group-item p-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold text-primary">{{ f.sender_authority }} &rarr; {{ f.receiving_authority }}</span>
+                <span class="badge bg-light text-muted border">{{ f.forwarded_at | dt }}</span>
+              </div>
+              <div class="text-dark small mb-1">{{ f.forwarding_reason }}</div>
+              {% if f.admin_remarks %}
+                <div class="text-muted small"><strong>Remarks:</strong> {{ f.admin_remarks }}</div>
+              {% endif %}
+              <div class="text-muted small mt-1">Authorized by: <strong>{{ f.forwarded_by_name }}</strong> &bull; Status: <span class="badge bg-secondary">{{ f.response_status }}</span></div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div>
+      <h6 class="fw-bold text-dark small text-uppercase mb-3">Complete Tracking Timeline</h6>
+      {% if c.history %}
+        <div class="list-group list-group-flush border rounded">
+          {% for h in c.history | reverse %}
+            <div class="list-group-item py-2 px-3">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold small text-dark">{{ h.action or h.status }}</span>
+                <span class="text-muted" style="font-size: 11px;">{{ h.created_at | dt }}</span>
+              </div>
+              <div class="text-muted" style="font-size: 11px;">
+                Updated by: {{ h.changed_by_name or 'System' }} {% if h.new_department %}&bull; Dept: {{ h.new_department }}{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-muted small">No status history records available.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Printable Official Signature Block (Shown Only When Printed) -->
+<div class="print-signature-block">
+  <div class="row pt-5" style="border-top: 1px dashed #94A3B8;">
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Higher Authority Office</div>
+      <div class="small text-muted">Review &amp; Decision</div>
+    </div>
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Registrar / DSA Directorate</div>
+      <div class="small text-muted">Signature &amp; Seal</div>
+    </div>
+    <div class="col-4 text-center">
+      <div style="border-top: 1px solid #000; margin-top: 50px; padding-top: 5px; font-weight: bold;">Vice Chancellor Secretariat</div>
+      <div class="small text-muted">Final Approval</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -19,6 +19,8 @@ class UserOut(BaseModel):
     employee_id: Optional[str] = None
     professor_id: Optional[str] = None
     admin_id: Optional[str] = None
+    authority_id: Optional[str] = None
+    authority_name: Optional[str] = None
     department: Optional[str] = None
     program: Optional[str] = None
     campus: Optional[str] = None
@@ -37,6 +39,8 @@ class UserCreate(BaseModel):
     employee_id: Optional[str] = Field(default=None, max_length=60)
     professor_id: Optional[str] = Field(default=None, max_length=60)
     admin_id: Optional[str] = Field(default=None, max_length=60)
+    authority_id: Optional[str] = Field(default=None, max_length=60)
+    authority_name: Optional[str] = Field(default=None, max_length=120)
     department: Optional[str] = Field(default=None, max_length=120)
     program: Optional[str] = Field(default=None, max_length=120)
     campus: Optional[str] = Field(default=None, max_length=120)
@@ -45,14 +49,15 @@ class UserCreate(BaseModel):
 
 
 class UserRegisterRequest(BaseModel):
-    account_type: str = Field(description="STUDENT, EMPLOYEE, or ADMIN")
-    identifier: str = Field(min_length=2, max_length=60, description="Role ID e.g. STU-1001, EMP-1001, etc.")
+    account_type: str = Field(description="STUDENT, EMPLOYEE, ADMIN, or HIGHER_AUTHORITY")
+    identifier: str = Field(min_length=2, max_length=60, description="Role ID e.g. STU-1001, EMP-1001, AUTH-1001, etc.")
     full_name: str = Field(min_length=1, max_length=120)
     email: EmailStr
     password: str = Field(min_length=6, max_length=100)
     confirm_password: str = Field(min_length=6, max_length=100)
     campus: Optional[str] = Field(default=None, max_length=120, description="University Campus")
     campus_id: Optional[int] = Field(default=None, description="Campus ID")
+    authority_name: Optional[str] = Field(default=None, max_length=120, description="Designated Higher Authority Office")
     department: Optional[str] = Field(default=None, max_length=120)
     program: Optional[str] = Field(default=None, max_length=120)
     role_designation: Optional[str] = Field(default=None, max_length=120)

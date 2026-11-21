@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import priority_badge, status_badge %}
+{% from "_macros.html" import priority_badge, status_badge, sla_badge %}
 {% block title %}Employee Review - {{ c.complaint_number }}{% endblock %}
 {% block content %}
 <div class="row g-4">
@@ -11,6 +11,7 @@
           <h1 class="h3 fw-bold mb-0 text-primary font-monospace">{{ c.complaint_number }}</h1>
           {{ status_badge(c.status) }}
           {% if a %}{{ priority_badge(a.priority) }}{% endif %}
+          {{ sla_badge(c, a) }}
         </div>
       </div>
       <div class="text-muted small text-end">
@@ -106,6 +107,49 @@
 
           <button type="submit" class="btn btn-gold-pill w-100 fw-semibold">
             <i class="bi bi-check2-circle me-1"></i>Save Update
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Employee <-> Admin Collaboration Notes -->
+    <div class="card portal-card-modern mb-4">
+      <div class="card-header portal-header-blue d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center me-2" style="width: 28px; height: 28px;">
+            <i class="bi bi-chat-dots-fill" style="color: #0B45A0; font-size: 14px;"></i>
+          </div>
+          <span>Admin Collaboration Notes</span>
+        </div>
+        <span class="badge bg-white text-primary border">{{ (c.clarifications or [])|length }} notes</span>
+      </div>
+      <div class="card-body p-3">
+        <div class="clarification-stream mb-3" style="max-height: 220px; overflow-y: auto;">
+          {% if c.clarifications and c.clarifications|length > 0 %}
+            {% for m in c.clarifications %}
+              <div class="p-2 rounded-3 mb-2 small {% if m.sender_role in ('Employee', 'Staff') %}bg-primary-subtle border-start border-3 border-primary ms-2{% else %}bg-light border-start border-3 border-secondary me-2{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-dark" style="font-size: 0.78rem;">{{ m.sender_name }} <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">{{ m.sender_role }}</span></span>
+                  <span class="text-muted" style="font-size: 0.72rem;">{{ m.created_at | dt }}</span>
+                </div>
+                <div class="text-dark">{{ m.message }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted small text-center py-3">
+              <i class="bi bi-chat-square-text d-block fs-4 opacity-50 mb-1"></i>
+              No collaboration notes exchanged with Admin yet.
+            </div>
+          {% endif %}
+        </div>
+
+        <form method="post" action="/complaints/{{ c.id }}/clarify">
+          <input type="hidden" name="return_to" value="/employee/complaints/{{ c.id }}">
+          <div class="mb-2">
+            <textarea class="form-control form-control-sm" name="message" rows="2" placeholder="Send clarification note to Campus Administrator..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm w-100 fw-semibold">
+            <i class="bi bi-send-fill me-1"></i>Send Note to Admin
           </button>
         </form>
       </div>

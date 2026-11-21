@@ -46,6 +46,9 @@ class User(Base):
     admin_profile: Mapped[Optional["Admin"]] = relationship(
         "Admin", back_populates="user", uselist=False, cascade="all, delete-orphan", lazy="joined"
     )
+    authority_profile: Mapped[Optional["HigherAuthorityProfile"]] = relationship(
+        "HigherAuthorityProfile", back_populates="user", uselist=False, cascade="all, delete-orphan", lazy="select"
+    )
 
     # Foreign key references
     campus_rel: Mapped[Optional["Campus"]] = relationship(
@@ -140,6 +143,52 @@ class User(Base):
         )
 
     @hybrid_property
+    def authority_id(self) -> Optional[str]:
+        try:
+            return self.authority_profile.authority_id if self.authority_profile else None
+        except Exception:
+            return None
+
+    @authority_id.setter
+    def authority_id(self, val: Optional[str]) -> None:
+        if self.authority_profile:
+            self.authority_profile.authority_id = val or ""
+        elif val:
+            self.authority_profile = HigherAuthorityProfile(user=self, authority_id=val, authority_name=self.department or "Higher Authority")
+
+    @authority_id.expression
+    def authority_id(cls):
+        return (
+            select(HigherAuthorityProfile.authority_id)
+            .where(HigherAuthorityProfile.user_id == cls.id)
+            .correlate_except(HigherAuthorityProfile)
+            .scalar_subquery()
+        )
+
+    @hybrid_property
+    def authority_name(self) -> Optional[str]:
+        try:
+            return self.authority_profile.authority_name if self.authority_profile else None
+        except Exception:
+            return None
+
+    @authority_name.setter
+    def authority_name(self, val: Optional[str]) -> None:
+        if self.authority_profile:
+            self.authority_profile.authority_name = val or ""
+        elif val:
+            self.authority_profile = HigherAuthorityProfile(user=self, authority_id=self.email or "AUTH-001", authority_name=val)
+
+    @authority_name.expression
+    def authority_name(cls):
+        return (
+            select(HigherAuthorityProfile.authority_name)
+            .where(HigherAuthorityProfile.user_id == cls.id)
+            .correlate_except(HigherAuthorityProfile)
+            .scalar_subquery()
+        )
+
+    @hybrid_property
     def campus(self) -> Optional[str]:
         return self.campus_rel.name if self.campus_rel else None
 
@@ -160,6 +209,11 @@ class User(Base):
 
     @hybrid_property
     def department(self) -> Optional[str]:
+        try:
+            if self.authority_profile and self.authority_profile.authority_name:
+                return self.authority_profile.authority_name
+        except Exception:
+            pass
         if self.employee_profile and self.employee_profile.department:
             return self.employee_profile.department.name
         return None
@@ -202,17 +256,26 @@ class User(Base):
 
     @hybrid_property
     def role_designation(self) -> Optional[str]:
+        try:
+            if self.authority_profile:
+                return self.authority_profile.authority_name or self.authority_profile.designation
+        except Exception:
+            pass
         if self.employee_profile:
             return self.employee_profile.role_designation
         if self.admin_profile:
             return self.admin_profile.designation
+        if self.role == UserRole.HIGHER_AUTHORITY.value:
+            return "Higher Authority"
         if self.role == UserRole.STUDENT.value:
             return "Student"
         return "User"
 
     @role_designation.setter
     def role_designation(self, val: Optional[str]) -> None:
-        if self.employee_profile:
+        if self.authority_profile:
+            self.authority_profile.designation = val or "Higher Authority"
+        elif self.employee_profile:
             self.employee_profile.role_designation = val or "Employee"
         elif self.admin_profile:
             self.admin_profile.designation = val or "System Administrator"
@@ -234,6 +297,8 @@ class User(Base):
             return self.employee_id or self.email
         if self.role == UserRole.PROFESSOR.value:
             return self.professor_id or self.employee_id or self.email
+        if self.role == UserRole.HIGHER_AUTHORITY.value:
+            return self.authority_id or self.email
         return self.admin_id or self.employee_id or "ADMIN-001"
 
     @property
@@ -305,6 +370,26 @@ class Admin(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="admin_profile")
+
+
+class HigherAuthorityProfile(Base):
+    """1:1 Relational profile for university executive and higher authorities."""
+    __tablename__ = "higher_authorities"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+    authority_id: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)
+    authority_name: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
+    designation: Mapped[str] = mapped_column(String(120), default="Higher Authority", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="authority_profile")
 
 
 class UniversityDirectory(Base):

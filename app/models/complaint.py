@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.models.analysis import ComplaintAnalysis
     from app.models.assignment import ComplaintAssignment
     from app.models.campus import Campus
+    from app.models.clarification import ComplaintClarification
     from app.models.feedback import ComplaintFeedback
     from app.models.forwarding import ComplaintForwarding
     from app.models.history import ComplaintStatusHistory
@@ -111,4 +112,7 @@ class Complaint(Base):
     )
     resolution_feedback: Mapped[Optional["ComplaintFeedback"]] = relationship(
         back_populates="complaint", uselist=False, cascade="all, delete-orphan"
+    )
+    clarifications: Mapped[list["ComplaintClarification"]] = relationship(
+        "ComplaintClarification", back_populates="complaint", order_by="ComplaintClarification.id", cascade="all, delete-orphan"
     )

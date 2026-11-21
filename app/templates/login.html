@@ -62,6 +62,7 @@
               <option value="STUDENT" {% if selected_type == 'STUDENT' %}selected{% endif %}>Student</option>
               <option value="EMPLOYEE" {% if selected_type in ('EMPLOYEE', 'PROFESSOR') %}selected{% endif %}>Employee</option>
               <option value="ADMIN" {% if selected_type == 'ADMIN' %}selected{% endif %}>Admin</option>
+              <option value="HIGHER_AUTHORITY" {% if selected_type == 'HIGHER_AUTHORITY' %}selected{% endif %}>Higher Authority</option>
             </select>
           </div>
 
@@ -246,6 +247,7 @@
               <option value="STUDENT" {% if reg_type == 'STUDENT' %}selected{% endif %}>Student</option>
               <option value="EMPLOYEE" {% if reg_type == 'EMPLOYEE' %}selected{% endif %}>Employee</option>
               <option value="ADMIN" {% if reg_type == 'ADMIN' %}selected{% endif %}>Admin</option>
+              <option value="HIGHER_AUTHORITY" {% if reg_type == 'HIGHER_AUTHORITY' %}selected{% endif %}>Higher Authority</option>
             </select>
           </div>
 
@@ -326,6 +328,17 @@
             <input type="password" class="form-control auth-input" id="registerAdminCode" name="admin_code"
                    placeholder="Enter system secret code"
                    {% if reg_type != 'ADMIN' %}disabled{% endif %}>
+          </div>
+
+          <!-- Dynamic Field (Higher Authority Only): Designated Authority -->
+          <div class="mb-2 {% if reg_type != 'HIGHER_AUTHORITY' %}d-none{% endif %}" id="higherAuthorityGroup">
+            <label class="form-label auth-label" for="registerAuthorityName">Designated Authority / Office <span class="text-danger">*</span></label>
+            <select class="form-select auth-input" id="registerAuthorityName" name="authority_name" {% if reg_type != 'HIGHER_AUTHORITY' %}disabled{% else %}required{% endif %}>
+              <option value="" {% if not (values and (values.authority_name or values.department)) %}selected{% endif %} disabled>Select Designated Authority</option>
+              {% for auth in higher_authorities %}
+                <option value="{{ auth.name }}" {% if values and (values.authority_name == auth.name or values.department == auth.name) %}selected{% endif %}>{{ auth.name }} ({{ auth.scope }})</option>
+              {% endfor %}
+            </select>
           </div>
 
           <!-- Password -->

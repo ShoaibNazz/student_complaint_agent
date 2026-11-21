@@ -100,8 +100,18 @@
               class="nav-link portal-nav-link {% if request.url.path.startswith('/admin/settings') %}active{% endif %}"
               href="/admin/settings">Settings</a></li>
           <li class="nav-item"><a
+              class="nav-link portal-nav-link {% if request.url.path == '/admin/system-health' %}active{% endif %}"
+              href="/admin/system-health"><i class="bi bi-heart-pulse me-1 text-danger"></i>Health</a></li>
+          <li class="nav-item"><a
               class="nav-link portal-nav-link {% if request.url.path == '/admin/profile' %}active{% endif %}"
               href="/admin/profile">Profile</a></li>
+          {% elif current_user.role == 'HIGHER_AUTHORITY' %}
+          <li class="nav-item"><a
+              class="nav-link portal-nav-link {% if request.url.path.startswith('/authority/dashboard') or request.url.path == '/authority' or request.url.path.startswith('/authority/complaints') %}active{% endif %}"
+              href="/authority/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a
+              class="nav-link portal-nav-link {% if request.url.path == '/authority/profile' %}active{% endif %}"
+              href="/authority/profile">Profile</a></li>
           {% endif %}
           {% else %}
           <li class="nav-item d-md-none my-2">
@@ -115,6 +125,28 @@
 
         <div class="d-flex align-items-center ms-auto gap-2">
           {% if current_user %}
+          <!-- In-App Notification Bell -->
+          <div class="dropdown me-1">
+            <button class="btn btn-link text-white position-relative p-1 text-decoration-none" type="button" id="notifBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+              <i class="bi bi-bell-fill fs-5"></i>
+              <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.65rem;">
+                0
+              </span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow-lg p-0 rounded-3 border-0 mt-2" aria-labelledby="notifBtn" style="width: 320px; max-width: 90vw;" id="notifDropdown">
+              <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-3">
+                <span class="fw-bold text-dark small"><i class="bi bi-bell-fill text-primary me-1"></i>Notifications</span>
+                <span class="badge bg-primary-subtle text-primary" id="notifCountText">0 new</span>
+              </div>
+              <div class="list-group list-group-flush small" id="notifList" style="max-height: 280px; overflow-y: auto;">
+                <div class="text-center py-4 text-muted small" id="notifEmptyState">
+                  <i class="bi bi-bell-slash d-block fs-4 text-secondary mb-1 opacity-50"></i>
+                  No recent notifications
+                </div>
+              </div>
+            </div>
+          </div>
+
           {% if current_user.avatar_path %}
           <a href="/profile" class="text-decoration-none" title="View Profile">
             <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}"

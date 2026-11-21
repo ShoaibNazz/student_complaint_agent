@@ -17,6 +17,10 @@
         <a class="btn bg-white fw-semibold px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm" href="/professor/dashboard" style="border: 1.5px solid #2563EB; color: #1D4ED8; font-size: 13.5px; border-radius: 8px;">
           <i class="bi bi-arrow-left"></i> Back to Dashboard
         </a>
+      {% elif current_user.role == 'HIGHER_AUTHORITY' %}
+        <a class="btn bg-white fw-semibold px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm" href="/authority/dashboard" style="border: 1.5px solid #2563EB; color: #1D4ED8; font-size: 13.5px; border-radius: 8px;">
+          <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
       {% else %}
         <a class="btn bg-white fw-semibold px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm" href="/admin/dashboard" style="border: 1.5px solid #2563EB; color: #1D4ED8; font-size: 13.5px; border-radius: 8px;">
           <i class="bi bi-arrow-left"></i> Back to Dashboard

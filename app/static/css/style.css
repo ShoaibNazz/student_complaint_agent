@@ -1890,3 +1890,63 @@ body.complaint-detail-page {
   font-weight: 800;
   line-height: 1.1;
 }
+
+/* =====================================================================
+   Official Dossier Print Styles (Feature 3)
+   ===================================================================== */
+@media print {
+  .navbar,
+  footer,
+  .no-print,
+  .btn,
+  .alert,
+  nav,
+  .btn-portal-submit-gold,
+  .btn-portal-logout,
+  .admin-filter-card {
+    display: none !important;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    padding: 0;
+  }
+
+  .card {
+    border: 1px solid #CBD5E1 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 1rem !important;
+  }
+
+  .card-header {
+    background-color: #F8FAFC !important;
+    color: #0F172A !important;
+    border-bottom: 1px solid #CBD5E1 !important;
+  }
+
+  .print-only-header {
+    display: block !important;
+    text-align: center;
+    border-bottom: 2px solid #0B3D91;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+
+  .print-signature-block {
+    display: block !important;
+    margin-top: 40px;
+    padding-top: 20px;
+    page-break-inside: avoid;
+  }
+}
+
+.print-only-header,
+.print-signature-block {
+  display: none;
+}
+
+
+

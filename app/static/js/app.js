@@ -186,6 +186,8 @@ document.addEventListener("DOMContentLoaded", function () {
   var registerDepartment = document.getElementById("registerDepartment");
   var adminRoleGroup = document.getElementById("adminRoleGroup");
   var registerAdminRole = document.getElementById("registerAdminRole");
+  var higherAuthorityGroup = document.getElementById("higherAuthorityGroup");
+  var registerAuthorityName = document.getElementById("registerAuthorityName");
   var registerIdentifier = document.getElementById("registerIdentifier");
   var registerEmail = document.getElementById("registerEmail");
 
@@ -211,6 +213,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setGroupVisible(employeeRoleGroup, registerEmployeeRole, accType === "EMPLOYEE", true);
     setGroupVisible(employeeDepartmentGroup, registerDepartment, accType === "EMPLOYEE", true);
     setGroupVisible(adminRoleGroup, registerAdminRole, accType === "ADMIN", false);
+    setGroupVisible(higherAuthorityGroup, registerAuthorityName, accType === "HIGHER_AUTHORITY", true);
 
     if (registerAdminRole && accType === "ADMIN") {
       registerAdminRole.value = "Admin";
@@ -223,6 +226,8 @@ document.addEventListener("DOMContentLoaded", function () {
         registerIdentifier.placeholder = "Enter official employee ID";
       } else if (accType === "ADMIN") {
         registerIdentifier.placeholder = "Enter administrator ID";
+      } else if (accType === "HIGHER_AUTHORITY") {
+        registerIdentifier.placeholder = "Enter authority ID (e.g. AUTH-1001)";
       } else {
         registerIdentifier.placeholder = "Enter student, employee, or admin ID";
       }
@@ -233,6 +238,8 @@ document.addEventListener("DOMContentLoaded", function () {
         registerEmail.placeholder = "Enter official email address";
       } else if (accType === "ADMIN") {
         registerEmail.placeholder = "Enter administrator email address";
+      } else if (accType === "HIGHER_AUTHORITY") {
+        registerEmail.placeholder = "Enter official university email";
       } else {
         registerEmail.placeholder = "Enter your email address";
       }
@@ -277,6 +284,8 @@ document.addEventListener("DOMContentLoaded", function () {
           showAuthError("Please enter your student ID or registration number.");
         } else if (accType === "EMPLOYEE") {
           showAuthError("Please enter your official employee ID.");
+        } else if (accType === "HIGHER_AUTHORITY") {
+          showAuthError("Please enter your authority ID (e.g. AUTH-1001).");
         } else {
           showAuthError("Please enter your administrator ID.");
         }
@@ -322,6 +331,13 @@ document.addEventListener("DOMContentLoaded", function () {
       } else if (accType === "ADMIN") {
         if (registerAdminRole) {
           registerAdminRole.value = "Admin";
+        }
+      } else if (accType === "HIGHER_AUTHORITY") {
+        if (!registerAuthorityName || !registerAuthorityName.value) {
+          e.preventDefault();
+          showAuthError("Please select your Designated Higher Authority / Office.");
+          if (registerAuthorityName) registerAuthorityName.focus();
+          return false;
         }
       }
 
@@ -1022,5 +1038,50 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 50);
     });
   }
+
+  // --- Enterprise In-App Notification Bell ---
+  function initNotificationBell() {
+    var notifBadge = document.getElementById("notifBadge");
+    var notifCountText = document.getElementById("notifCountText");
+    var notifList = document.getElementById("notifList");
+    if (!notifBadge || !notifList) return;
+
+    fetch("/api/notifications/my")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data || !data.notifications) return;
+        if (data.count > 0) {
+          notifBadge.textContent = data.count;
+          notifBadge.classList.remove("d-none");
+          if (notifCountText) notifCountText.textContent = data.count + " unread";
+        } else {
+          notifBadge.classList.add("d-none");
+          if (notifCountText) notifCountText.textContent = "All caught up";
+        }
+
+        if (data.notifications.length > 0) {
+          notifList.innerHTML = "";
+          data.notifications.forEach(function (n) {
+            var item = document.createElement("a");
+            item.href = n.link || "#";
+            item.className = "list-group-item list-group-item-action p-2 text-decoration-none " + (n.is_read ? "bg-white" : "bg-primary-subtle");
+            item.innerHTML =
+              '<div class="d-flex w-100 justify-content-between align-items-center mb-1">' +
+                '<strong class="text-dark small" style="font-size:0.82rem;">' + (n.subject || "Notification") + "</strong>" +
+                '<span class="text-muted" style="font-size: 0.7rem;">' + (n.time || "") + "</span>" +
+              "</div>" +
+              '<p class="mb-0 text-muted" style="font-size: 0.76rem; line-height: 1.25;">' + (n.body || "") + "</p>";
+
+            item.addEventListener("click", function () {
+              fetch("/api/notifications/" + n.id + "/read", { method: "POST" }).catch(function () {});
+            });
+            notifList.appendChild(item);
+          });
+        }
+      })
+      .catch(function () {});
+  }
+  initNotificationBell();
 });
+
 

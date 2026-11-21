@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% from "_macros.html" import priority_badge, status_badge, sla_badge %}
+{% block title %}Higher Authority Dashboard - University Complaint Portal{% endblock %}
+{% block content %}
+<!-- Top Welcome Header Card (Matches Admin Dashboard Style) -->
+<div class="card shadow-sm border-0 bg-white rounded-3 mb-3">
+  <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden shadow-sm" style="width: 56px; height: 56px; background-color: #EBF3FD; color: #0B3D91; font-size: 26px;">
+        {% if current_user and current_user.avatar_path %}
+          <img src="{{ current_user.avatar_path }}" alt="{{ current_user.full_name }}" class="w-100 h-100 object-fit-cover">
+        {% else %}
+          <i class="bi bi-bank2"></i>
+        {% endif %}
+      </div>
+      <div>
+        <h1 class="h4 fw-bold mb-1" style="color: #0B3D91;">Welcome, {{ (current_user and current_user.full_name) or 'Higher Authority' }}</h1>
+        <div class="text-muted small d-flex flex-wrap align-items-center gap-2">
+          <span><strong>Authority ID:</strong> {{ (current_user and current_user.identifier) or (current_user and current_user.authority_id) or 'AUTH-001' }}</span>
+          <span>&bull;</span>
+          <span><strong>Office:</strong> <span class="badge text-bg-primary px-2.5 py-1">{{ designated_authority or 'Higher Authority Office' }}</span></span>
+          <span>&bull;</span>
+          <span><strong>Campus Scope:</strong> Central / All Campuses</span>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" href="/authority/profile">
+        <i class="bi bi-person-circle me-1"></i> My Profile
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Metrics KPI Cards Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card text-bg-light h-100 shadow-sm border">
+      <div class="card-body py-3">
+        <div class="small text-uppercase opacity-75 fw-semibold">Total Forwarded</div>
+        <div class="display-6 fw-bold">{{ counts.total }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card text-bg-warning h-100 shadow-sm text-dark">
+      <div class="card-body py-3">
+        <div class="small text-uppercase opacity-75 fw-semibold">Pending Review</div>
+        <div class="display-6 fw-bold">{{ counts.pending }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card text-bg-primary h-100 shadow-sm">
+      <div class="card-body py-3">
+        <div class="small text-uppercase opacity-75 fw-semibold">In Progress</div>
+        <div class="display-6 fw-bold">{{ counts.in_progress }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card text-bg-success h-100 shadow-sm">
+      <div class="card-body py-3">
+        <div class="small text-uppercase opacity-75 fw-semibold">Resolved / Closed</div>
+        <div class="display-6 fw-bold">{{ counts.resolved }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-8 col-xl">
+    <div class="card text-bg-info text-dark h-100 shadow-sm">
+      <div class="card-body py-3">
+        <div class="small text-uppercase opacity-75 fw-semibold">Most Forwarded Campus</div>
+        {% if top_campus %}
+          <div class="h5 fw-bold mb-0 text-truncate" title="{{ top_campus.campus }}">{{ top_campus.campus_short }}</div>
+          <div class="small text-dark opacity-75 mt-0.5">{{ top_campus.total }} complaints forwarded</div>
+        {% else %}
+          <div class="h6 fw-semibold mb-0 text-muted">No Campus Data</div>
+          <div class="small opacity-75">All campuses clear</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Campus-Wise Overview & Multi-Campus Breakdown Section -->
+<div class="card shadow-sm border-0 bg-white rounded-3 mb-4">
+  <div class="card-header bg-white py-3 px-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h2 class="h6 fw-bold mb-0" style="color: #0B3D91;">
+        <i class="bi bi-geo-alt-fill me-1 text-danger"></i> Campus-Wise Complaint Distribution
+      </h2>
+      <p class="text-muted small mb-0">Total complaints forwarded by Admins across all constituent campuses of University of Education Lahore</p>
+    </div>
+    {% if filters.campus %}
+      <a href="/authority/dashboard" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+        <i class="bi bi-x-circle me-1"></i> Clear Campus Filter
+      </a>
+    {% endif %}
+  </div>
+  <div class="card-body p-4">
+    <div class="row g-3">
+      {% for cs in campus_stats %}
+        {% set is_selected = (filters.campus == cs.campus or filters.campus == cs.campus_short) %}
+        {% set is_top = (top_campus and top_campus.campus == cs.campus and cs.total > 0) %}
+        <div class="col-md-6 col-lg-4">
+          <a href="/authority/dashboard?campus={{ cs.campus | urlencode }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.priority %}&priority={{ filters.priority }}{% endif %}" class="text-decoration-none">
+            <div class="p-3 rounded-3 border transition-all h-100 position-relative {% if is_selected %}border-primary bg-primary-subtle shadow-sm{% else %}bg-light border-light-subtle hover-shadow{% endif %}">
+              {% if is_top %}
+                <span class="badge position-absolute top-0 end-0 mt-2 me-2" style="background-color: #F59E0B; color: #1E293B; font-size: 10px;">
+                  <i class="bi bi-star-fill me-1"></i> Top Submitter
+                </span>
+              {% endif %}
+              <div class="fw-bold text-dark text-truncate pe-4" title="{{ cs.campus }}" style="font-size: 13.5px;">
+                {{ cs.campus_short }}
+              </div>
+              <div class="d-flex align-items-baseline gap-2 my-2">
+                <span class="display-6 fw-bold" style="color: #0B3D91; font-size: 26px;">{{ cs.total }}</span>
+                <span class="text-muted small">total forwarded</span>
+              </div>
+              <div class="d-flex flex-wrap gap-1 mt-2">
+                <span class="badge bg-warning text-dark border" style="font-size: 10px;">{{ cs.pending }} Pending</span>
+                <span class="badge bg-primary text-white" style="font-size: 10px;">{{ cs.in_progress }} Active</span>
+                <span class="badge bg-success text-white" style="font-size: 10px;">{{ cs.resolved }} Resolved</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Dynamic Filter Bar (Follows Admin Dashboard Styling) -->
+<form class="admin-filter-card" method="get" action="/authority/dashboard">
+  <div class="admin-filter-grid">
+    <div>
+      <label class="admin-filter-label" for="filterSearch">Search</label>
+      <input type="text" class="form-control admin-filter-input" id="filterSearch" name="q" value="{{ filters.q }}" placeholder="Complaint #, Student, Title...">
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterCampus">Campus</label>
+      <select class="form-select admin-filter-select" id="filterCampus" name="campus">
+        <option value="">All Campuses</option>
+        {% for camp in campuses %}
+          <option value="{{ camp }}" {% if filters.campus == camp or (filters.campus and filters.campus in camp) %}selected{% endif %}>{{ camp.split(',')[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterPriority">Priority</label>
+      <select class="form-select admin-filter-select" id="filterPriority" name="priority">
+        <option value="">All Priorities</option>
+        {% for p in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] %}
+          <option value="{{ p }}" {% if filters.priority == p %}selected{% endif %}>{{ p | capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-filter-label" for="filterStatus">Status</label>
+      <select class="form-select admin-filter-select" id="filterStatus" name="status">
+        <option value="">All Statuses</option>
+        <option value="PENDING" {% if filters.status == 'PENDING' %}selected{% endif %}>Pending</option>
+        <option value="IN_PROGRESS" {% if filters.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+        <option value="FORWARDED" {% if filters.status == 'FORWARDED' %}selected{% endif %}>Forwarded / Re-escalated</option>
+        <option value="RESOLVED" {% if filters.status == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-filter-gold w-100">
+        <i class="bi bi-funnel-fill"></i> Filter
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-1">
+  <span class="text-muted small">Showing {{ complaints|length }} forwarded record(s)</span>
+  <a href="/authority/complaints/export?q={{ filters.q or '' }}&campus={{ filters.campus or '' }}&priority={{ filters.priority or '' }}&status={{ filters.status or '' }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1 shadow-sm" style="font-size: 0.78rem;">
+    <i class="bi bi-file-earmark-spreadsheet"></i> Export to Excel / CSV
+  </a>
+</div>
+
+<!-- Forwarded Complaints Table Card (Matches Exact Admin Compact Table) -->
+<div class="complaint-table-card">
+  <div class="table-responsive w-100 mb-0">
+    <table class="table complaint-table-compact align-middle">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Student Info</th>
+          <th style="width: 12%;">Campus</th>
+          <th style="width: 22%;">Title &amp; Particulars</th>
+          <th style="width: 12%;">Category</th>
+          <th style="width: 8%; text-align: center;">Priority</th>
+          <th style="width: 14%;">Forwarded By &amp; Date</th>
+          <th style="width: 10%; text-align: center;">Current Status</th>
+          <th style="width: 8%; text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+          {% set latest_fwd = c.forwardings[-1] if (c.forwardings and c.forwardings|length > 0) else None %}
+          <tr class="{% if c.analysis and c.analysis.priority == 'CRITICAL' %}row-critical{% endif %}">
+            <!-- 1. Student Info -->
+            <td>
+              <div class="student-cell">
+                <div class="student-avatar-circle">
+                  {% if c.user and c.user.avatar_path %}
+                    <img src="{{ c.user.avatar_path }}" alt="{{ c.student_name }}" class="w-100 h-100 rounded-circle object-fit-cover">
+                  {% else %}
+                    <i class="bi bi-person-fill"></i>
+                  {% endif %}
+                </div>
+                <div class="student-info-meta">
+                  <div class="student-name-text">{{ c.student_name }}</div>
+                  <div class="student-sub-id">
+                    {{ c.complaint_number }}
+                    {% if c.student_id %}
+                      <span class="text-muted">({{ c.student_id }})</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. Campus -->
+            <td>
+              <span class="campus-pill-badge" title="{{ c.target_campus or c.originating_campus }}">
+                {{ (c.target_campus or c.originating_campus or '–').split(',')[0] }}
+              </span>
+            </td>
+
+            <!-- 3. Title & Description -->
+            <td>
+              <div class="complaint-title-cell fw-medium">
+                {{ c.title }}
+                {% if c.attachment_path %}
+                  <i class="bi bi-paperclip text-muted ms-1" title="Attached evidence: {{ c.attachment_name or 'Document/Image' }}"></i>
+                {% endif %}
+              </div>
+              <div class="text-muted small text-truncate" style="max-width: 280px; font-size: 11.5px;">
+                {{ c.complaint_text }}
+              </div>
+            </td>
+
+            <!-- 4. Category -->
+            <td>
+              {% if c.analysis %}
+                {% set cat_class = 'cat-other' if c.analysis.category == 'Other' else '' %}
+                <span class="category-badge-pill {{ cat_class }}">
+                  {{ c.analysis.category }}
+                </span>
+              {% else %}
+                <span class="text-muted">&ndash;</span>
+              {% endif %}
+            </td>
+
+            <!-- 5. Priority -->
+            <td class="text-center">
+              {% set prio = (latest_fwd and latest_fwd.priority) or (c.analysis and c.analysis.priority) or 'MEDIUM' %}
+              {% if prio == 'CRITICAL' %}
+                <span class="priority-pill-urgent">Urgent</span>
+              {% elif prio == 'HIGH' %}
+                <span class="priority-pill-high">High</span>
+              {% elif prio == 'MEDIUM' %}
+                <span class="priority-pill-medium">Medium</span>
+              {% else %}
+                <span class="priority-pill-low">Low</span>
+              {% endif %}
+              <div class="mt-1">
+                {{ sla_badge(c, c.analysis) }}
+              </div>
+            </td>
+
+            <!-- 6. Forwarded By & Date -->
+            <td>
+              <div class="fw-semibold text-dark text-nowrap" style="font-size: 12px;">
+                {{ latest_fwd.forwarded_by_name if latest_fwd else 'Campus Admin' }}
+              </div>
+              <div class="text-muted small text-truncate" style="font-size: 11px; max-width: 140px;">
+                {{ latest_fwd.sender_authority if latest_fwd else 'Campus Administration' }}
+              </div>
+              <div class="text-muted text-nowrap mt-0.5" style="font-size: 10.5px;">
+                <i class="bi bi-clock me-1"></i>{{ latest_fwd.forwarded_at | dt if latest_fwd else (c.created_at | dt) }}
+              </div>
+            </td>
+
+            <!-- 7. Current Status -->
+            <td class="text-center">
+              {% if c.status in ('RESOLVED', 'CLOSED', 'CLOSED_CONFIRMED', 'RESOLVED_AWAITING_CONFIRMATION') %}
+                <span class="status-pill-closed"><i class="bi bi-check-lg"></i> Resolved</span>
+              {% elif c.status in ('UNDER_REVIEW', 'WAITING_FOR_STUDENT') %}
+                <span class="status-pill-review"><i class="bi bi-hourglass-split"></i> Review</span>
+              {% elif c.status in ('IN_PROGRESS', 'ASSIGNED') %}
+                <span class="status-pill-progress"><i class="bi bi-play-fill"></i> In Progress</span>
+              {% elif c.status in ('NEW', 'PENDING') %}
+                <span class="status-pill-new">Pending</span>
+              {% elif c.status == 'REJECTED' %}
+                <span class="badge rounded-pill" style="background-color: #FEE2E2; color: #DC2626; font-size: 11px; font-weight: 600; padding: 4px 8px;">Rejected</span>
+              {% else %}
+                <span class="badge rounded-pill bg-secondary" style="font-size: 11px;">{{ c.status | replace('_', ' ') | title }}</span>
+              {% endif %}
+            </td>
+
+            <!-- 8. Action -->
+            <td class="text-center">
+              <a class="action-view-btn" href="/authority/complaints/{{ c.id }}">
+                <i class="bi bi-eye"></i> View
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+              No complaints forwarded to this authority matching the specified criteria.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination / Summary Footer Matching Reference -->
+  <div class="table-pagination-footer">
+    <div class="text-muted small fw-medium">
+      Showing 1 to {{ complaints|length }} of {{ total }} complaints
+    </div>
+    <nav aria-label="Table pagination">
+      <ul class="pagination pagination-sm mb-0 align-items-center gap-1">
+        <li class="page-item disabled">
+          <span class="page-link rounded px-2 py-1 text-muted border bg-white" style="font-size: 11px; cursor: default;"><i class="bi bi-chevron-left"></i></span>
+        </li>
+        <li class="page-item active">
+          <span class="page-link rounded px-2.5 py-1 text-white fw-bold border-0" style="background-color: #0A3D91; font-size: 11px;">1</span>
+        </li>
+        <li class="page-item disabled">
+          <span class="page-link rounded px-2 py-1 text-muted border bg-white" style="font-size: 11px; cursor: default;"><i class="bi bi-chevron-right"></i></span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endblock %}
